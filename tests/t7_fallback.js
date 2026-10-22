@@ -5,7 +5,7 @@ const ENV = require('./env');
   for (const mode of ['no-bundle', 'no-music-files']) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await ctx.addInitScript(() => { window.requestAnimationFrame = (cb) => { (window.__raf = window.__raf || []).push(cb); return 1; }; });
-    if (mode === 'no-bundle') await ctx.route('**/data/assets.js', (r) => r.abort());
+    if (mode === 'no-bundle') await ctx.route(/data\/(assets|bundle_\w+)\.js$/, (r) => r.abort());
     else await ctx.route('**/data/music/*.mp3', (r) => r.abort());
     const page = await ctx.newPage();
     const errs = [];
