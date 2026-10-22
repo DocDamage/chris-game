@@ -427,12 +427,13 @@ if (sdir) {
 
 /* ------------------------------------------------------------------ write bundle */
 fs.mkdirSync(OUT, { recursive: true });
-const { splitBundles, loadAll } = require('./split-bundles');
-// ui.* / sk.* images belong to pack-ui / pack-sidekicks, so keep them when the rest is rebuilt
-const prev = loadAll();
-const kept = {};
-for (const k of Object.keys(prev.img || {})) if (/^(ui|sk)\./.test(k)) kept[k] = prev.img[k];
-const sizes = splitBundles({ img: Object.assign(kept, img), sfx, loops, music, meta });
+const { splitBundles } = require('./split-bundles');
+// the sidekick and UI packs are built by their own tools
+const sidekickPack = require('./sidekick-pack').packSidekicks();
+meta.sidekicks = sidekickPack.meta;
+const uiPack = require('./pack-ui').packUI();
+meta.ui = uiPack.meta;
+const sizes = splitBundles({ img: Object.assign({}, img, sidekickPack.img, uiPack.img), sfx, loops, music, meta });
 const mb = (n) => (n / 1048576).toFixed(2) + ' MB';
 console.log('images :', Object.keys(img).length, '(' + mb(stats.pngBytes) + ' raw)');
 console.log('sounds :', Object.keys(sfx).length, 'names /', stats.wav, 'clips,', Object.keys(loops).length, 'loops (' + mb(stats.wavBytes) + ' raw)');
