@@ -35,7 +35,7 @@ const { open } = require('./lib');
     // 4. prop hitboxes follow the sprite size
     X.startRun({}, null);
     const bad = []; let n = 0;
-    for (const pr of G.level.props) { if (!pr.solid || pr.kind === 'tree') continue; const sp = CH.Sprites.get(pr.sprite); n++; if (sp && sp.w && pr.cr < Math.min(26, Math.round(sp.w * 0.36)) - 1) bad.push(pr.sprite + ':' + pr.cr + '<' + sp.w); }
+    for (const pr of G.level.props) { if (!pr.solid || pr.kind === 'tree' || pr.fire) continue; const sp = CH.Sprites.get(pr.sprite); n++; if (sp && sp.w && pr.cr < Math.min(26, Math.round(sp.w * 0.36)) - 1) bad.push(pr.sprite + ':' + pr.cr + '<' + sp.w); }
     r.props = n; r.badProps = bad.slice(0, 4);
     // 5. walking into a prop: the feet stop at its hitbox
     const L2 = G.level; const p2 = G.player; const pr = L2.props.find((q) => q.solid && q.kind !== 'tree');

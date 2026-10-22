@@ -1066,11 +1066,20 @@
   E.AI = AI;
 
   /* ---------------------------------------------------------------- rendering */
+  /* a contact shadow: a stepped ellipse, darker at the core, so a body clearly stands on the ground */
   function shadow(ctx, x, y, w) {
-    ctx.fillStyle = 'rgba(20,10,30,0.32)';
-    ctx.fillRect(Math.round(x - w / 2 + 2), Math.round(y - 1), w - 4, 1);
-    ctx.fillRect(Math.round(x - w / 2), Math.round(y), w, 1);
-    ctx.fillRect(Math.round(x - w / 2 + 2), Math.round(y + 1), w - 4, 1);
+    w = Math.max(8, w + 6);
+    const h = Math.max(3, Math.round(w * 0.3));
+    const cx = Math.round(x), cy = Math.round(y);
+    for (let layer = 0; layer < 2; layer++) {
+      const k = layer ? 0.62 : 1;
+      ctx.fillStyle = layer ? 'rgba(10,5,20,0.28)' : 'rgba(10,5,20,0.3)';
+      const rh = Math.max(1, Math.round((h / 2) * k));
+      for (let j = -rh; j <= rh; j++) {
+        const half = Math.round((w / 2) * k * Math.sqrt(1 - (j * j) / ((rh + 0.5) * (rh + 0.5))));
+        ctx.fillRect(cx - half, cy + j, half * 2, 1);
+      }
+    }
   }
   E.shadow = shadow;
 

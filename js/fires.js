@@ -82,7 +82,10 @@
     let k = 0;
     for (const [fx, fy] of [[0.17, 0.2], [0.83, 0.2], [0.17, 0.8], [0.83, 0.8]]) {
       const x = U.clamp(a.w * fx, m, a.w - m), y = U.clamp(a.h * fy, m, a.h - m);
-      if (clearOf(a.props, x, y, 54)) Fires.place(a.props, x, y, color, k++ % 2 === 0);
+      for (const [ox, oy] of [[0, 0], [50, 0], [-50, 0], [0, 50], [0, -50], [90, 40], [-90, -40]]) {
+        const px = U.clamp(x + ox, m, a.w - m), py = U.clamp(y + oy, m, a.h - m);
+        if (clearOf(a.props, px, py, 54)) { Fires.place(a.props, px, py, color, k++ % 2 === 0); break; }
+      }
     }
     return a;
   });
