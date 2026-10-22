@@ -793,8 +793,14 @@
       ctx.globalAlpha = fade;
       if (art) {
         // no death strip in the hero packs: play the hurt reaction, then topple over
-        const k = U.easeOut(Math.min(1, p.deathT / 0.5));
-        S.draw(ctx, hero, x, y + foot + k * 3, { frame: S.frameAt(hero, 'hurt', Math.min(0.99, p.deathT / 0.5)), flip: p.face < 0, rot: k * (Math.PI / 2) * (p.face < 0 ? -1 : 1) * 0.92 });
+        const hs = S.get(hero);
+        if (hs && hs.anims && hs.anims.death) {
+          // Neon Specter ships a real death animation
+          S.draw(ctx, hero, x, y + foot, { frame: S.frameAt(hero, 'death', Math.min(0.99, p.deathT / 1.0)), flip: false });
+        } else {
+          const k = U.easeOut(Math.min(1, p.deathT / 0.5));
+          S.draw(ctx, hero, x, y + foot + k * 3, { frame: S.frameAt(hero, 'hurt', Math.min(0.99, p.deathT / 0.5)), flip: p.face < 0, rot: k * (Math.PI / 2) * (p.face < 0 ? -1 : 1) * 0.92 });
+        }
       } else S.draw(ctx, 'player_dead', x, y + 4, { flip: p.face < 0 });
       ctx.globalAlpha = 1;
       if (down) {

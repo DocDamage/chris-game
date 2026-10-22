@@ -52,7 +52,7 @@ const { open } = require('./lib');
       res.boss.broke = pt.dead;
     }
     // hero sprites
-    res.sprites = ['Wrangler', 'Foreman', 'Gunslinger'].map((id) => CH.Sprites.has('hero.' + id)).join(',');
+    res.sprites = ['Enchantress', 'Stranger', 'Specter'].map((id) => CH.Sprites.has('hero.' + id)).join(',');
     res.art = CH.Art.on;
     return res;
   });

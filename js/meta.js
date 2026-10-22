@@ -28,12 +28,12 @@
 
   /* ------------------------------------------------------------------ new heroes */
   const NEW_HEROES = [
-    { id: 'Wrangler', name: 'Intern Wrangler', hint: 'Win a run', test: (s) => s.wins >= 1, mods: { hp: -5, speed: 0.02, dmg: -0.05, crit: 0 }, special: 'summon', specialName: 'INTERN SWARM', cooldown: 24, icon: 'ic_multi', blurb: 'Summoner. Passive: an intern joins you every 8 kills. Q: Intern Swarm - five interns fight for you.' },
-    { id: 'Foreman', name: 'Site Foreman', hint: 'Defeat 10 bosses in total', test: (s) => s.bossesDefeated >= 10, mods: { hp: 20, speed: -0.04, dmg: 0, crit: 0 }, special: 'fortify', specialName: 'FORTIFY', cooldown: 26, icon: 'ic_weapon', blurb: 'Builder. Passive: barricades are free. Q: Fortify - a ring of barricades, turrets and a shield.' },
-    { id: 'Gunslinger', name: 'Glass Gunslinger', hint: 'Reach wave 8', test: (s) => s.highestWave >= 8, mods: { hp: -35, speed: 0.05, dmg: 0.22, crit: 0.15 }, special: 'deadeye', specialName: 'DEAD EYE', cooldown: 25, icon: 'ic_crit', blurb: 'Glass cannon. Q: Dead Eye - huge crit chance and fire rate for 5s.' },
+    { id: 'Enchantress', name: 'Elven Enchantress', hint: 'Win a run', test: (s) => s.wins >= 1, mods: { hp: -5, speed: 0.02, dmg: -0.05, crit: 0 }, special: 'spiritbloom', specialName: 'SPIRIT BLOOM', cooldown: 24, icon: 'ic_multi', blurb: 'Summoner and healer. Passive: a wisp joins you every 8 kills; healing +20%. Q: Spirit Bloom - forest spirits erupt and fight for 8s, and heal nearby allies.' },
+    { id: 'Stranger', name: 'The Grinning Stranger', hint: 'Defeat 10 bosses in total', test: (s) => s.bossesDefeated >= 10, mods: { hp: 20, speed: -0.04, dmg: 0, crit: 0 }, special: 'horrorstare', specialName: 'HORROR STARE', cooldown: 26, icon: 'ic_weapon', blurb: 'Fear and control. Passive: barricades are free effigies that taunt enemies; feared kills leave a shadow. Q: Horror Stare - enemies in a cone flee and take +25% damage.' },
+    { id: 'Specter', name: 'Neon Specter', hint: 'Reach wave 8', test: (s) => s.highestWave >= 8, mods: { hp: -35, speed: 0.05, dmg: 0.22, crit: 0.15 }, special: 'energyslash', specialName: 'ENERGY SLASH', cooldown: 18, icon: 'ic_crit', blurb: 'Glass-cannon blade dancer. Passive: crit chance builds while you are not hit. Q: Energy Slash - a dash-slash line that always crits.' },
   ];
   for (const h of NEW_HEROES) if (!B.heroes.some((x) => x.id === h.id)) B.heroes.push(h);
-  if (CH.Kit && CH.Kit.byHero) Object.assign(CH.Kit.byHero, { Wrangler: 'tech', Foreman: 'junk', Gunslinger: 'magic' });
+  if (CH.Kit && CH.Kit.byHero) Object.assign(CH.Kit.byHero, { Enchantress: 'toxic', Stranger: 'wind', Specter: 'glitch' });
   X.statHooks.push((p, s) => {
     if (p.deadeyeT > 0) {
       s.critChance += 0.5;
@@ -128,9 +128,9 @@
     }
     return r;
   });
-  /* Foreman: barricades cost nothing */
+  /* Stranger: barricades cost nothing */
   wrap(CH.Player.prototype, 'deployBarricade', function (orig, g) {
-    const free = X.heroIs(this, 'Foreman');
+    const free = X.heroIs(this, 'Stranger');
     if (free) {
       Storage.resources.wood += 2;
       Storage.resources.scrap += 1;
@@ -194,7 +194,7 @@
     const p = e.lastHitBy;
     if (p && p.hero) {
       pst(p).kills++;
-      if (X.heroIs(p, 'Wrangler') && ++p.wkills >= 8) {
+      if (X.heroIs(p, 'Enchantress') && ++p.wkills >= 8) {
         p.wkills = 0;
         intern(p, 14);
         FX.text(p.x, p.y - 26, 'NEW INTERN', '#3ccbe6', 1);

@@ -439,8 +439,8 @@
     const A = CH.Assets.images;
     let ok = 0;
     for (const h of CH.Balance.heroes) if (registerHero(h.id)) ok++;
-    // the extra heroes reuse a base hero's animation set in their own colours
-    const VARIANTS = { Wrangler: ['Mercenary', 'hue-rotate(150deg) saturate(1.2)'], Foreman: ['Dreadbloom', 'hue-rotate(-60deg) saturate(1.4) brightness(1.1)'], Gunslinger: ['Vexaria', 'hue-rotate(200deg) brightness(1.15)'] };
+    // only when their own pack is missing: the extra heroes reuse a base hero's animation set in their own colours
+    const VARIANTS = { Enchantress: ['Mercenary', 'hue-rotate(150deg) saturate(1.2)'], Stranger: ['Dreadbloom', 'hue-rotate(-60deg) saturate(1.4) brightness(1.1)'], Specter: ['Vexaria', 'hue-rotate(200deg) brightness(1.15)'] };
     for (const id of Object.keys(VARIANTS)) if (!S.has('hero.' + id)) S.variant('hero.' + id, 'hero.' + VARIANTS[id][0], VARIANTS[id][1]);
     for (const t of Object.keys(ENEMY_ART)) if (registerEnemy(t, ENEMY_ART[t])) ok++;
     registerBosses();

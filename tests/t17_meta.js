@@ -8,7 +8,7 @@ const { open } = require('./lib');
     res.heroes = CH.Balance.heroes.map((h) => h.id).join(',');
     res.ach = M.ACH.length;
     // new heroes
-    for (const id of ['Wrangler', 'Foreman', 'Gunslinger']) {
+    for (const id of ['Enchantress', 'Stranger', 'Specter']) {
       S.settings.hero = id;
       X.startRun({}, null); G._scriptTesting = true; G.startWave(2); god();
       const p = G.player; res[id] = { hero: p.hero.id };
@@ -17,7 +17,7 @@ const { open } = require('./lib');
       p.hero.special && p.castEffect(G);
       for (let i = 0; i < 30; i++) G.update(1 / 30);
       res[id].turrets = (X.turrets || []).length - t0;
-      res[id].props = id === 'Foreman' ? G.arena.props.filter((q) => /barricade_x/.test(q.id)).length : 0;
+      res[id].props = id === 'Stranger' ? G.arena.props.filter((q) => /barricade_x/.test(q.id)).length : 0;
       res[id].dead = !!(p.deadeyeT > 0);
     }
     S.settings.hero = CH.Balance.heroes[0].id;

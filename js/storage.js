@@ -8,7 +8,26 @@
      Each takes and returns a plain object and must tolerate missing fields. */
   const MIGRATIONS = {
     1(raw) {
-      return raw; // v1 -> v2: framework only; later steps rename heroes, wave -> depth, add inventory
+      // v1 -> v2: the placeholder heroes became the Enchantress, Stranger and Specter (PLAN.md D2).
+      // Later steps in this table: wave -> depth, inventory / sidekicks / quests.
+      const R = { Wrangler: 'Enchantress', Foreman: 'Stranger', Gunslinger: 'Specter' };
+      const fix = (id) => (typeof id === 'string' && R[id] ? R[id] : id);
+      if (raw.settings && typeof raw.settings === 'object') {
+        raw.settings.hero = fix(raw.settings.hero);
+        raw.settings.hero2 = fix(raw.settings.hero2);
+      }
+      if (Array.isArray(raw.unlocked)) raw.unlocked = raw.unlocked.map(fix);
+      const m = raw.meta;
+      if (m && typeof m === 'object') {
+        // per-hero tables inside the add-on data
+        for (const t of ['mastery', 'alt', 'loadout', 'skin', 'maxedW', 'maxedU']) {
+          const o = m[t];
+          if (!o || typeof o !== 'object') continue;
+          for (const old of Object.keys(R)) if (old in o) { o[R[old]] = o[old]; delete o[old]; }
+        }
+        if (Array.isArray(m.history)) for (const h of m.history) if (h && typeof h === 'object') h.hero = fix(h.hero);
+      }
+      return raw;
     },
   };
 
