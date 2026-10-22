@@ -474,11 +474,17 @@
       ctx.ellipse(x, y + 6, 22 + (ex.open ? Math.sin(t * 4) * 2 : 0), 11, 0, 0, U.TAU);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.fillStyle = '#d1c29a';
-      ctx.fillRect(x - 11, y - 30, 22, 22);
-      sign(7, x, y - 22 + Math.sin(t * 3) * (ex.open ? 1.5 : 0), 26, ex.open ? 1 : 0.5);
-      if (!ex.open) CH.Font.draw(ctx, 'SEALED', x, y - 40, '#b9b4c8', 1, true);
+      const gh = ex.gate && CH.Sheets ? CH.Sheets.info[ex.gate] || (CH.Sheets.sprite(ex.gate), CH.Sheets.info[ex.gate]) : null;
+      let top = 22;
+      if (gh) { // the pack's door, gate or stairs frames the exit pad
+        CH.Sprites.draw(ctx, CH.Sheets.sprite(ex.gate), x, y + 2, { alpha: ex.open ? 1 : 0.6 });
+        top = gh.h + 6;
+      } else { ctx.fillStyle = '#d1c29a'; ctx.fillRect(x - 11, y - 30, 22, 22); }
+      sign(7, x, y - top + Math.sin(t * 3) * (ex.open ? 1.5 : 0), 26, ex.open ? 1 : 0.5);
+      if (!ex.open) CH.Font.draw(ctx, 'SEALED', x, y - top - 14, '#b9b4c8', 1, true);
     }
+    const en = L.entrance;
+    if (en && en.gate && CH.Sheets && !L.isTown && onScreen(en)) CH.Sprites.draw(ctx, CH.Sheets.sprite(en.gate), sx(en.x), sy(en.y) - 30);
     for (const w of L.waypoints) {
       if (!onScreen(w) || !seen(w)) continue;
       const x = sx(w.x), y = sy(w.y);
@@ -492,23 +498,18 @@
     for (const s of L.shrines) {
       if (!onScreen(s) || !seen(s)) continue;
       const x = sx(s.x), y = sy(s.y);
-      ctx.fillStyle = s.used ? '#2a2236' : '#b55088';
-      ctx.beginPath();
-      ctx.ellipse(x, y + 4, 12, 6, 0, 0, U.TAU);
-      ctx.fill();
-      if (!s.used) { ctx.fillStyle = '#d1c29a'; ctx.fillRect(x - 8, y - 22, 16, 16); sign(5, x, y - 14 + Math.sin(t * 3) * 1.4, 18, 1); }
+      if (CH.Sprites.has('obj.occult_altar')) CH.Sprites.draw(ctx, 'obj.occult_altar', x, y + 10, { alpha: s.used ? 0.55 : 1, tint: s.used ? '#000000' : '#ff2bd6', tintA: s.used ? 0.35 : 0.15 + 0.1 * Math.sin(t * 4) });
+      if (!s.used) sign(5, x, y - 26 + Math.sin(t * 3) * 1.4, 18, 1);
     }
     for (const c of L.chests) {
       if (!onScreen(c) || !seen(c)) continue;
       const x = sx(c.x), y = sy(c.y);
       CH.Enemies.shadow(ctx, x, y + 8, 18);
-      ctx.fillStyle = '#1b1226';
-      ctx.fillRect(x - 10, y - 8, 20, 16);
-      ctx.fillStyle = c.opened ? '#4a3a2a' : '#a8602c';
-      ctx.fillRect(x - 9, y - 7, 18, c.opened ? 5 : 14);
-      ctx.fillStyle = c.opened ? '#3a2a1a' : '#d1a964';
-      ctx.fillRect(x - 9, y - 7, 18, 3);
-      if (!c.opened) { ctx.fillStyle = '#fee761'; ctx.fillRect(x - 2, y - 2, 4, 4); }
+      const chests = CH.Assets.images['obj.chests'];
+      if (chests) { // the pack's chests: wood, steel, gold and the blue relic chest by tier; row 2 is the opened lid
+        const col = c.secret ? 3 : c.tier >= 7 ? 3 : c.tier >= 5 ? 2 : c.tier >= 3 ? 1 : 0;
+        ctx.drawImage(chests, col * 36, c.opened ? 32 : 0, 36, 32, x - 18, y - 23, 36, 32);
+      }
     }
   };
   const origDrawBg = CH.Arenas.drawBg;

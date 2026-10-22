@@ -13,18 +13,56 @@
 
   /* per-biome look: floor painter, wall colours, light level */
   const STYLE = {
-    backyard: { floor: 'sheet', key: 'tile.grass', wall: '#2c5a22', top: '#3f7a30', edge: '#1a3a14', speck: ['#ffffff14', '#00000014'] },
-    office: { floor: 'check', a: '#5d6b8a', b: '#667597', wall: '#2a3045', top: '#434c6b', edge: '#171b2a' },
-    glitch: { floor: 'solid', a: '#1b1226', wall: '#0f0b1a', top: '#251a3c', edge: '#ff2bd6' },
-    zombie: { floor: 'pattern', key: 'tile.zombie_street', wall: '#1c1e24', top: '#3a3e48', edge: '#0d0e12' },
-    wasteland: { floor: 'pattern', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
-    volcano: { floor: 'pattern', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
-    dungeon: { floor: 'pattern', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
-    frozen: { floor: 'solid', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256' },
+    backyard: { floor: 'sheet', key: 'tile.grass', sheet: 'tile.hedge', wall: '#2c5a22', top: '#3f7a30', edge: '#1a3a14', speck: ['#ffffff14', '#00000014'] },
+    office: { floor: 'pattern', key: 'tile.dungeon_floor', ftint: '#93a6dc', sheet: 'wall.office', a: '#5d6b8a', b: '#667597', wall: '#2a3045', top: '#434c6b', edge: '#171b2a' },
+    glitch: { floor: 'pattern', key: 'tile.dungeon_floor', ftint: '#8a3ce0', sheet: 'wall.glitch', a: '#1b1226', wall: '#0f0b1a', top: '#251a3c', edge: '#ff2bd6' },
+    zombie: { floor: 'pattern', sheet: 'wall.zombie', key: 'tile.zombie_street', wall: '#1c1e24', top: '#3a3e48', edge: '#0d0e12' },
+    wasteland: { floor: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
+    volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
+    dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
+    frozen: { floor: 'sheet', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256' },
   };
   Level_style_default();
   function Level_style_default() { STYLE.default = STYLE.dungeon; }
 
+  /* the 43px ground textures carry a transparent rim; crop to the fully opaque core so they tile without seams */
+  const seams = {};
+  function seamless(key) {
+    if (seams[key]) return seams[key];
+    const im = CH.Assets.images[key];
+    const c0 = document.createElement('canvas');
+    c0.width = im.width; c0.height = im.height;
+    const g0 = c0.getContext('2d');
+    g0.drawImage(im, 0, 0);
+    const d = g0.getImageData(0, 0, c0.width, c0.height).data;
+    const solidAt = (x, y) => d[(y * c0.width + x) * 4 + 3] > 200;
+    let x1 = 0, y1 = 0, x2 = c0.width - 1, y2 = c0.height - 1;
+    const rowFull = (y) => { for (let x = x1; x <= x2; x++) if (!solidAt(x, y)) return false; return true; };
+    const colFull = (x) => { for (let y = y1; y <= y2; y++) if (!solidAt(x, y)) return false; return true; };
+    for (let n = 0; n < 12; n++) { let ch = false; if (!rowFull(y1)) { y1++; ch = true; } if (!rowFull(y2)) { y2--; ch = true; } if (!colFull(x1)) { x1++; ch = true; } if (!colFull(x2)) { x2--; ch = true; } if (!ch) break; }
+    const c = document.createElement('canvas');
+    c.width = Math.max(8, x2 - x1 + 1); c.height = Math.max(8, y2 - y1 + 1);
+    c.getContext('2d').drawImage(c0, x1, y1, c.width, c.height, 0, 0, c.width, c.height);
+    return (seams[key] = c);
+  }
+  const tinted = {};
+  function wallSheet(st) { return tintOf(CH.Assets.images[st.sheet], st.sheet, st.tint); }
+  function tintOf(im, name, tint) {
+    if (!im) return null;
+    if (!tint) return im;
+    const k = name + tint;
+    if (tinted[k]) return tinted[k];
+    const c = document.createElement('canvas');
+    c.width = im.width; c.height = im.height;
+    const g = c.getContext('2d');
+    g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = tint;
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(im, 0, 0);
+    return (tinted[k] = c);
+  }
   const canvas = (w, h) => {
     const c = document.createElement('canvas');
     c.width = w;
@@ -302,9 +340,18 @@
       const st = this.style;
       const x0 = cx * size, y0 = cy * size;
       this.paintFloor(g, st, x0, y0, size);
+      if (this.decals) for (const d of this.decals) { // floor decals from the sliced sheets
+        const im = CH.Assets.images[d.key];
+        if (!im) continue;
+        const dx = Math.round(d.x - im.width / 2 - x0), dy = Math.round(d.y - im.height / 2 - y0);
+        if (dx > size || dy > size + 12 || dx + im.width < 0 || dy + im.height < 0) continue;
+        g.globalAlpha = d.a || 1;
+        if (d.fx || d.fy) { g.save(); g.translate(dx + (d.fx ? im.width : 0), dy + (d.fy ? im.height : 0)); g.scale(d.fx ? -1 : 1, d.fy ? -1 : 1); g.drawImage(im, 0, 0); g.restore(); }
+        else g.drawImage(im, dx, dy);
+        g.globalAlpha = 1;
+      }
       // walls: flat tops with a lit rim, plus a short dark face on every open tile below a wall
       const IM = CH.Assets.images;
-      const wallPat = st.wallKey && IM[st.wallKey] ? g.createPattern(IM[st.wallKey], 'repeat') : null;
       for (let ty = 0; ty < CHUNK; ty++) {
         for (let tx = 0; tx < CHUNK; tx++) {
           const gx = cx * CHUNK + tx, gy = cy * CHUNK + ty;
@@ -319,18 +366,7 @@
             }
             continue;
           }
-          const edgeS = !this.solid(gx, gy + 1), edgeN = !this.solid(gx, gy - 1), edgeW = !this.solid(gx - 1, gy), edgeE = !this.solid(gx + 1, gy);
-          const deep = !edgeS && !edgeN && !edgeW && !edgeE && this.solid(gx - 1, gy - 1) && this.solid(gx + 1, gy + 1) && this.solid(gx + 1, gy - 1) && this.solid(gx - 1, gy + 1);
-          if (deep) { g.fillStyle = st.wall; g.fillRect(px, py, TS, TS); continue; }
-          if (wallPat) { g.save(); g.translate(0, 0); g.fillStyle = wallPat; g.fillRect(px, py, TS, TS); g.restore(); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(px, py, TS, TS); }
-          else { g.fillStyle = st.wall; g.fillRect(px, py, TS, TS); }
-          g.fillStyle = st.top;
-          g.fillRect(px + 1, py + 1, TS - 2, TS - 8);
-          // lit rim on open sides
-          g.fillStyle = 'rgba(255,255,255,0.14)';
-          if (edgeN) g.fillRect(px, py, TS, 2);
-          if (edgeW) g.fillRect(px, py, 2, TS);
-          if (edgeS) { g.fillStyle = st.edge; g.fillRect(px, py + TS - 7, TS, 7); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(px, py + TS, TS, 4); }
+          this.paintWall(g, st, gx, gy, px, py);
           if (v === CRACKED) {
             g.strokeStyle = '#000000aa';
             g.lineWidth = 1;
@@ -343,23 +379,39 @@
       this.chunks.set(key, c);
       return c;
     }
+    /* walls are autotiled from the packs' 9-slice wall sheets (hedge / snowy rock, tinted per biome): four 16px
+       sub-tiles per cell, each picking its edge piece from which of its own neighbours are open floor */
+    paintWall(g, st, gx, gy, px, py) {
+      const sheet = wallSheet(st);
+      if (!sheet) { g.fillStyle = st.wall; g.fillRect(px, py, TS, TS); return; }
+      const open = (sx, sy) => !this.solid(sx >> 1, sy >> 1);
+      for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+        const sx = gx * 2 + i, sy = gy * 2 + j;
+        const n = open(sx, sy - 1), so = open(sx, sy + 1), w = open(sx - 1, sy), e = open(sx + 1, sy);
+        let col = w ? 0 : e ? 2 : 1, row = n ? 0 : so ? 2 : 1;
+        let u = col, vv = row;
+        if (col === 1 && row === 1) { const r = ((sx * 73856093) ^ (sy * 19349663)) >>> 0; const f = [[1, 1], [5, 2], [6, 2], [7, 2]][r % 4]; u = f[0]; vv = f[1]; }
+        g.drawImage(sheet, u * 16, vv * 16, 16, 16, px + i * 16, py + j * 16, 16, 16);
+      }
+    }
     paintFloor(g, st, x0, y0, size) {
       const IM = CH.Assets.images;
       // a deterministic per-tile hash keeps the speckle stable when a chunk is rebuilt
       const h = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
       if (st.floor === 'sheet' && IM[st.key]) {
-        const im = IM[st.key];
+        const im = tintOf(IM[st.key], st.key, st.ftint);
         for (let y = 0; y < size; y += 16) for (let x = 0; x < size; x += 16) g.drawImage(im, 16, 16, 16, 16, x, y, 16, 16);
         for (let y = 0; y < size; y += 16) for (let x = 0; x < size; x += 16) {
           const r = h((x0 + x) / 16, (y0 + y) / 16);
           if (r < 0.45) { g.fillStyle = r < 0.22 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; g.fillRect(x + ((r * 977) | 0) % 14, y + ((r * 613) | 0) % 14, 2, 1); }
         }
       } else if (st.floor === 'pattern' && IM[st.key]) {
-        const pat = g.createPattern(IM[st.key], 'repeat');
+        const tex = tintOf(seamless(st.key), 'seam:' + st.key, st.ftint);
+        const pat = g.createPattern(tex, 'repeat');
         g.save();
-        g.translate(-(x0 % IM[st.key].width), -(y0 % IM[st.key].height));
+        g.translate(-(x0 % tex.width), -(y0 % tex.height));
         g.fillStyle = pat;
-        g.fillRect(0, 0, size + IM[st.key].width, size + IM[st.key].height);
+        g.fillRect(0, 0, size + tex.width, size + tex.height);
         g.restore();
       } else if (st.floor === 'check') {
         for (let y = 0; y < size; y += 16) for (let x = 0; x < size; x += 16) { g.fillStyle = ((x0 + x) / 16 + (y0 + y) / 16) % 2 ? st.b : st.a; g.fillRect(x, y, 16, 16); }

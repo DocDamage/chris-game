@@ -192,7 +192,7 @@
     }
 
     // hitbox from the picture: a crate or a pillar blocks about a third of its sprite's width (trees keep the trunk)
-    const sp = solid && kind !== 'tree' ? S.get(name) : null;
+    const sp = solid && kind !== 'tree' && kind !== 'fire' ? S.get(name) : null;
     if (sp && sp.w) cr = Math.max(cr, Math.min(26, Math.round(sp.w * 0.36)));
     props.push({
       id: 'prop_' + props.length,

@@ -278,7 +278,7 @@ fog of war and a minimap); boss stages stay arena fights.
 
 ### Tests
 
-`tests/` now holds `t1` to `t30`. New ones: `t20_storage` (save versions and migrations), `t21_assets` (every asset of the
+`tests/` now holds `t1` to `t34` (`t34_fires_walls`: real tile walls, campfires, wind, shadows). New ones: `t20_storage` (save versions and migrations), `t21_assets` (every asset of the
 UI pack, heroes and sidekicks is packed), `t22_newheroes`, `t23_shop`, `t24_sidekicks`, `t25_levelgen`, `t26_levels`,
 `t27_items` (gear, quests, tiers, sidekick unlocks), `t28_town`, `t29_postfx`, `t30_menus`. The older tests run in wave mode
 without sidekicks and with the shader off; `open({ levels, sidekicks, fx })` in `tests/lib.js` turns those on.

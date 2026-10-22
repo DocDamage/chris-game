@@ -27,7 +27,8 @@ uniform sampler2D uScene; uniform sampler2D uMask; uniform sampler2D uFloor;
 uniform vec2 uRes; uniform float uTime;
 uniform vec3 uTint; uniform float uSat; uniform float uContrast; uniform float uVig;
 uniform float uDark; uniform vec3 uAmb;
-uniform vec4 uL0[${MAXL}]; uniform vec3 uL1[${MAXL}]; uniform int uLN;
+uniform vec4 uL0[${MAXL}]; uniform vec3 uL1[${MAXL}]; uniform vec2 uL2[${MAXL}]; uniform int uLN;
+uniform sampler2D uOcc; uniform float uOccOn;
 uniform float uFlash; uniform float uRain; uniform float uHaze; uniform float uBliz; uniform float uGlitch;
 uniform float uLow; uniform float uFog; uniform float uPud; uniform vec2 uHero;
 uniform float uBloom;
@@ -77,14 +78,23 @@ void main(){
   // light map: ambient fades to a cold dark at night, lights punch holes into it
   vec3 light = mix(vec3(1.0), uAmb, uDark);
   vec3 glow = vec3(0.0);
+  bool inOcc = uOccOn > 0.5 && texture(uOcc, uv).a > 0.5;
   for (int i = 0; i < ${MAXL}; i++) {
     if (i >= uLN) break;
-    vec4 a = uL0[i];
+    vec4 a = uL0[i]; vec2 fl = uL2[i];
     float dist = distance(px, a.xy);
     float f = 1.0 - smoothstep(0.0, a.z, dist);
     f = f * f * (1.0 + 0.06 * sin(uTime*7.0 + float(i)));
-    light += uL1[i] * f * a.w * uDark * 1.35;
-    glow += uL1[i] * f * f * a.w * 0.22 * uDark * uBloom;
+    // shadows: march from this pixel toward the light through the occluder map (walls and solid props)
+    float sh = 1.0;
+    if (fl.x > 0.5 && uOccOn > 0.5 && f > 0.002 && !inOcc) {
+      float hits = 0.0;
+      for (int k = 1; k <= 14; k++) hits += texture(uOcc, mix(px, a.xy, float(k) / 15.0) / uRes).a > 0.5 ? 1.0 : 0.0;
+      sh = 1.0 - 0.88 * clamp(hits / 3.0, 0.0, 1.0);
+    }
+    float dk = max(uDark, fl.y);
+    light += uL1[i] * f * a.w * dk * 1.35 * sh;
+    glow += uL1[i] * f * f * a.w * 0.22 * dk * uBloom * sh;
   }
   col = col * light + glow;
   // blizzard whiteout: you only see around your hero
@@ -122,7 +132,7 @@ void main(){
     frozen: { tint: [0.9, 1.0, 1.1], sat: 0.88, con: 1.08, vig: 0.3, fog: 0, haze: 0 },
   };
 
-  let gl = null, prog = null, vbo = null, texScene = null, texMask = null, texFloor = null, loc = {}, fx = null;
+  let gl = null, prog = null, vbo = null, texScene = null, texMask = null, texFloor = null, texOcc = null, loc = {}, fx = null;
 
   function compile(type, src) {
     const s = gl.createShader(type);
@@ -162,13 +172,15 @@ void main(){
       const a = gl.getAttribLocation(prog, 'aPos');
       gl.enableVertexAttribArray(a);
       gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-      for (const n of ['uScene', 'uMask', 'uFloor', 'uRes', 'uTime', 'uTint', 'uSat', 'uContrast', 'uVig', 'uDark', 'uAmb', 'uL0', 'uL1', 'uLN', 'uFlash', 'uRain', 'uHaze', 'uBliz', 'uGlitch', 'uLow', 'uFog', 'uPud', 'uHero', 'uBloom']) loc[n] = gl.getUniformLocation(prog, n);
+      for (const n of ['uScene', 'uMask', 'uFloor', 'uRes', 'uTime', 'uTint', 'uSat', 'uContrast', 'uVig', 'uDark', 'uAmb', 'uL0', 'uL1', 'uL2', 'uLN', 'uOcc', 'uOccOn', 'uFlash', 'uRain', 'uHaze', 'uBliz', 'uGlitch', 'uLow', 'uFog', 'uPud', 'uHero', 'uBloom']) loc[n] = gl.getUniformLocation(prog, n);
       texScene = tex();
       texMask = tex();
       texFloor = tex();
+      texOcc = tex();
       gl.uniform1i(loc.uScene, 0);
       gl.uniform1i(loc.uMask, 1);
       gl.uniform1i(loc.uFloor, 2);
+      gl.uniform1i(loc.uOcc, 3);
       gl.uniform2f(loc.uRes, W, H);
       fx.addEventListener('webglcontextlost', (e) => { e.preventDefault(); PostFX.disable(); PostFX.failed = true; });
       PostFX.supported = true;
@@ -210,7 +222,7 @@ void main(){
   };
 
   /* ---------------------------------------------------------------- one frame */
-  const L0 = new Float32Array(MAXL * 4), L1 = new Float32Array(MAXL * 3);
+  const L0 = new Float32Array(MAXL * 4), L1 = new Float32Array(MAXL * 3), L2 = new Float32Array(MAXL * 2);
   PostFX.present = function () {
     if (!PostFX.on || !gl) return;
     const A = CH.Atmos;
@@ -227,6 +239,12 @@ void main(){
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, texFloor);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, A.floor);
+    const occOn = !low && A.occUsed && A.occ;
+    if (occOn) {
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, texOcc);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, A.occ);
+    }
     gl.activeTexture(gl.TEXTURE0);
     const mode = A.mode;
     const n = Math.min(MAXL, low ? 8 : A.lights.length, A.lights.length);
@@ -234,6 +252,8 @@ void main(){
       const l = A.lights[i];
       L0[i * 4] = l[0]; L0[i * 4 + 1] = l[1]; L0[i * 4 + 2] = l[2]; L0[i * 4 + 3] = l[6];
       L1[i * 3] = l[3]; L1[i * 3 + 1] = l[4]; L1[i * 3 + 2] = l[5];
+      const fg = l[7] || 0; // 1 = casts shadows, 2 = glows by day too
+      L2[i * 2] = fg & 1 ? 1 : 0; L2[i * 2 + 1] = fg & 2 ? 0.2 : 0;
     }
     const hero = G.player || { x: 0, y: 0 };
     const cam = G.cam || { x: 0, y: 0 };
@@ -247,6 +267,8 @@ void main(){
     gl.uniform3f(loc.uAmb, 0.2, 0.25, 0.48);
     gl.uniform4fv(loc.uL0, L0);
     gl.uniform3fv(loc.uL1, L1);
+    gl.uniform2fv(loc.uL2, L2);
+    gl.uniform1f(loc.uOccOn, occOn ? 1 : 0);
     gl.uniform1i(loc.uLN, n);
     gl.uniform1f(loc.uFlash, reduced || !CH.Storage.settings.flashing ? Math.min(0.12, A.flash || 0) : A.flash || 0);
     gl.uniform1f(loc.uRain, mode === 'rain' || mode === 'storm' || mode === 'bloodrain' ? 1 : 0);

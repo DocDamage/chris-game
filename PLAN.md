@@ -458,3 +458,11 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 - Jump has its own key (`B`, pad `B` when nothing is there to interact with); old saves that bound it to Space migrate.
 - The puddle shader compares against a copy of the floor and leaves heroes and monsters alone.
 - Esc works with a slider focused (it was swallowed), the Journal no longer focuses a slider first, pause and Journal reach with the pad (shoulders = tabs / cards, triggers = pages). `t32_pause.js` drives the pause menu with real mouse and keyboard.
+
+**Real assets pass + campfires (2026-10-22, second playtest)**
+
+- Level walls are autotiled from the Valley Ruin wall sheets (hedge for the backyard, snowy rock for the frozen pass, the same rock sheet tinted per biome for the rest): four 16px sub-tiles per cell pick edge, corner and front-face pieces from their own neighbours. Office, glitch and frozen floors use the pack textures too (dungeon slabs tinted, snow rock). The 43px ground textures are cropped to their opaque core so they tile without black seams.
+- Chests are the pack's four chests (wood, steel, gold, blue relic by tier, with the opened frame); shrines are the occult altar; breach bodies are pack props (standing stone, altar, statue, hell pillars, barricade + war-camp fire, spikes) with the glow drawn on top.
+- Idylwild's Chromatic Campfires are packed (`tools/pack-props.js`: `prop.camp.<colour>`, `prop.campsmoke.<colour>`) and placed by `js/fires.js` in every level (entrance, waypoints, ~1/3 of rooms), the town and the four corners of every boss/wave arena. Solid, jumpable, never destructible.
+- Fires sway in the wind (flame and smoke drawn in 1px slices sheared by height; wind strength follows the weather; trees share the same wind), shed embers downwind, and are flickering lights that glow even by day. The shader marches rays from each pixel toward the six nearest fires through an occluder map of walls and solid props, so walls and rocks cast real shadows. `t34_fires_walls.js`.
+- Still procedural (no matching asset in the packs): the exit pad ring, waypoint ring, puddles themselves (the shader makes them), and the wall tops of the dark biomes are one shared rock sheet tinted per biome rather than a dedicated art set per biome.

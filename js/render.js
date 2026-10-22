@@ -247,6 +247,13 @@
       CH.Enemies.shadow(ctx, x, y - 2, sw);
     }
 
+    if (prop.fire) {
+      CH.Enemies.shadow(ctx, x, y - 2, 14);
+      CH.Fires.draw(ctx, prop, x, y);
+      ctx.restore();
+      return;
+    }
+
     if (prop.dead) {
       ctx.fillStyle = '#6b4a2a';
       ctx.fillRect(Math.round(x - 6), Math.round(y - 5), 12, 5);
@@ -259,7 +266,7 @@
     }
 
     const shakeX = prop.shake > 0 ? (Math.random() - 0.5) * 5 : 0;
-    const wind = prop.swayable ? Math.sin(G.wall * 2.2 + prop.x * 0.03 + prop.y * 0.02) * (prop.kind === 'tree' ? 0.04 : 0.08) : 0;
+    const wind = prop.swayable ? Math.sin(G.wall * 2.2 + prop.x * 0.03 + prop.y * 0.02) * (prop.kind === 'tree' ? 0.04 : 0.08) * (CH.Fires ? CH.Fires.windMul() : 1) : 0;
     const totalBend = wind + (prop.bend || 0);
 
     ctx.translate(Math.round(x + shakeX), Math.round(y));

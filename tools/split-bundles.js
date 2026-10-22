@@ -24,8 +24,9 @@ const BUNDLES = {
   audio: (kind) => kind === 'sfx' || kind === 'loops',
   ui: (kind, key) => kind === 'img' && key.startsWith('ui.'),
   sidekicks: (kind, key) => kind === 'img' && key.startsWith('sk.'),
+  sheets: (kind, key) => kind === 'img' && key.startsWith('sh.'),
 };
-const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'assets'];
+const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'sheets', 'assets'];
 const fileOf = (name) => path.join(OUT, name === 'assets' ? 'assets.js' : 'bundle_' + name + '.js');
 
 function splitBundles(all) {

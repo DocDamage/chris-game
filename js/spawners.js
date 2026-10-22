@@ -127,6 +127,37 @@
     if (CH.Run) CH.Run.onBreachClosed(e.hive);
   });
 
+  /* the breach bodies are the packs' own props (standing stone, altar, statue, pillars, barricade, spikes); the glow,
+     the rings of the portal and the fire of the war camp are drawn on top. Returns false when a sprite is missing. */
+  const BODY = { hive: 'obj.standingStone', portal: 'obj.occult_altar', grave: 'obj.statue', gate: 'obj.volcano_pillar1', camp: 'obj.barricade1', rift: 'obj.volcano_spikes' };
+  function real(ctx, e, k, t, flash) {
+    const name = BODY[e.kind] || BODY.hive;
+    if (!CH.Sprites.has(name)) return false;
+    const pulse = 0.22 + 0.12 * Math.sin(t * 5);
+    const draw = (n, x, y) => CH.Sprites.draw(ctx, n, x, y + 8, { flash, tint: k.glow, tintA: pulse });
+    if (e.kind === 'gate') {
+      ctx.fillStyle = k.glow;
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 5);
+      ctx.fillRect(-12, -24, 24, 28);
+      ctx.globalAlpha = 1;
+      draw(name, -17, 0);
+      draw(name, 17, 0);
+    } else if (e.kind === 'portal') {
+      draw(name, 0, 4);
+      for (let i = 0; i < 2; i++) {
+        ctx.strokeStyle = i === 0 ? k.glow : k.c2;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, -14, 13 - i * 4, 17 - i * 5, t * (1 + i * 0.6), 0, 6.283 * 0.8);
+        ctx.stroke();
+      }
+    } else if (e.kind === 'camp') {
+      draw(name, 0, 4);
+      if (CH.Fires && CH.Assets.images['prop.campsmoke.orange']) CH.Fires.draw(ctx, { sprite: 'prop.campsmoke.orange', smoke: true, phase: 0.3, x: e.x }, 0, -6);
+    } else draw(name, 0, 0);
+    return true;
+  }
+
   /* drawn instead of the regular enemy sprite */
   const baseDraw = E.draw;
   E.draw = function (ctx, e, cam) {
@@ -142,7 +173,7 @@
     ctx.translate(x, y);
     const jig = lv < 3 ? Math.sin(t * 20) * 0.6 : 0;
     const col = (c) => (flash > 0.2 ? '#ffffff' : c);
-    switch (e.kind) {
+    if (!real(ctx, e, k, t, flash)) switch (e.kind) {
       case 'portal': {
         for (let i = 0; i < 3; i++) {
           ctx.strokeStyle = i === 0 ? col(k.glow) : col(k.c2);
