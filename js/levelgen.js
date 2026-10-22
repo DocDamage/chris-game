@@ -153,12 +153,12 @@
     const out = [];
     for (let tries = 0; tries < 300 && out.length < n; tries++) {
       const room = R.pick(L.rooms);
-      // look for a wall face of a room with solid rock behind it
+      // a wall face of a room (or clearing): walk from its centre in a random direction until the first rock
       const side = R.int(0, 3);
-      const sx = side === 0 ? room.x - 1 : side === 1 ? room.x + room.w : R.int(room.x + 1, room.x + room.w - 2);
-      const sy = side === 2 ? room.y - 1 : side === 3 ? room.y + room.h : R.int(room.y + 1, room.y + room.h - 2);
       const dx = side === 0 ? -1 : side === 1 ? 1 : 0, dy = side === 2 ? -1 : side === 3 ? 1 : 0;
-      if (dx !== 0 ? sy <= room.y || sy >= room.y + room.h - 1 : sx <= room.x || sx >= room.x + room.w - 1) continue;
+      let sx = Math.floor(room.cx / TS), sy = Math.floor(room.cy / TS), n = 0;
+      while (!L.solid(sx, sy) && n++ < 40) { sx += dx; sy += dy; }
+      if (n >= 40 || L.cell(sx, sy) !== Level.WALL) continue;
       // the secret room: 7x6 tiles, 4 tiles behind the cracked cell
       const rw = 7, rh = 6;
       const rx = dx > 0 ? sx + 5 : dx < 0 ? sx - 4 - rw : sx - 3, ry = dy > 0 ? sy + 5 : dy < 0 ? sy - 4 - rh : sy - 3;
@@ -166,6 +166,14 @@
       let clearRock = true;
       for (let y = ry - 2; y < ry + rh + 2 && clearRock; y++) for (let x = rx - 2; x < rx + rw + 2; x++) if (L.cell(x, y) === Level.FLOOR) { clearRock = false; break; }
       if (!clearRock) continue;
+      // the tunnel from the cracked cell to the room must run through solid rock with rock on both sides (no accidental door)
+      let tunnelOk = true;
+      const ex = dx !== 0 ? rx + (dx > 0 ? 0 : rw - 1) : sx, ey = dy !== 0 ? ry + (dy > 0 ? 0 : rh - 1) : sy;
+      for (let tx2 = Math.min(sx, ex); tx2 <= Math.max(sx, ex) && tunnelOk; tx2++) for (let ty2 = Math.min(sy, ey); ty2 <= Math.max(sy, ey); ty2++) {
+        if ((tx2 !== sx || ty2 !== sy) && (L.solid(tx2, ty2) === false)) { tunnelOk = false; break; }
+        for (const [ox, oy] of dx !== 0 ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]]) if ((tx2 !== sx || ty2 !== sy) && L.cell(tx2 + ox, ty2 + oy) === Level.FLOOR) tunnelOk = false;
+      }
+      if (!tunnelOk) continue;
       L.carveRect(rx, ry, rw, rh);
       // a 1-wide tunnel from the room back to the cracked cell
       const tx = dx !== 0 ? sx : sx, ty = dy !== 0 ? sy : sy;
@@ -271,6 +279,18 @@
           CH.Arenas.addProp(L.props, R.pick(decor), p.x, p.y, { solid: true, cr: 11, destructible: R.f() < 0.35, hp: 30, jumpable: true, resourceType: R.pick(['wood', 'scrap', 'stone']), resourceAmt: 2 });
         }
       }
+    }
+    // puddles of water / blood / toxic goo / lava (the shader makes them reflect); never on top of anything we placed
+    const PK = { backyard: ['water'], office: ['water'], glitch: ['toxic'], zombie: ['water', 'toxic'], wasteland: ['toxic', 'water'], volcano: ['lava', 'lava', 'water'], dungeon: ['water', 'blood'], frozen: ['water'] };
+    const pk = PK[biome] || ['water'];
+    const np = R.int(5, 9);
+    for (let i = 0, tries = 0; i < np && tries < np * 6; tries++) {
+      const rm = R.pick(rooms);
+      const q = L.randomNear(rm.cx, rm.cy, 10, Math.max(60, Math.min((rm.w || 10) * TS * 0.4, 220)), 36, R.f);
+      if (!q || reserved.some((o) => U.dist(q.x, q.y, o.x, o.y) < 80)) continue;
+      const rx = R.int(22, 56);
+      L.puddles.push({ x: q.x, y: q.y, rx, ry: Math.round(rx * (0.5 + R.f() * 0.25)), kind: R.pick(pk) });
+      i++;
     }
     L.revealStart = () => L.reveal(L.entrance.x, L.entrance.y, 9);
     return L;

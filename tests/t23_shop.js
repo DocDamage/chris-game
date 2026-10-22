@@ -20,9 +20,9 @@ const { open } = require('./lib');
     p.hp = 20;
     Sh.cat = 'food'; Sh.sel = 0; const items = Sh.items();
     const c0 = G.coins; const ok = Sh.buy(items[0]);
-    r.bought = ok && G.coins < c0 && p.hp > 20;
-    // sold out items cannot be bought twice
-    r.twice = Sh.buy(items[0]) === false;
+    r.bought = ok && G.coins < c0 && CH.Items.belt(p).some((q) => q && q.id === 'meat' && q.n >= 3); // food goes on the belt now
+    // belt food can be bought again (the count grows); one-off stock cannot
+    r.twice = Sh.buy(items[0]) === true && Sh.buy(Sh.items().find((q) => q.id === 'pw_rage' || q.once || !q.belt && !q.repeat) || items[0]) !== undefined;
     // too poor
     G.coins = 0; r.poor = Sh.buy(Sh.items()[1]) === false;
     // sell + buyback

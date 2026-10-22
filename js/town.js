@@ -89,6 +89,7 @@
     G.screenFlash(0.8, '#ffffff');
     Audio.sfx('door_open');
     Audio.setMusic('shop');
+    if (CH.Atmos) { CH.Atmos.setMode('clear'); CH.Atmos.clock = 0.3; CH.Atmos.dark = 0; } // it is always a fine afternoon in town
     G.revivePlayers(1);
     for (const p of G.players) { p.hp = p.maxHp; }
     G.banner('THE SAFEHOUSE TOWN', 'Shop, stash, craft, train, travel. Walk back through the portal when you are ready.', 3);

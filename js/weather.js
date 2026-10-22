@@ -168,7 +168,7 @@
         lf.x += lf.vx * spd * dt;
         lf.y += lf.vy * spd * dt + Math.sin(Weather.time * 2 + lf.x * 0.05) * 0.8;
         lf.rot += lf.vrot * dt;
-        if (lf.x > 510 || lf.y > 285) {
+        if (lf.x > B.view.w + 30 || lf.y > B.view.h + 15) {
           lf.x = -20;
           lf.y = Math.random() * (B.view.h - 10) - 10;
         }
@@ -180,10 +180,10 @@
       for (const m of Weather.motes) {
         m.x += m.vx * dt + Math.cos(Weather.time + m.phase) * 0.3;
         m.y += m.vy * dt + Math.sin(Weather.time * 0.8 + m.phase) * 0.3;
-        if (m.x < -10) m.x = 490;
-        if (m.x > 490) m.x = -10;
-        if (m.y < -10) m.y = 275;
-        if (m.y > 275) m.y = -10;
+        if (m.x < -10) m.x = B.view.w + 10;
+        if (m.x > B.view.w + 10) m.x = -10;
+        if (m.y < -10) m.y = B.view.h + 5;
+        if (m.y > B.view.h + 5) m.y = -10;
       }
     }
   };

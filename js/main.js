@@ -37,8 +37,9 @@
     CH.Input.init(canvas);
     G.ui = CH.UI;
     G.init(canvas);
-    if (CH.UIK && CH.UIK.install()) CH.Journal.init(); // pack UI: nine-slice theme + the Journal book
+    if (CH.UIK && CH.UIK.install()) { CH.Journal.init(); if (CH.Menus) CH.Menus.init(); } // pack UI: nine-slice theme, the Journal book, pause row, hero select
     CH.UI.init();
+    if (CH.PostFX) CH.PostFX.boot();
     CH.Audio.setMusic('menu');
     document.getElementById('loading').classList.add('done');
     let last = performance.now();

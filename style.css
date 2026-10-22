@@ -555,3 +555,44 @@ body.uik .php.hasport { padding-left: calc(var(--u) * 31); min-height: calc(var(
 .pd-slot { position: absolute; transform: translate(-50%, 0); }
 .jq { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--p) * 4); padding: calc(var(--p) * 2) 0; border-bottom: calc(var(--p) * 0.6) solid rgba(42, 26, 20, 0.25); }
 .jq.claimed { opacity: 0.5; }
+
+/* the post-process overlay shows the shaded frame in place of the plain canvas */
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; display: block; pointer-events: none; }
+
+/* ---------- parchment panels (pause, confirm, dialogue): the pack's native look, dark ink on paper ---------- */
+body.uik .panel.paper { border-image: var(--paper) 12 fill / calc(var(--p) * 12) stretch; color: #2a1a14; text-shadow: none; }
+body.uik .panel.paper h2 { color: #5a2418; text-shadow: none; }
+body.uik .panel.paper h3 { color: #1d4a6b; text-shadow: none; }
+body.uik .panel.paper .hint, body.uik .panel.paper .dim { color: #5a4a3a; }
+body.uik .panel.paper kbd { color: #2a1a14; background: rgba(42, 26, 20, 0.12); border-color: #2a1a14; }
+body.uik .panel.paper .btn { border-image: var(--paper) 6 fill / calc(var(--p) * 6) stretch; color: #2a1a14; text-shadow: none; filter: none; }
+body.uik .panel.paper .btn.primary { filter: sepia(0.5) saturate(1.8) hue-rotate(-12deg) brightness(0.98); }
+body.uik .panel.paper .btn.danger { filter: hue-rotate(-30deg) saturate(2.2) brightness(0.92); }
+body.uik .panel.paper .btn:hover, body.uik .panel.paper .btn:focus-visible { filter: brightness(1.12); outline: calc(var(--p) * 1.5) solid #b8860b; }
+body.uik .dlg.panel { border-image: var(--paper) 12 fill / calc(var(--p) * 12) stretch; color: #2a1a14; text-shadow: none; }
+body.uik .dlg .dlg-who { color: #7a2a1e; }
+body.uik .dlg .btn { border-image: var(--paper) 6 fill / calc(var(--p) * 6) stretch; color: #2a1a14; text-shadow: none; }
+body.uik .dlg .dlg-next { color: #7a2a1e; }
+
+/* Highlighter frames: the pack's cursor sprites mark the focused button and slot */
+body.uik .btn:hover::after, body.uik .btn:focus-visible::after { content: ''; position: absolute; inset: calc(var(--p) * -4); border: calc(var(--p) * 6) solid transparent; border-image: var(--hl-wide) 6 / calc(var(--p) * 6) stretch; pointer-events: none; image-rendering: pixelated; }
+body.uik .btn { position: relative; }
+body.uik .vend-cell.sel, body.uik .vend-cell:focus-visible, body.uik .ig-cell.sel { border: calc(var(--p) * 8) solid transparent; border-image: var(--hl-small) 8 / calc(var(--p) * 8) stretch; background: rgba(254, 231, 97, 0.12); }
+.jb-tab:hover::after, .jb-tab:focus-visible::after { content: ''; position: absolute; left: calc(var(--p) * -22); top: calc(var(--p) * 8); width: calc(var(--p) * 20); height: calc(var(--p) * 9); background: var(--hl-tab) center / 100% 100% no-repeat; image-rendering: pixelated; }
+.jb-tab { position: absolute; }
+
+/* pause menu icon row */
+.pz-row { display: flex; gap: calc(var(--p) * 4); justify-content: center; flex-wrap: wrap; margin: calc(var(--p) * 2) 0; }
+.pz-btn { background: none; border: 0; padding: 0; width: calc(var(--p) * 38); height: calc(var(--p) * 38); cursor: pointer; position: relative; }
+.pz-btn img { width: 100%; height: 100%; image-rendering: pixelated; }
+.pz-btn:hover, .pz-btn:focus-visible { outline: calc(var(--p) * 1.5) solid #b8860b; }
+
+/* hero select (Gold book) */
+.hs-turn { width: calc(var(--p) * 96); image-rendering: pixelated; align-self: center; margin-top: calc(var(--p) * 6); }
+.hs-turn.locked { filter: brightness(0) opacity(0.5); }
+
+/* the map scroll */
+.ms { position: relative; width: calc(var(--p) * 640); height: calc(var(--p) * 432); flex: none; margin: calc(var(--p) * -60) 0; }
+.ms-frame { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+.ms-cv { position: absolute; left: calc(var(--p) * 100); top: calc(var(--p) * 84); width: calc(var(--p) * 440); height: calc(var(--p) * 270); image-rendering: pixelated; }
+.ms-title { position: absolute; left: calc(var(--p) * 100); width: calc(var(--p) * 440); top: calc(var(--p) * 64); text-align: center; font-size: calc(var(--p) * 8); color: #5a2418; letter-spacing: calc(var(--p) * 1); }

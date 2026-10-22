@@ -16,7 +16,8 @@
 
   const Sp = (CH.Spawners = { list: [] });
 
-  B.enemies.spawner = { name: 'Breach', hp: 240, speed: 0, dmg: 0, r: 15, xp: 40, coin: 0, score: 250, kbRes: 1 };
+  // not enumerable: random-enemy pickers (events, bounties) walk Object.keys(B.enemies) and must never roll a hive
+  Object.defineProperty(B.enemies, 'spawner', { value: { name: 'Breach', hp: 240, speed: 0, dmg: 0, r: 15, xp: 40, coin: 0, score: 250, kbRes: 1 }, enumerable: false, writable: true, configurable: true });
   E.look.spawner = { sprite: 'slime', foot: 6, h: 30, faceRight: true, anim: 'two', shadow: 26, fx: 'bone', atk: null, die: 'die_rock' };
   E.ids = E.ids || [];
 

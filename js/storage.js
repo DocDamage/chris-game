@@ -72,6 +72,8 @@
       shake: true,
       flashing: true,
       reduced: false,
+      fx: 'high', // post-process effects: 'high' | 'low' | 'off' (js/postfx.js)
+      haze: true, // heat haze / distortion, off for motion-sensitive players
       difficulty: 'normal',
       hero: 'Mercenary',
       hero2: 'Mercenary',
@@ -110,6 +112,8 @@
     o.shake = bool(s.shake, o.shake);
     o.flashing = bool(s.flashing, o.flashing);
     o.reduced = bool(s.reduced, o.reduced);
+    if (['high', 'low', 'off'].includes(s.fx)) o.fx = s.fx;
+    o.haze = bool(s.haze, o.haze);
     if (typeof s.difficulty === 'string' && CH.Balance.difficulty[s.difficulty]) o.difficulty = s.difficulty;
     if (typeof s.hero === 'string' && CH.Balance.heroes.some((h) => h.id === s.hero)) o.hero = s.hero;
     if (typeof s.hero2 === 'string' && CH.Balance.heroes.some((h) => h.id === s.hero2)) o.hero2 = s.hero2;
