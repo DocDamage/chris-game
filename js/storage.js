@@ -1,7 +1,27 @@
 /* CHAOS.exe - persistent settings, stats and unlocks (LocalStorage, fully defensive). */
 (function (CH) {
   'use strict';
-  const KEY = 'chaosexe.save.v1';
+  const KEY = 'chaosexe.save.v1'; // storage key stays stable; the payload carries its own version
+  const VERSION = 2;
+
+  /* Step-by-step save migrations: MIGRATIONS[n] upgrades a version-n save to n+1.
+     Each takes and returns a plain object and must tolerate missing fields. */
+  const MIGRATIONS = {
+    1(raw) {
+      return raw; // v1 -> v2: framework only; later steps rename heroes, wave -> depth, add inventory
+    },
+  };
+
+  function migrate(raw) {
+    if (!raw || typeof raw !== 'object') return raw;
+    let v = Number.isInteger(raw.version) && raw.version >= 1 ? raw.version : 1;
+    while (v < VERSION && MIGRATIONS[v]) {
+      raw = MIGRATIONS[v](raw) || raw;
+      v++;
+      raw.version = v;
+    }
+    return raw;
+  }
 
   const DEFAULT_KEYS = {
     up: 'KeyW',
@@ -22,6 +42,7 @@
   };
 
   const defaults = () => ({
+    version: VERSION,
     settings: {
       master: 0.8,
       music: 0.5,
@@ -56,6 +77,7 @@
   function sanitize(raw) {
     const d = defaults();
     if (!raw || typeof raw !== 'object') return d;
+    raw = migrate(raw);
     const s = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
     const o = d.settings;
     o.master = num(s.master, o.master, 0, 1);
@@ -89,7 +111,7 @@
     d.shelter.decor = {};
     if (sh.decor && typeof sh.decor === 'object') for (const k of ['chair', 'lamp', 'table', 'shelf']) if (sh.decor[k] === true) d.shelter.decor[k] = true;
 
-    const idOk = (k) => /^d+$/.test(k) && +k >= 1 && +k <= 367;
+    const idOk = (k) => /^[0-9]+$/.test(k) && +k >= 1 && +k <= 367;
     if (raw.loot && typeof raw.loot === 'object') for (const k of Object.keys(raw.loot)) if (idOk(k)) d.loot[k] = Math.floor(num(raw.loot[k], 0, 0, 99999));
     if (raw.seen && typeof raw.seen === 'object') for (const k of Object.keys(raw.seen)) if (idOk(k) && raw.seen[k] === true) d.seen[k] = true;
     for (const k of Object.keys(d.loot)) if (d.loot[k] > 0) d.seen[k] = true;
@@ -111,6 +133,10 @@
 
   const Storage = (CH.Storage = {
     DEFAULT_KEYS,
+    VERSION,
+    migrate,
+    sanitize,
+    MIGRATIONS,
     data: defaults(),
     available: true,
 
