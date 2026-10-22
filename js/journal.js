@@ -355,6 +355,33 @@
       return J.adopt('codex');
     },
   });
+  /* Codex page 2: the sidekick roster. Unlocked sidekicks can be picked for the current hero; locked ones show how to find them. */
+  J.addPage('codex', {
+    title: 'SIDEKICKS',
+    render(h) {
+      const SK = CH.SK;
+      const hero = heroOf(G.player);
+      const cur = SK.chosen(hero.id);
+      let html = '<div class="jp-sub">COMPANION OF ' + esc(hero.name.toUpperCase()) + '</div><div class="skr">';
+      for (const id of SK.ORDER) {
+        const d = SK.DEFS[id];
+        const open = SK.isUnlocked(id);
+        const im = CH.Assets.images['sk.' + id + '.rot_s'];
+        html += '<button class="skr-card' + (id === cur ? ' sel' : '') + (open ? '' : ' locked') + '" data-id="' + id + '" title="' + esc(open ? d.role : d.unlock || '') + '">' +
+          '<img src="' + (im ? im.src : '') + '" alt=""><b>' + (open ? esc(d.name) : '???') + '</b><small>' + esc(open ? d.role : d.unlock || 'Secret') + '</small></button>';
+      }
+      h.innerHTML = '<div class="jp spread" style="flex-direction:column;gap:0">' + html + '</div></div>';
+      h.querySelectorAll('.skr-card').forEach((b) => {
+        b.onclick = () => {
+          if (SK.choose(hero.id, b.dataset.id)) {
+            Audio.sfx('buy');
+            h.querySelectorAll('.skr-card').forEach((c) => c.classList.toggle('sel', c === b));
+            if (G.state !== 'menu' && G.player) CH.UI.toast('Takes effect next run');
+          } else Audio.sfx('nope');
+        };
+      });
+    },
+  });
   J.addPage('save', {
     title: 'SAVE & QUIT',
     render(h) {

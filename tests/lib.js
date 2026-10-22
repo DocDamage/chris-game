@@ -20,6 +20,7 @@ async function open(opts = {}) {
   await page.goto(ENV.URL);
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui, null, { timeout: 60000 });
   await page.waitForTimeout(200);
+  await page.evaluate((on) => { CH.SK.enabled = on; }, !!opts.sidekicks); // sidekicks fight and draw fire: off unless the test is about them
   await page.evaluate(BOT);
   return { browser, page, errs, ctx };
 }

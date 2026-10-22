@@ -58,6 +58,25 @@
     return S.sheet('hero.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips });
   }
 
+  /* sidekicks: one sheet per companion (strips from bundle 'sidekicks'; roles a pack lacks alias to another strip) */
+  function registerSidekicks() {
+    const M = CH.Assets.meta.sidekicks;
+    if (!M) return 0;
+    const fps = { idle: 8, walk: 12, run: 14, dash: 14, heavy: 14, hurt: 14, death: 9, jump: 12, block: 12, counter: 12, revive: 10, victory: 10, teleport: 12 };
+    const loops = { idle: 1, walk: 1, run: 1 };
+    let n = 0;
+    for (const id of Object.keys(M)) {
+      const m = M[id];
+      const strips = {};
+      const mk = (role, src) => ({ key: 'sk.' + id + '.' + src, fps: fps[role.replace(/[0-9]+$/, '')] || 13, loop: !!loops[role], fw: m.fw, fh: m.fh });
+      for (const role of Object.keys(m.anims)) strips[role] = mk(role, role);
+      for (const role of Object.keys(m.alias || {})) if (!strips[role] && m.anims[m.alias[role]]) strips[role] = mk(role, m.alias[role]);
+      if (CH.Assets.images['sk.' + id + '.rot_s']) strips.rot_s = { key: 'sk.' + id + '.rot_s', fps: 1, loop: true, fw: m.fw, fh: m.fh };
+      if (S.sheet('sk.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips })) n++;
+    }
+    return n;
+  }
+
   function registerEnemy(type, a) {
     const X = 'chr.' + a.chr + '.';
     return S.sheet(type, {
@@ -443,6 +462,7 @@
     const VARIANTS = { Enchantress: ['Mercenary', 'hue-rotate(150deg) saturate(1.2)'], Stranger: ['Dreadbloom', 'hue-rotate(-60deg) saturate(1.4) brightness(1.1)'], Specter: ['Vexaria', 'hue-rotate(200deg) brightness(1.15)'] };
     for (const id of Object.keys(VARIANTS)) if (!S.has('hero.' + id)) S.variant('hero.' + id, 'hero.' + VARIANTS[id][0], VARIANTS[id][1]);
     for (const t of Object.keys(ENEMY_ART)) if (registerEnemy(t, ENEMY_ART[t])) ok++;
+    registerSidekicks();
     registerBosses();
     registerMoreBosses();
     registerNewMonsters();

@@ -225,6 +225,7 @@
     drawList.length = 0;
     for (const e of G.enemies) if (!e.dead) drawList.push({ y: e.y + (e.isBoss ? 4 : 0), kind: 0, o: e });
     for (const p of G.players) drawList.push({ y: p.y, kind: 1, o: p });
+    if (CH.SK) for (const s of CH.SK.list) drawList.push({ y: s.y, kind: 5, o: s });
     if (G.machine) drawList.push({ y: G.machine.y, kind: 2, o: G.machine });
     for (const d of G.decoys) drawList.push({ y: d.y, kind: 3, o: d });
     if (G.arena && G.arena.props) {
@@ -466,6 +467,7 @@
       else if (d.kind === 2) drawMachine(ctx, d.o, cam);
       else if (d.kind === 3) drawDecoy(ctx, d.o, cam);
       else if (d.kind === 4) drawProp(ctx, d.o, cam);
+      else if (d.kind === 5) CH.SK.draw(ctx, d.o, cam);
     }
 
     CH.Weapons.draw(ctx, G, cam);

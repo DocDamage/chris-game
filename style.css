@@ -517,3 +517,13 @@ body.uik .php.hasport { padding-left: calc(var(--u) * 31); min-height: calc(var(
 .vend-name { font-size: calc(var(--u) * 6.4); color: var(--gold); }
 .vend-desc { font-size: calc(var(--u) * 4.6); line-height: 1.35; flex: 1; }
 .vend-price { font-size: calc(var(--u) * 5.4); }
+
+/* sidekick roster page */
+.skr { display: grid; grid-template-columns: repeat(6, 1fr); gap: calc(var(--p) * 4); overflow-y: auto; max-height: calc(var(--p) * 214); padding: calc(var(--p) * 2); }
+.skr-card { display: flex; flex-direction: column; align-items: center; gap: calc(var(--p) * 1); background: rgba(90, 36, 24, 0.08); border: calc(var(--p) * 1.5) solid rgba(42, 26, 20, 0.5); padding: calc(var(--p) * 2); color: #2a1a14; cursor: pointer; font: inherit; }
+.skr-card img { width: 100%; height: calc(var(--p) * 38); object-fit: contain; image-rendering: pixelated; }
+.skr-card b { font-size: calc(var(--p) * 5.2); text-align: center; line-height: 1.1; }
+.skr-card small { font-size: calc(var(--p) * 4.4); color: #5a4a3a; text-align: center; line-height: 1.1; }
+.skr-card.sel { border-color: #b8860b; background: rgba(184, 134, 11, 0.22); }
+.skr-card.locked img { filter: brightness(0) opacity(0.45); }
+.skr-card:hover, .skr-card:focus-visible { outline: calc(var(--p) * 1.5) solid #b8860b; }

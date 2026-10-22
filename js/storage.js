@@ -86,6 +86,7 @@
     loot: {}, // mob-drop item id -> how many are in stock
     seen: {}, // mob-drop item id -> true once found (the Trophy Codex)
     unlocked: ['Mercenary'],
+    sidekicks: { unlocked: [], pick: {} }, // secret sidekicks found so far and the one each hero brings (js/sidekicks.js)
     meta: {}, // add-on progress (achievements, history, mastery, daily board...), owned by CH.Meta
   });
 
@@ -139,6 +140,10 @@
       const ids = CH.Balance.heroes.map((h) => h.id);
       d.unlocked = Array.from(new Set(['Mercenary'].concat(raw.unlocked.filter((x) => typeof x === 'string' && ids.includes(x)))));
     }
+    const sk = raw.sidekicks && typeof raw.sidekicks === 'object' ? raw.sidekicks : {};
+    const idOk2 = (v) => typeof v === 'string' && /^[a-z]{2,16}$/.test(v);
+    if (Array.isArray(sk.unlocked)) d.sidekicks.unlocked = Array.from(new Set(sk.unlocked.filter(idOk2))).slice(0, 40);
+    if (sk.pick && typeof sk.pick === 'object') for (const k of Object.keys(sk.pick)) if (/^[A-Za-z]{2,16}$/.test(k) && idOk2(sk.pick[k])) d.sidekicks.pick[k] = sk.pick[k];
     if (raw.meta && typeof raw.meta === 'object' && !Array.isArray(raw.meta)) {
       try {
         const txt = JSON.stringify(raw.meta);
