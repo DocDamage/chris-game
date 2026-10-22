@@ -213,7 +213,7 @@ const ok = (name, cond, extra) => results.push([cond ? 'PASS' : 'FAIL', name, ex
   });
   await page.waitForTimeout(300);
   r = await E(() => ({ active: CH.UI.active, cards: document.querySelectorAll('#shelter-stations .station-card').length, wood: document.getElementById('sh-wood').textContent }));
-  ok('the SAFEHOUSE button opens the base with five stations', r.active === 'shelter' && r.cards >= 5 && r.wood === '500', r);
+  ok('the SAFEHOUSE button opens the base with five stations', r.active === 'journal' && r.cards >= 5 && r.wood === '500', r);
   await page.screenshot({ path: path.join(__dirname, 'ct_shelter.png') });
   r = await E(() => {
     const btns = [...document.querySelectorAll('#shelter-stations .btn-up-station')];

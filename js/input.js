@@ -24,6 +24,8 @@
   const FIXED = {
     Escape: 'pause',
     KeyM: 'mute',
+    KeyJ: 'journal', // opens the Journal book
+    KeyI: 'inventory', // Journal, Inventory tab
     F11: 'fullscreen', // F belongs to fortify (build a barricade)
     Digit1: 'w1',
     Digit2: 'w2',
@@ -119,7 +121,7 @@
       const acts = Input.codeToActions[e.code] || [];
       // global hotkeys always work; gameplay actions only matter while playing
       for (const a of acts) {
-        if (a === 'pause' || a === 'mute' || a === 'fullscreen') {
+        if (a === 'pause' || a === 'mute' || a === 'fullscreen' || a === 'journal' || a === 'inventory') {
           if (Input.onGlobal) Input.onGlobal(a, e);
         }
       }

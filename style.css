@@ -417,3 +417,69 @@ kbd.pad.t { border-radius: calc(var(--u) * 1); }
 .xt-bar span, .xt-bar b { position: relative; z-index: 1; }
 .xt-graph { width: 100%; image-rendering: auto; }
 #hx-build { position: absolute; left: calc(var(--u) * 6); top: calc(var(--u) * 6); max-width: calc(var(--u) * 120); font-size: calc(var(--u) * 4.4); text-align: left; }
+
+/* =====================================================================================================================
+   Pack UI theme (js/uikit.js sets --nine / --paper per colour). Only active when the ui bundle loaded (body.uik).
+   --p = one pack pixel = 0.75 DOM units. Menus and HUD frames use the dark-tinted nine-slice so light text stays readable;
+   the Journal pages are real parchment with dark ink.
+   ===================================================================================================================== */
+body.uik .wood, body.uik .panel {
+  background: none;
+  border: calc(var(--p) * 12) solid transparent;
+  border-image: var(--nine) 12 fill / calc(var(--p) * 12) stretch;
+  border-radius: 0;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
+body.uik .panel { padding: calc(var(--u) * 3) calc(var(--u) * 5); }
+body.uik .btn {
+  background: none;
+  border: calc(var(--p) * 12) solid transparent;
+  border-image: var(--nine) 12 fill / calc(var(--p) * 8) stretch;
+  border-radius: 0;
+  padding: calc(var(--u) * 1.4) calc(var(--u) * 3);
+  image-rendering: pixelated;
+  filter: none;
+}
+body.uik .btn:hover, body.uik .btn:focus-visible { background: none; filter: brightness(1.35) saturate(1.2); outline: calc(var(--u) * 0.8) solid var(--gold); outline-offset: calc(var(--u) * 0.2); transform: none; }
+body.uik .btn.primary { filter: sepia(0.7) saturate(2.4) hue-rotate(-12deg) brightness(1.15); }
+body.uik .btn.danger { filter: hue-rotate(-40deg) saturate(2) brightness(0.9); }
+body.uik .btn.sel { filter: hue-rotate(60deg) saturate(1.8) brightness(1.15); outline: calc(var(--u) * 0.8) solid var(--green); }
+body.uik .btn.off, body.uik .btn.toggle.off { filter: grayscale(1) brightness(0.8); }
+
+/* ---------- Journal (the Pixel Book) ---------- */
+#screen-journal { background: rgba(10, 6, 20, 0.82); }
+.jb { position: relative; width: calc(var(--p) * 768); height: calc(var(--p) * 640); flex: none; margin: calc(var(--p) * -140) 0; }
+.jb-frame { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+.jb-title { position: absolute; left: calc(var(--p) * 160); top: calc(var(--p) * 180); width: calc(var(--p) * 456); text-align: center; font-size: calc(var(--p) * 8); color: #5a2418; letter-spacing: calc(var(--p) * 1); line-height: calc(var(--p) * 14); text-shadow: none; }
+.jb-host { position: absolute; left: calc(var(--p) * 168); top: calc(var(--p) * 202); width: calc(var(--p) * 440); height: calc(var(--p) * 238); overflow: hidden; color: #2a1a14; text-shadow: none; font-size: calc(var(--p) * 7.2); }
+.jb-tabs { position: absolute; inset: 0; pointer-events: none; }
+.jb-tab { position: absolute; left: calc(var(--p) * 628); width: calc(var(--p) * 36); height: calc(var(--p) * 34); background: none; border: 0; padding: 0; pointer-events: auto; cursor: pointer; }
+.jb-tab:hover, .jb-tab:focus-visible { outline: calc(var(--p) * 1.5) solid rgba(254, 231, 97, 0.9); }
+.jb-pager { position: absolute; left: calc(var(--p) * 318); top: calc(var(--p) * 436); width: calc(var(--p) * 140); height: calc(var(--p) * 24); display: flex; align-items: center; justify-content: center; }
+.jb-pgimg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--p) * 59); image-rendering: pixelated; pointer-events: none; }
+.jb-pgnum { position: relative; z-index: 1; color: #2a1a14; font-size: calc(var(--p) * 8); margin-top: calc(var(--p) * -3); }
+.jb-pg { position: relative; z-index: 2; width: calc(var(--p) * 18); height: calc(var(--p) * 20); background: none; border: 0; cursor: pointer; }
+.jb-pg.l { margin-right: calc(var(--p) * 30); }
+.jb-pg.r { margin-left: calc(var(--p) * 30); }
+.jb-pg:hover, .jb-pg:focus-visible { outline: calc(var(--p) * 1.5) solid rgba(254, 231, 97, 0.9); }
+.jb-hint { position: absolute; bottom: calc(var(--u) * 3); left: 0; right: 0; text-align: center; font-size: calc(var(--u) * 4); color: #b9b4c8; }
+
+.jp { display: flex; gap: calc(var(--p) * 40); height: 100%; overflow-y: auto; padding-right: calc(var(--p) * 4); }
+.jp-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(var(--p) * 5); }
+.jp-port { width: calc(var(--p) * 90); image-rendering: pixelated; align-self: center; margin-top: calc(var(--p) * 6); }
+.jp-name { font-size: calc(var(--p) * 10); text-align: center; color: #5a2418; }
+.jp-sub { font-size: calc(var(--p) * 7); color: #1d4a6b; text-align: center; }
+.jp-dim { color: #5a4a3a; }
+.jp-row { display: flex; align-items: center; gap: calc(var(--p) * 6); }
+.jp-row b { margin-left: auto; }
+.jb-host .panel.adopted, .jb-host .panel.adopted.wide, .jb-host .panel.adopted.small { position: absolute; inset: 0; width: 100%; max-width: 100%; max-height: 100%; background: none; border: 0; border-image: none; box-shadow: none; padding: 0; color: #2a1a14; text-shadow: none; overflow: auto; }
+.jb-host .adopted h2 { display: none; }
+.jb-host .adopted h3, .jb-host .adopted .jp-sub { color: #1d4a6b; text-shadow: none; }
+.jb-host .adopted .hint, .jb-host .adopted .dim, .jb-host .adopted small { color: #5a4a3a; }
+.jb-host .adopted [data-back], .jb-host .adopted .row-btns:has(> [data-back]:only-child) { display: none; }
+.jb-host .adopted .scroll { max-height: none; }
+.jb-host .adopted .btn { font-size: calc(var(--p) * 7); border-image-width: calc(var(--p) * 5); border-width: calc(var(--p) * 5); padding: calc(var(--p) * 2) calc(var(--p) * 5); }
+.jb-host .adopted .btn.small { font-size: calc(var(--p) * 6); }
+.jb-host .adopted .panel { gap: calc(var(--p) * 4); }
+.jb-host .adopted .chip { color: #2a1a14; }

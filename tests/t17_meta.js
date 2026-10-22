@@ -83,7 +83,7 @@ const { open } = require('./lib');
     // UI
     CH.UI.showMenu();
     document.getElementById('btn-extras').click();
-    res.extrasOpen = CH.UI.active === 'extras';
+    res.extrasOpen = CH.Journal.open;
     res.tabs = {};
     for (const t of ['play', 'hist', 'ach', 'hero', 'safe', 'sets', 'bestiary', 'opts']) {
       M.ui.tab = t; M.ui.render();

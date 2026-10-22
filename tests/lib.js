@@ -15,6 +15,7 @@ async function open(opts = {}) {
       window.requestAnimationFrame = (cb) => { window.__raf.push(cb); return 1; };
     });
   }
+  await page.addInitScript(() => { window.__uikInstant = true; }); // book animations are instant under test
   if (opts.init) await page.addInitScript(opts.init);
   await page.goto(ENV.URL);
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui, null, { timeout: 60000 });

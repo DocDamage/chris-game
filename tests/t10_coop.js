@@ -301,7 +301,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     __tap(0, 0, 3); // A on SETTINGS
   });
   r = await E(() => ({ active: CH.UI.active }));
-  ok('A activates the focused button (opens SETTINGS)', r.active === 'settings', r);
+  ok('A activates the focused button (opens SETTINGS)', r.active === 'journal', r);
   await page.waitForTimeout(120);
   r = await E(() => {
     const dz = document.getElementById('set-deadzone');

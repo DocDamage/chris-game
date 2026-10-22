@@ -31,7 +31,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
 
   await page.click('#btn-stats');
   await page.screenshot({ path: 'u_stats.png' });
-  await page.click('#screen-stats [data-back]');
+  await page.evaluate(() => CH.Journal.close());
   await page.click('#btn-credits');
   await page.screenshot({ path: 'u_credits.png' });
   await page.click('#screen-credits [data-back]');
@@ -52,7 +52,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.evaluate(() => { const btns = [...document.querySelectorAll('#rebind .btn')]; btns.find((b) => b.textContent.includes('Dodge')).click(); });
   await page.keyboard.press('KeyX');
   ok('rebind works', (await page.evaluate(() => CH.Storage.settings.keys.dodge)) === 'KeyX');
-  await page.click('#screen-settings [data-back]');
+  await page.evaluate(() => CH.Journal.close());
   await page.reload();
   await page.waitForFunction(() => document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
   const saved = await page.evaluate(() => { const s = CH.Storage.settings; return { d: s.difficulty, shake: s.shake, reduced: s.reduced, flashing: s.flashing, master: s.master, dodge: s.keys.dodge }; });

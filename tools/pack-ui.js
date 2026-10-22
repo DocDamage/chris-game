@@ -47,11 +47,12 @@ function exportAse(file, rel) {
   const json = path.join(EXPORT, slug + '.json');
   const png = path.join(EXPORT, slug + '.png');
   const isMenu = MENU_DOCS.test(rel);
-  const stale = !fs.existsSync(json) || fs.statSync(json).mtimeMs < fs.statSync(file).mtimeMs;
+  const stale = true; // cheap enough, and keeps the export in step with the packer
   if (stale) {
     if (isMenu) {
       // layers of frame 0, trimmed and packed into one atlas
-      runAseprite([file, '--frame-range', '0,0', '--split-layers', '--trim', '--sheet-pack', '--sheet', png, '--data', json, '--format', 'json-array', '--list-tags', '--list-layers']);
+      // options must precede the input file, or Aseprite ignores them
+      runAseprite(['--frame-range', '0,0', '--split-layers', '--trim', '--sheet-pack', file, '--sheet', png, '--data', json, '--format', 'json-array', '--list-tags', '--list-layers']);
     } else {
       // animated documents: only the tags / durations / layer names are wanted (the frames exist as PNGs)
       const tmp = path.join(EXPORT, slug + '.tmp.png');

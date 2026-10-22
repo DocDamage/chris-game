@@ -37,6 +37,7 @@
     CH.Input.init(canvas);
     G.ui = CH.UI;
     G.init(canvas);
+    if (CH.UIK && CH.UIK.install()) CH.Journal.init(); // pack UI: nine-slice theme + the Journal book
     CH.UI.init();
     CH.Audio.setMusic('menu');
     document.getElementById('loading').classList.add('done');

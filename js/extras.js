@@ -276,7 +276,7 @@
     if (!b || !ACTS[b.dataset.act]) return;
     CH.Audio.sfx('click');
     ACTS[b.dataset.act](b.dataset.v);
-    if (UI.active === 'extras') M.ui.render();
+    if (UI.active === 'extras' || (CH.Journal && CH.Journal.open)) M.ui.render();
   });
   M.ui.open = (tab) => {
     if (tab) S.tab = tab;
