@@ -4,6 +4,7 @@ const ENV = require('./env');
 (async () => {
   const browser = await chromium.launch({ executablePath: ENV.CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+  await page.addInitScript(() => { window.__uikInstant = true; });
   const errs = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message));

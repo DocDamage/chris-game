@@ -230,7 +230,7 @@
         const t = p.life / p.max;
         const x = p.x - sx;
         const y = p.y - sy;
-        if (x < -40 || y < -40 || x > 520 || y > 310) continue;
+        if (x < -40 || y < -40 || x > CH.Balance.view.w + 40 || y > CH.Balance.view.h + 40) continue;
         switch (p.kind) {
           case 'px':
             ctx.globalAlpha = t < 0.3 ? t / 0.3 : 1;

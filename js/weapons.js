@@ -616,7 +616,7 @@
     for (const pr of g.projectiles) {
       const x = pr.x - cam.x;
       const y = pr.y - cam.y;
-      if (x < -20 || y < -20 || x > 500 || y > 290) continue;
+      if (x < -20 || y < -20 || x > B.view.w + 20 || y > B.view.h + 20) continue;
       if (pr.owner === 'e') {
         // soft marker so enemy shots always read against busy floors
         ctx.globalAlpha = 0.35;

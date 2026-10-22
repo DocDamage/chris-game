@@ -20,6 +20,7 @@ async function open(opts = {}) {
   await page.goto(ENV.URL);
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui, null, { timeout: 60000 });
   await page.waitForTimeout(200);
+  await page.evaluate(([sk, lv]) => { CH.SK.enabled = sk; CH.Run.levels = lv; }, [!!opts.sidekicks, !!opts.levels]); // levels: tile stages instead of the old wave arenas
   await page.evaluate((on) => { CH.SK.enabled = on; }, !!opts.sidekicks); // sidekicks fight and draw fire: off unless the test is about them
   await page.evaluate(BOT);
   return { browser, page, errs, ctx };
@@ -33,6 +34,10 @@ const BOT = () => {
   bot.think = function () {
     const G = CH.G, I = CH.Input, p = G.player;
     if (!p) return;
+    if (G.state === 'shop') { // the vending machine is a menu now: buy the first affordable food, leave
+      const Sh = CH.Shop; Sh.cat = 'food'; const it = Sh.items().find((q) => G.coins >= Math.round(q.price)); if (it) Sh.buy(it); Sh.close(); return;
+    }
+    if (G.state === 'dialog') { CH.Dialogue.skip(); return; }
     if (G.state === 'branch') { if (CH.UI._branchPick) CH.UI._branchPick(Math.random() < 0.5 ? 0 : 1); return; } // the run is frozen on the path-choice screen
     if (G.state === 'levelup') {
       let idx = 0, best = -1;

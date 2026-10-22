@@ -138,7 +138,8 @@
     }
 
     // minimap / radar
-    if (opt('minimap', true) && G.arena && G.state === 'playing') {
+    if (opt('minimap', true) && G.level && G.state === 'playing') CH.Run.drawMinimap(ctx, v, cam);
+    else if (opt('minimap', true) && G.arena && G.state === 'playing') {
       const mw = 72;
       const mh = Math.max(24, Math.round((mw * G.arena.h) / G.arena.w));
       const mx = v.x + v.w - mw - 6;

@@ -527,3 +527,15 @@ body.uik .php.hasport { padding-left: calc(var(--u) * 31); min-height: calc(var(
 .skr-card.sel { border-color: #b8860b; background: rgba(184, 134, 11, 0.22); }
 .skr-card.locked img { filter: brightness(0) opacity(0.45); }
 .skr-card:hover, .skr-card:focus-visible { outline: calc(var(--p) * 1.5) solid #b8860b; }
+
+/* ---------- dialogue ---------- */
+#screen-dialog { background: none; justify-content: flex-end; pointer-events: none; padding-bottom: calc(var(--u) * 4); }
+#screen-dialog .dlg { pointer-events: auto; width: calc(var(--u) * 300); display: flex; gap: calc(var(--u) * 4); align-items: flex-start; position: relative; padding: calc(var(--u) * 2) calc(var(--u) * 4); }
+.dlg-port { width: calc(var(--u) * 30); height: calc(var(--u) * 30); flex: none; border: calc(var(--p) * 4) solid #1b1226; background: #3a2a5c; overflow: hidden; }
+.dlg-port img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; image-rendering: pixelated; }
+.dlg-main { flex: 1; min-height: calc(var(--u) * 30); display: flex; flex-direction: column; gap: calc(var(--u) * 1.5); }
+.dlg-who { color: var(--gold); font-size: calc(var(--u) * 5.4); }
+.dlg-text { font-size: calc(var(--u) * 5); line-height: 1.35; min-height: calc(var(--u) * 14); }
+.dlg-choices { display: flex; gap: calc(var(--u) * 2); flex-wrap: wrap; }
+.dlg-next { position: absolute; right: calc(var(--u) * 6); bottom: calc(var(--u) * 3); color: var(--gold); animation: tiredflash 0.6s steps(2) infinite; }
+.toast.popup { background: none; border-color: transparent; }

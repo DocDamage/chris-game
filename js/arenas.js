@@ -18,7 +18,9 @@
     wasteland: { id: 'wasteland', name: 'Scrapyard Wasteland', tag: 'Rust, radiation, and survival.', clear: '#4a3b2c', music: 'theme', amb: 'amb_wind', weather: 'wind' },
     volcano: { id: 'volcano', name: 'The Molten Caldera', tag: 'Watch your step on the crust.', clear: '#3a1810', music: 'dungeon', amb: 'amb_glitch', weather: 'sun' },
     dungeon: { id: 'dungeon', name: 'Psychological Crypt', tag: 'The walls have thoughts.', clear: '#1c1824', music: 'dungeon', amb: 'amb_glitch', weather: 'rain' },
+    frozen: { id: 'frozen', name: 'The Frozen Pass', tag: 'Do not lick the walls.', clear: '#c9dcea', music: 'dungeon', amb: 'amb_wind', weather: 'wind' },
   };
+  Arenas.THEMES = THEMES;
   Arenas.themes = THEMES;
 
   function canvas(w, h) {
@@ -856,7 +858,10 @@
     return { id: theme.id, name: theme.name, tag: theme.tag, w: W, h: H, bg, anim, props, theme };
   };
 
+  Arenas.addProp = addProp;
+
   Arenas.drawBg = function (ctx, arena, cam) {
+    if (arena.isLevel) return arena.drawFloor(ctx, cam, B.view.w, B.view.h); // tile levels paint their own chunks
     ctx.drawImage(arena.bg, Math.round(-cam.x), Math.round(-cam.y));
   };
 
@@ -871,7 +876,7 @@
       }
       const x = a.x - cam.x;
       const y = a.y - cam.y;
-      if (x < -40 || y < -40 || x > 520 || y > 310) continue;
+      if (x < -40 || y < -40 || x > B.view.w + 40 || y > B.view.h + 40) continue;
       let f;
       if (a.blink) f = Math.sin(time * 0.9 + a.ph) > 0.93 ? 1 : 0;
       else if (a.flicker) f = reduced ? 0 : Math.sin(time * a.rate + a.ph) > 0.55 ? 1 : 0;

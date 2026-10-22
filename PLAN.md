@@ -401,3 +401,41 @@ Each milestone leaves the game playable and its tests green.
 | M12 | Balance pass with the bots, performance pass, README | all | everything |
 
 M7 + M8 are still the largest gameplay change, but after Phase 0 they build on a tested level model, movement system and run director instead of reworking them. M2-M6 don't depend on M7/M8 and can be done in any order once their inputs are ready.
+
+---
+
+## 14. Progress log and deviations (kept up to date while the work is done)
+
+Everything below is committed to `DocDamage/chris-game` (code only; `assets/` and `data/` are generated or local).
+
+**Done**
+
+| Step | State | Notes |
+| --- | --- | --- |
+| P0.0 safety net | done | git, baseline logs in `.baseline/` |
+| P0.1 Storage v2 | done | `t20_storage.js`; also fixed a regex bug that dropped saved loot |
+| P0.2 bundles | done | `tools/split-bundles.js`: core, heroes, bosses, audio, ui, sidekicks |
+| M1 pipelines | done | hero packs (6), sidekick packs (17), UI pack (1,244 PNG + 27 .aseprite), `t21_assets.js` |
+| R1 640x360 | done | DOM menus keep the 480x270 grid (`B.ui`); canvas is 640x360 (`B.view`) |
+| M2 heroes | done | `js/kits.js`, ids `Enchantress`, `Specter`, `Stranger`, save migration, Specter death animation |
+| M3 UI | done (first pass) | `uikit.js`, pack-styled panels/buttons/HUD bars + portrait, the Journal (`journal.js`) |
+| M4 shop | done | `shop.js`, `G.state = 'shop'`, categories, sell/buyback, reroll, `$` sign |
+| M5 sidekicks | done | `sidekicks.js`, 17 companions, AI, revive, roster page |
+| M6 PostFX | not started | |
+| M7 levels | done | `level.js`, `levelgen.js`: tile grid, walls, flow field, fog, chunked floor, minimap, secrets |
+| M8 hives | done (first pass) | `spawners.js`, `run.js`: hives with 3 levels, packs, shrines, chests, waypoints, exit |
+| M9-M12 | see below | |
+
+**Deviations from the plan, and why**
+
+- **Journal tabs.** The pack's book has six tabs (quill, bag, shirt, red book, floppy, gear: the *Style 2* icons), not
+  the five of *Style 1*. So the Journal is: Journal / Inventory / Equipment / Codex / Save & Quit / Settings. The map is
+  its own scroll (the Pixel Map), not a book tab.
+- **R2-R5, R9 as full refactors were not done as a separate no-behaviour-change phase.** They were built where the
+  features needed them: `G.wave` stays as the stage number (`G.depth` is an alias) instead of a rename across the code;
+  walls use `Level.pushOut` after every move instead of a rewritten `World.move`; the floor is chunked inside
+  `Level`; sidekicks have their own small state machine instead of a shared actor base. The old test suite stayed green
+  throughout, which was the purpose of Phase 0.
+- **Boss stages stay arena fights** (wave code), levels are the stages between them. Boss Rush, tutorial and the old wave
+  loop are still available (`CH.Run.levels = false`; the tests that are about waves run that way).
+- **Tests default to wave mode and no sidekicks** (`open()` in `tests/lib.js` takes `{ levels, sidekicks }`).

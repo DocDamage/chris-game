@@ -1133,7 +1133,7 @@
     const L = e.look;
     const x = e.x - cam.x;
     const y = e.y - cam.y;
-    if (x < -60 || y < -70 || x > 540 || y > 340) return;
+    if (x < -60 || y < -70 || x > B.view.w + 60 || y > B.view.h + 70) return;
     const g = e.g;
     const sc = e.scale * g.mods.enemyScale;
     const art = CH.Art.on && CH.Sprites.has(L.sprite);

@@ -257,11 +257,13 @@
   CH.Input.onGlobal = UI.onGlobalKey;
 
   /* ------------------------------------------------------------------ redirect the old screens */
+  const MUSIC = { settings: 'shop', stats: 'garden', shelter: 'shop', codex: 'garden', extras: 'theme' };
   const REDIRECT = { settings: [5, 0], codex: [3, 0], stats: [0, 3], extras: [0, 2], shelter: [1, 2] };
   const prevShow = UI.show;
   UI.show = function (name) {
     if (REDIRECT[name] && UIK.on && !J.adopting) {
       const r = REDIRECT[name];
+      if (G.state === 'menu' && MUSIC[name]) Audio.setMusic(MUSIC[name]); // the menu tracks of the screens the book replaced
       const from = UI.active && UI.active !== 'journal' ? UI.active : J.from;
       if (J.open) J.go(r[0], r[1]);
       else {
