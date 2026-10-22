@@ -425,19 +425,20 @@ kbd.pad.t { border-radius: calc(var(--u) * 1); }
    ===================================================================================================================== */
 body.uik .wood, body.uik .panel {
   background: none;
-  border: calc(var(--p) * 12) solid transparent;
-  border-image: var(--nine) 12 fill / calc(var(--p) * 12) stretch;
+  border: calc(var(--p) * 8) solid transparent;
+  border-image: var(--nine) 8 fill / calc(var(--p) * 8) stretch;
   border-radius: 0;
   box-shadow: none;
   image-rendering: pixelated;
 }
+body.uik .panel { border-width: calc(var(--p) * 12); border-image: var(--nine) 12 fill / calc(var(--p) * 12) stretch; }
 body.uik .panel { padding: calc(var(--u) * 3) calc(var(--u) * 5); }
 body.uik .btn {
   background: none;
-  border: calc(var(--p) * 12) solid transparent;
-  border-image: var(--nine) 12 fill / calc(var(--p) * 8) stretch;
+  border: calc(var(--p) * 6) solid transparent;
+  border-image: var(--nine) 6 fill / calc(var(--p) * 6) stretch;
   border-radius: 0;
-  padding: calc(var(--u) * 1.4) calc(var(--u) * 3);
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 3);
   image-rendering: pixelated;
   filter: none;
 }
@@ -483,3 +484,15 @@ body.uik .btn.off, body.uik .btn.toggle.off { filter: grayscale(1) brightness(0.
 .jb-host .adopted .btn.small { font-size: calc(var(--p) * 6); }
 .jb-host .adopted .panel { gap: calc(var(--p) * 4); }
 .jb-host .adopted .chip { color: #2a1a14; }
+
+/* HUD bars use the pack's progress-bar pieces; the portrait sits in a pack slot frame */
+body.uik [id^="hpfill"] { background: var(--bar-red) center / 100% 100% no-repeat; image-rendering: pixelated; }
+body.uik [id^="stfill"] { background: var(--bar-blue) center / 100% 100% no-repeat; image-rendering: pixelated; }
+body.uik #xpfill { background: var(--bar-orange) center / 100% 100% no-repeat; image-rendering: pixelated; box-shadow: none; }
+body.uik .bar { background: #1b1226; border-color: #0d0816; }
+.php { position: absolute; }
+body.uik .php.hasport { padding-left: calc(var(--u) * 31); min-height: calc(var(--u) * 34); }
+.hud-port { position: absolute; left: calc(var(--u) * 6); top: calc(var(--u) * 6); width: calc(var(--u) * 22); height: calc(var(--u) * 22); border: calc(var(--p) * 4) solid #1b1226; background: #3a2a5c; overflow: hidden; }
+.hud-port img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; image-rendering: pixelated; display: block; transform: scale(1.7); transform-origin: 50% 20%; }
+.hud-port.hidden { display: none; }
+.php .ptag { z-index: 1; }

@@ -108,8 +108,29 @@
     return best;
   }
 
-  /* tint a sprite into a data URL (e.g. the red HP bar piece) */
-  UIK.dataUrl = (rel) => UIK.url(rel);
+  /* a sprite cropped to its opaque pixels, as a data URL (the pack stores bars on 32x32 canvases) */
+  const trimmed = {};
+  UIK.trim = (rel) => {
+    if (trimmed[rel]) return trimmed[rel];
+    const im = UIK.img(rel);
+    if (!im) return '';
+    const cv = document.createElement('canvas');
+    cv.width = im.width;
+    cv.height = im.height;
+    const x = cv.getContext('2d');
+    x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, cv.width, cv.height).data;
+    let x0 = cv.width, y0 = cv.height, x1 = -1, y1 = -1;
+    for (let yy = 0; yy < cv.height; yy++) for (let xx = 0; xx < cv.width; xx++) if (d[(yy * cv.width + xx) * 4 + 3]) {
+      if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy;
+    }
+    if (x1 < 0) return (trimmed[rel] = im.src);
+    const c2 = document.createElement('canvas');
+    c2.width = x1 - x0 + 1;
+    c2.height = y1 - y0 + 1;
+    c2.getContext('2d').drawImage(cv, x0, y0, c2.width, c2.height, 0, 0, c2.width, c2.height);
+    return (trimmed[rel] = c2.toDataURL());
+  };
 
   /* ------------------------------------------------------------------ CSS */
   UIK.install = function () {
@@ -119,6 +140,9 @@
     for (const c of UIK.COLORS) {
       css += `.c-${c}{--paper:url(${UIK.nine(c, false)});--nine:url(${UIK.nine(c, true)});}\n`;
     }
+    // progress-bar fills (the same in every colour variant): red HP, blue stamina, orange XP
+    for (const [n, f] of [['red', 2], ['blue', 8], ['orange', 14]]) css += `#stage{--bar-${n}:url(${UIK.trim('1 - Brown/Content/Progress Bars/' + f + '.png')});}
+`;
     css += '#stage{--nine:url(' + UIK.nine('brown', true) + ');--paper:url(' + UIK.nine('brown', false) + ');}\n';
     const st = document.createElement('style');
     st.id = 'uik-style';

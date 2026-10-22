@@ -966,6 +966,7 @@
         hpfill: q('hpfill'),
         hptrail: q('hptrail'),
         hptxt: q('hptxt'),
+        port: q('hudport'),
         stbar: q('stbar'),
         stfill: q('stfill'),
         sttxt: q('sttxt'),
@@ -1051,6 +1052,14 @@
     setText(h.sttxt, p.exhausted ? 'EXHAUSTED' : '');
     toggleCls(h.stbar, 'tired', p.exhausted);
     toggleCls(h.panel, 'dead', p.dead);
+    // portrait in the pack's slot frame: the hero's south-facing rotation
+    if (h.port && h._heroId !== p.hero.id) {
+      h._heroId = p.hero.id;
+      const im = CH.UIK && CH.UIK.on && CH.Assets.images['hero.' + p.hero.id + '.rot_s'];
+      h.port.classList.toggle('hidden', !im);
+      h.panel.classList.toggle('hasport', !!im);
+      if (im) h.port.firstChild.src = im.src;
+    }
 
     // power-up chips
     for (const k of Object.keys(B.pickupsBuff)) {
