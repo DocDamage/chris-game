@@ -1,0 +1,6 @@
+{
+  "name": "chaos-exe-tests",
+  "private": true,
+  "description": "Browser-driven test scripts for CHAOS.exe (real Chrome via playwright-core). Run: npm install && node t5_ui.js",
+  "dependencies": { "playwright-core": "^1.48.0" }
+}

@@ -1,0 +1,6 @@
+# Generated bundles and source art stay out of git (2 GB); regenerate via tools/
+data/
+assets/
+*.jpg
+tests/node_modules/
+tests/*.png

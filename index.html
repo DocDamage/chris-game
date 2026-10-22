@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHAOS.exe</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="game" width="480" height="270"></canvas>
+    <div id="loading"><div class="ltitle">CHAOS<span>.exe</span></div><div class="lbar"><div id="lfill"></div></div><div class="ltxt" id="ltxt">LOADING...</div></div>
+
+    <!-- ============ HUD ============ -->
+    <div id="hud" class="hidden">
+      <div id="xpbar" class="wood"><div id="xpfill"></div><span id="lvltxt">LV 1</span></div>
+
+      <div id="hp-panel" class="wood php p1">
+        <div class="ptag" id="ptag">P1</div>
+        <div class="row">
+          <img class="ico" id="ico-heart" alt="">
+          <div class="bar hp"><div id="hptrail"></div><div id="hpfill"></div><span id="hptxt">100/100</span></div>
+        </div>
+        <div class="row">
+          <img class="ico" id="ico-bolt" alt="">
+          <div class="bar st" id="stbar"><div id="stfill"></div><span id="sttxt"></span></div>
+        </div>
+      </div>
+
+      <div id="wave-panel" class="wood">
+        <div id="wavetxt">WAVE 1/10</div>
+        <div id="enemytxt">ENEMIES 0</div>
+        <div id="scoretxt">SCORE 0</div>
+        <div id="combotxt">x1.0</div>
+      </div>
+
+      <div id="boss-panel" class="hidden">
+        <div id="bossname">BOSS</div>
+        <div class="bossbar"><div id="bosstrail"></div><div id="bossfill"></div><span id="bosstxt"></span></div>
+      </div>
+
+      <div id="event-panel" class="hidden wood">
+        <div id="eventname">EVENT</div>
+        <div class="bar ev"><div id="eventfill"></div><span id="eventtxt"></span></div>
+      </div>
+
+      <div id="powerups" class="ppow"></div>
+
+      <div id="bottom" class="pbottom p1">
+        <div id="abilityslot" class="slot"><canvas width="20" height="20" id="abilityicon"></canvas><span class="key" id="abilitykey">Q</span><div class="cd" id="abilitycd"></div></div>
+        <div id="gadgetslot" class="slot"><img id="gadgeticon" alt=""><span class="key" id="gadgetkey">G</span><span class="ammo" id="gadgetcount">3</span><div class="cd" id="gadgetcd"></div></div>
+        <div id="weaponslots"></div>
+      </div>
+
+      <div id="res-panel" class="wood">
+        <span class="res" title="Wood: dropped by trees"><img class="ico" id="ico-wood" alt=""><b id="res-wood">0</b></span>
+        <span class="res" title="Scrap: dropped by wrecks, barricades and furniture"><img class="ico" id="ico-scrap" alt=""><b id="res-scrap">0</b></span>
+        <span class="res" title="Stone: dropped by rocks and pillars"><img class="ico" id="ico-stone" alt=""><b id="res-stone">0</b></span>
+        <span class="res" title="Trophies (mob drops) found this run"><img class="ico" id="ico-loot" alt=""><b id="res-loot">0</b></span>
+      </div>
+      <div id="coins-panel" class="wood"><img class="ico" id="ico-coin" alt=""><span id="cointxt">0</span></div>
+    </div>
+
+    <div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+    <div id="bossintro" class="hidden"><div class="small">WARNING</div><div id="bossintro-name"></div></div>
+    <div id="toasts"></div>
+    <div id="flashhint" class="hidden"></div>
+
+    <!-- ============ MAIN MENU ============ -->
+    <div class="screen" id="screen-main">
+      <div class="title-block">
+        <h1 class="title" data-text="CHAOS.exe">CHAOS<span>.exe</span></h1>
+        <div class="tagline">reality has stopped responding</div>
+      </div>
+      <div class="menu-col">
+        <button class="btn primary" id="btn-play">PLAY</button>
+        <button class="btn" id="btn-coop">CO-OP  (2 PLAYERS)</button>
+        <button class="btn" id="btn-howto">HOW TO PLAY</button>
+        <button class="btn" id="btn-settings">SETTINGS</button>
+        <button class="btn" id="btn-shelter">SAFEHOUSE &amp; BASE</button>
+        <button class="btn" id="btn-codex">TROPHY CODEX</button>
+        <button class="btn" id="btn-extras">EXTRAS &amp; MODES</button>
+        <button class="btn" id="btn-stats">STATISTICS</button>
+        <button class="btn" id="btn-credits">CREDITS</button>
+      </div>
+      <div class="menu-meta">
+        <div id="menu-best">BEST SCORE: 0</div>
+        <div id="menu-diff" class="chip">NORMAL</div>
+      </div>
+      <div class="controls-strip" id="controls-strip"></div>
+    </div>
+
+    <!-- ============ CO-OP LOBBY ============ -->
+    <div class="screen" id="screen-lobby">
+      <div class="panel wide lobby">
+        <h2>LOCAL CO-OP</h2>
+        <div class="hint center" id="lobby-hint">Press <kbd class="pad a">A</kbd> on a controller to join. The screen splits when you drift apart and merges when you meet up.</div>
+        <div class="lobby-slots">
+          <div class="lslot" id="lslot-0"><div class="lhead">PLAYER 1</div><canvas class="lport" width="72" height="72"></canvas><div class="lhero"></div><div class="lspecial"></div><div class="ldev"></div><div class="lstate"></div></div>
+          <div class="lslot" id="lslot-1"><div class="lhead">PLAYER 2</div><canvas class="lport" width="72" height="72"></canvas><div class="lhero"></div><div class="lspecial"></div><div class="ldev"></div><div class="lstate"></div></div>
+          <div class="lslot" id="lslot-2"><div class="lhead">PLAYER 3</div><canvas class="lport" width="72" height="72"></canvas><div class="lhero"></div><div class="lspecial"></div><div class="ldev"></div><div class="lstate"></div></div>
+          <div class="lslot" id="lslot-3"><div class="lhead">PLAYER 4</div><canvas class="lport" width="72" height="72"></canvas><div class="lhero"></div><div class="lspecial"></div><div class="ldev"></div><div class="lstate"></div></div>
+        </div>
+        <div class="row-btns">
+          <button class="btn" id="btn-lobby-kbm">JOIN WITH KEYBOARD + MOUSE</button>
+          <button class="btn primary" id="btn-lobby-start">START</button>
+          <button class="btn back" id="btn-lobby-back">BACK</button>
+        </div>
+        <div class="hint center">Pick a hero with <kbd class="pad">D-PAD</kbd> / <kbd>A</kbd><kbd>D</kbd>. Confirm with <kbd class="pad a">A</kbd> / <kbd>ENTER</kbd>, leave with <kbd class="pad b">B</kbd> / <kbd>ESC</kbd>.</div>
+      </div>
+    </div>
+
+    <!-- ============ HOW TO PLAY ============ -->
+    <div class="screen" id="screen-howto">
+      <div class="panel wide">
+        <h2>HOW TO PLAY</h2>
+        <div class="scroll">
+          <p class="lead">The universe has crashed. Ordinary objects are hostile. You are underqualified. Survive 10 waves, beat the bosses, then keep going in Endless Mode.</p>
+          <div class="grid2">
+            <div>
+              <h3>KEYBOARD + MOUSE</h3>
+              <table class="keys" id="howto-keys"></table>
+            </div>
+            <div>
+              <h3>CONTROLLER</h3>
+              <table class="keys" id="howto-pad"></table>
+            </div>
+          </div>
+          <h3>TIPS</h3>
+          <ul class="tips">
+            <li>Red circles, lines and <b class="red">!</b> marks warn you before a hit lands. Move out of them.</li>
+            <li>Dodge rolling makes you invulnerable for a moment, but uses stamina and has a cooldown.</li>
+            <li>Gems give XP. Level up to choose 1 of 3 upgrades. Gold buys things at <b>vending machines</b> (press E, or B on a controller).</li>
+            <li>Two weapons at once: the main weapon is on the right trigger / left mouse button, the second on the left trigger / right mouse button.</li>
+            <li>Rubber chickens bounce. Pizza explodes. The baguette bats enemy shots (and arrows!) back at them.</li>
+            <li>A random <b>chaos event</b> hits every minute or so. They change the rules, so read the banner!</li>
+            <li>Kill streaks raise your score multiplier. Getting hit resets it. Bosses drop a token: grab it for a special reward.</li>
+            <li><b>Power-ups</b> show the item that does the job: swords = Rage, boots = Haste, shields = Shield, potions = Focus / Regen, books = Scholar, an hourglass = Time Warp, a magnet pulls in loot, a bomb explodes, a chest pays out. Food and red potions heal.</li>
+            <li><b>Trophies:</b> enemies drop items that fit them and bosses drop rare ones. Every one has an effect and goes into the <b>Trophy Codex</b> (main menu), where you can sell extras for scrap. Filling the codex unlocks permanent bonuses.</li>
+            <li><b>Co-op:</b> two players share one screen while close and get a split screen when apart. Stand next to a downed partner to revive them.</li>
+          </ul>
+        </div>
+        <div class="row-btns"><button class="btn back" data-back>BACK</button></div>
+      </div>
+    </div>
+
+    <!-- ============ SETTINGS ============ -->
+    <div class="screen" id="screen-settings">
+      <div class="panel wide">
+        <h2>SETTINGS</h2>
+        <div class="scroll" id="settings-body">
+          <div class="grid2">
+            <div>
+              <h3>AUDIO</h3>
+              <label class="slider">MASTER <input type="range" id="set-master" min="0" max="100"><b id="v-master"></b></label>
+              <label class="slider">MUSIC <input type="range" id="set-music" min="0" max="100"><b id="v-music"></b></label>
+              <label class="slider">SOUND FX <input type="range" id="set-sfx" min="0" max="100"><b id="v-sfx"></b></label>
+              <div class="toggles">
+                <button class="btn toggle" id="set-musicOn">MUSIC: ON</button>
+                <button class="btn toggle" id="set-sfxOn">SFX: ON</button>
+                <button class="btn toggle" id="set-muted">MUTE ALL: OFF</button>
+              </div>
+              <h3>CONTROLLER</h3>
+              <label class="slider">STICK DEADZONE <input type="range" id="set-deadzone" min="5" max="45"><b id="v-deadzone"></b></label>
+              <div class="toggles">
+                <button class="btn toggle" id="set-aimAssist">AIM ASSIST: ON</button>
+                <button class="btn toggle" id="set-rumble">VIBRATION: ON</button>
+              </div>
+              <h3>ACCESSIBILITY</h3>
+              <div class="toggles">
+                <button class="btn toggle" id="set-shake">SCREEN SHAKE: ON</button>
+                <button class="btn toggle" id="set-flashing">FLASHING EFFECTS: ON</button>
+                <button class="btn toggle" id="set-reduced">REDUCED EFFECTS: OFF</button>
+              </div>
+            </div>
+            <div>
+              <h3>DIFFICULTY</h3>
+              <div class="toggles" id="diff-buttons"></div>
+              <div class="hint" id="diff-desc"></div>
+              <h3>CHARACTER <small>(PLAYER 1)</small></h3>
+              <div class="swatches" id="swatches"></div>
+              <div class="hint" id="swatch-desc"></div>
+              <h3>CHARACTER <small>(PLAYER 2, CO-OP)</small></h3>
+              <div class="swatches" id="swatches2"></div>
+              <div class="hint" id="swatch-desc2"></div>
+              <h3>CONTROLS <small>(click, then press a key)</small></h3>
+              <div class="rebind" id="rebind"></div>
+              <button class="btn small" id="btn-resetkeys">RESET KEYS</button>
+            </div>
+          </div>
+        </div>
+        <div class="row-btns"><button class="btn back" data-back>BACK</button></div>
+      </div>
+    </div>
+
+    <!-- ============ STATS ============ -->
+    <div class="screen" id="screen-stats">
+      <div class="panel">
+        <h2>STATISTICS</h2>
+        <div class="scroll">
+          <table class="statlist" id="statlist"></table>
+          <h3>UNLOCKS</h3>
+          <div id="unlocklist" class="unlocks"></div>
+        </div>
+        <div class="row-btns">
+          <button class="btn back" data-back>BACK</button>
+          <button class="btn danger small" id="btn-resetsave">RESET SAVE DATA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SAFEHOUSE / SHELTER ============ -->
+    <div class="screen" id="screen-shelter">
+      <div class="panel wide">
+        <h2>SURVIVOR SAFEHOUSE &amp; BASE</h2>
+        <div class="shelter-resources-bar">
+          <span class="res-badge">🪵 Wood: <b id="sh-wood">0</b></span>
+          <span class="res-badge">⚙️ Scrap: <b id="sh-scrap">0</b></span>
+          <span class="res-badge">🪨 Stone: <b id="sh-stone">0</b></span>
+        </div>
+        <div class="shelter-layout">
+          <div class="shelter-preview">
+            <canvas id="shelter-canvas" width="450" height="150"></canvas>
+            <div class="hint center">Permanent shelter improvements grant bonuses across all future runs.</div>
+          </div>
+          <div class="shelter-stations-scroll scroll" id="shelter-stations"></div>
+          <h3>DECORATIONS <small>(cosmetic: make the place feel like home)</small></h3>
+          <div class="decor-grid" id="shelter-decor"></div>
+        </div>
+        <div class="row-btns"><button class="btn" id="btn-shelter-codex">TROPHY CODEX</button><button class="btn back" data-back>BACK TO MENU</button></div>
+      </div>
+    </div>
+
+    <!-- ============ TROPHY CODEX ============ -->
+    <div class="screen" id="screen-codex">
+      <div class="panel wide">
+        <h2>TROPHY CODEX</h2>
+        <div class="codex-head">
+          <div>FOUND <b id="codex-count">0 / 367</b></div>
+          <div class="codex-barwrap"><div id="codex-bar"></div></div>
+        </div>
+        <div id="codex-milestones" class="codex-milestones"></div>
+        <div id="codex-filters" class="row-btns"></div>
+        <div id="codex-grid" class="codex-grid scroll"></div>
+        <div id="codex-detail" class="codex-detail"></div>
+        <div class="row-btns">
+          <button class="btn small" id="codex-sell1">SELL 1</button>
+          <button class="btn small" id="codex-sellall">SELL ALL BUT 1</button>
+          <button class="btn small" id="codex-selldupes">SELL ALL DUPLICATES</button>
+        </div>
+        <div class="row-btns"><button class="btn back" data-back>BACK</button></div>
+      </div>
+    </div>
+
+    <!-- ============ CREDITS ============ -->
+    <div class="screen" id="screen-credits">
+      <div class="panel">
+        <h2>CREDITS</h2>
+        <div class="scroll center">
+          <p><b>CHAOS.exe</b></p>
+          <p>Game design and code: vanilla JavaScript, HTML5 Canvas, Web Audio.<br>Props, UI and fallback art are drawn by code.</p>
+          <h3>ART &amp; AUDIO PACKS</h3>
+          <p>Heroes: <b>Cyberpunk Mercenary, Dreadbloom Knight of the Black Thorn, Vexaria the Blood Moon Knight</b><br>
+          Enemies and projectiles: <b>Tiny RPG Character Asset Packs 01 &amp; 02, Free Predator Plant Mobs, Free Slime Mobs, Pixel Art Slime Enemies, Free Top-Down Orc, Goblin Pixel Art, The Forest Giant Spider (all colour variants)</b><br>
+          Bosses: <b>Warrior (Swish), Rock Spider, Winged Crawller, Wild Frog, Skeleton Maw, Mecha-stone Golem, Boulder Dash, Dragon Pixel Art Sprite Sheets (Dragons 1 to 3), Beholder Monsters (1 to 3), Boss Monsters Pixel Art (Mage, Demon, Ooze), Boss Monster Game Sprites (Treant, Moss Golem, Skull Knight, Yeti), Golem Pixel Art Pack, End Bosses (Daddy, the Skull King)</b><br>
+          Loot and power-ups: <b>Mob Drops (367 item icons), Power Ups (650 item icons)</b><br>
+          Effects: <b>Beat 'em Up Combat Effects &ndash; 2D Pixel Art VFX Packs 1 to 7</b><br>
+          Tiles and props: <b>Valley Ruin Asset Pack, Zombie Apocalypse Survival Asset Pack, Wasteland Survivor Kit, Volcanic Ruins, Psychological Horror Dungeon</b><br>
+          Sound effects: <b>Huge SFX Pack</b><br>
+          Music: <b>Crimson Nocturne &ndash; Vampire Gothic Fantasy Soundtrack Pack</b> (all 20 tracks)</p>
+          <p class="dim">All packs belong to their respective authors and are used under their licences.</p>
+          <p class="dim">Any resemblance to real office workers, refrigerators or pigeons is entirely deserved.</p>
+        </div>
+        <div class="row-btns"><button class="btn back" data-back>BACK</button></div>
+      </div>
+    </div>
+
+    <!-- ============ PAUSE ============ -->
+    <div class="screen dim" id="screen-pause">
+      <div class="panel small">
+        <h2>PAUSED</h2>
+        <div class="menu-col">
+          <button class="btn primary" id="btn-resume">RESUME</button>
+          <button class="btn" id="btn-restart">RESTART RUN</button>
+          <button class="btn" id="btn-pause-settings">SETTINGS</button>
+          <button class="btn" id="btn-pause-menu">RETURN TO MAIN MENU</button>
+        </div>
+        <div class="hint center">Press ESC or <kbd class="pad">START</kbd> to resume</div>
+      </div>
+    </div>
+
+    <!-- ============ CONFIRM ============ -->
+    <div class="screen dim" id="screen-confirm">
+      <div class="panel small">
+        <h2 id="confirm-title">ARE YOU SURE?</h2>
+        <p class="center" id="confirm-msg"></p>
+        <div class="row-btns">
+          <button class="btn danger" id="confirm-yes">YES</button>
+          <button class="btn primary" id="confirm-no">NO, GO BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ LEVEL UP ============ -->
+    <div class="screen dim" id="screen-levelup">
+      <div class="levelup-title">LEVEL UP!</div>
+      <div class="levelup-sub" id="levelup-sub">Choose one upgrade</div>
+      <div class="cards" id="cards"></div>
+      <div class="hint center" id="levelup-hint">Click a card or press 1 / 2 / 3</div>
+    </div>
+
+    <!-- ============ BRANCHING BIOME SELECTION ============ -->
+    <div class="screen dim" id="screen-branch">
+      <div class="levelup-title">SECTOR CLEARED!</div>
+      <div class="levelup-sub" id="branch-sub">CHOOSE YOUR NEXT PATH <small>(click, 1 / 2, or D-PAD + A)</small></div>
+      <div class="cards" id="branch-cards"></div>
+      <div class="hint center">Choose a destination to deploy into its hazards and rewards.</div>
+    </div>
+
+    <!-- ============ GAME OVER ============ -->
+    <div class="screen dim" id="screen-gameover">
+      <div class="panel">
+        <h2 class="bad" id="go-title">GAME OVER</h2>
+        <div class="center snark" id="go-snark"></div>
+        <table class="statlist" id="go-stats"></table>
+        <div class="center newbest hidden" id="go-newbest">NEW PERSONAL BEST!</div>
+        <div class="center unlocked hidden" id="go-unlock"></div>
+        <div class="row-btns">
+          <button class="btn primary" id="btn-retry">RETRY</button>
+          <button class="btn" id="btn-go-menu">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VICTORY ============ -->
+    <div class="screen dim" id="screen-victory">
+      <div class="confetti" id="confetti"></div>
+      <canvas id="vic-hero" width="72" height="72"></canvas>
+      <div class="panel">
+        <h2 class="good" id="vic-title">VICTORY!</h2>
+        <div class="center snark">THE FINAL BUG HAS BEEN PATCHED. REALITY.EXE IS BACK ONLINE.</div>
+        <table class="statlist" id="vic-stats"></table>
+        <div class="center newbest hidden" id="vic-newbest">NEW PERSONAL BEST!</div>
+        <div class="center unlocked hidden" id="vic-unlock"></div>
+        <div class="rewards" id="vic-rewards"></div>
+        <div class="row-btns">
+          <button class="btn primary" id="btn-endless">CONTINUE TO ENDLESS MODE</button>
+          <button class="btn" id="btn-again">PLAY AGAIN</button>
+          <button class="btn" id="btn-vic-menu">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<noscript><p style="color:#fff;padding:2em">CHAOS.exe needs JavaScript. Ironically.</p></noscript>
+
+<script src="js/util.js"></script>
+<script src="js/balance.js"></script>
+<script src="js/storage.js"></script>
+<script src="data/assets.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/font.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/art.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/vfxkit.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/bosses.js"></script>
+<script src="js/bosses_more.js"></script>
+<script src="js/upgrades.js"></script>
+<script src="js/loot.js"></script>
+<script src="js/powerups.js"></script>
+<script src="js/events.js"></script>
+<script src="js/arenas.js"></script>
+<script src="js/shelter.js"></script>
+<script src="js/codex.js"></script>
+<script src="js/player.js"></script>
+<script src="js/game.js"></script>
+<script src="js/views.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/padnav.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/perks.js"></script>
+<script src="js/weapons2.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/waves.js"></script>
+    <script src="js/foes.js"></script>
+<script src="js/meta.js"></script>
+<script src="js/extras.js"></script>
+<script src="js/hudx.js"></script>
+<script src="js/coop4.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
