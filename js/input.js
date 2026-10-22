@@ -113,7 +113,8 @@
         return;
       }
       const tag = e.target && e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // only fields you type into swallow keys; a focused slider or checkbox must not block Esc, Q / E and the arrows
+      if (tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(e.target.type))) return;
       Input.lastUsed = 'kbm';
       const playing = CH.G && CH.G.state === 'playing';
       if ((playing && (GAME_CODES.has(e.code) || (Input.codeToActions[e.code] || []).length)) || e.code === 'F11') e.preventDefault();
@@ -326,7 +327,7 @@
   const PAD_EDGES = [
     [BTN.A, 'dodge'],
     [BTN.A, 'jump'],
-    [BTN.B, 'dodge'],
+    [BTN.B, 'jump'], // B jumps; next to a machine, chest or person it interacts instead
     [BTN.B, 'interact'],
     [BTN.R3, 'fortify'],
     [BTN.X, 'reload'],

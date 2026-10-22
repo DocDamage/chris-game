@@ -129,6 +129,14 @@
       return moved;
     }
 
+    /* the same, for bodies that touch the ground with their feet: the circle sits `off` pixels below the centre */
+    pushOutFeet(e, r, off) {
+      e.y += off;
+      const m = this.pushOut(e, Math.min(r || 8, 7));
+      e.y -= off;
+      return m;
+    }
+
     /* ---- line of sight on the grid (Bresenham) ---- */
     los(x0, y0, x1, y1) {
       let tx = Math.floor(x0 / TS), ty = Math.floor(y0 / TS);

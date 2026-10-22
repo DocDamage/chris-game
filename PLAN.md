@@ -450,3 +450,11 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 - The pack's baked label sheet (PAUSE / OPTIONS ...) is exported but the screens use the game font in the pack's ink colour.
 - Co-op: the Journal, shop and dialogue take the colour of the player who opened them for the shop and dialogue; the Journal itself always opens in Brown.
 - Balance was tuned with bots only (they win about 85-100% of classic runs and take real damage); human playtesting will want a pass.
+
+**Fixes after first playtest (2026-10-22)**
+
+- The Extras & Modes page did nothing: its click handler sat on the old screen element while the Journal moves the panel. Now on the panel itself, closes the book before a run starts, and training / tutorial / rush stay arena modes. `t31_extras.js` clicks every launch button.
+- Heroes and monsters now collide with walls and props at the feet (not the body centre) and props get hitboxes from their sprite width, so nobody hovers in front of rock or sinks into it. `t33_physics.js`.
+- Jump has its own key (`B`, pad `B` when nothing is there to interact with); old saves that bound it to Space migrate.
+- The puddle shader compares against a copy of the floor and leaves heroes and monsters alone.
+- Esc works with a slider focused (it was swallowed), the Journal no longer focuses a slider first, pause and Journal reach with the pad (shoulders = tabs / cards, triggers = pages). `t32_pause.js` drives the pause menu with real mouse and keyboard.

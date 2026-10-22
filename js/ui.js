@@ -59,7 +59,7 @@
     ['left', 'Move left'],
     ['right', 'Move right'],
     ['sprint', 'Sprint'],
-    ['jump', 'Jump onto props'],
+    ['jump', 'Jump'],
     ['dodge', 'Dodge roll'],
     ['reload', 'Reload'],
     ['interact', 'Interact'],
@@ -444,7 +444,7 @@
         return true;
       }
     }
-    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item, .vend-cell')).filter((b) => b.offsetParent !== null && !b.disabled);
+    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item, .vend-cell, .pz-btn, .ig-cell, .pd-slot, .skr-card')).filter((b) => b.offsetParent !== null && !b.disabled);
     if (!items.length) return false;
     // read-only screens (how to play, credits, stats) have nothing to focus but BACK: up / down scrolls them instead
     const sc = root.querySelector('.scroll');
@@ -812,6 +812,8 @@
       box.appendChild(b);
     });
     UI.show('levelup');
+    const c0 = box.querySelector('.card'); // the first card has the focus at once, so a pad can act on the very first frame
+    if (c0) c0.focus({ preventScroll: true });
   };
   UI.hideLevelUp = function () {
     UI.hideAll();

@@ -22,7 +22,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   // keyboard navigation in menu: ArrowDown moves focus, Enter activates
   await page.keyboard.press('ArrowDown');
   const focused = await page.evaluate(() => document.activeElement && document.activeElement.id);
-  ok('arrow-key focus moves in menu', focused === 'btn-coop' || focused === 'btn-settings', focused);
+  ok('arrow-key focus moves in menu', focused === 'btn-heroes' || focused === 'btn-coop' || focused === 'btn-settings', focused);
   await page.click('#btn-howto');
   ok('how to play opens', (await state()).ui === 'howto');
   await page.screenshot({ path: 'u_howto.png' });

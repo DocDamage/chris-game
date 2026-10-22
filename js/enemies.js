@@ -283,9 +283,9 @@
           if (!prop.solid || prop.dead) continue;
           const px = prop.x + (prop.cx || 0);
           const py = prop.y + (prop.cy || 0);
-          const minD = (prop.cr || 10) + this.r;
+          const minD = (prop.cr || 10) + Math.min(this.r, 9);
           const dx = this.x - px;
-          const dy = this.y - py;
+          const dy = this.y + Math.min(10, ((this.look && this.look.foot) || 8) * 0.8) - py; // feet, not the body centre
           const d2 = dx * dx + dy * dy;
           if (d2 < minD * minD && d2 > 0.0001) {
             const d = Math.sqrt(d2);

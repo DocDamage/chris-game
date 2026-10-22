@@ -276,7 +276,7 @@
         for (let i = 0; i < n; i++) {
           const p = L.randomNear(r.cx, r.cy, 20, Math.max(50, Math.min((r.w || 10) * TS * 0.45, 200)), 26, R.f);
           if (!p || reserved.some((q) => U.dist(p.x, p.y, q.x, q.y) < 70)) continue;
-          if (L.props.some((q) => U.dist(p.x, p.y, q.x, q.y) < 42)) continue; // no wedges: two props never stand close enough to trap a hero between them
+          if (L.props.some((q) => U.dist(p.x, p.y, q.x, q.y) < 58)) continue; // no wedges: two props never stand close enough to trap a hero between them
           CH.Arenas.addProp(L.props, R.pick(decor), p.x, p.y, { solid: true, cr: 11, destructible: R.f() < 0.35, hp: 30, jumpable: true, resourceType: R.pick(['wood', 'scrap', 'stone']), resourceAmt: 2 });
         }
       }

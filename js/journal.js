@@ -182,7 +182,7 @@
       pager.querySelector('.r').onclick = () => J.go(J.tab, J.page + 1);
     }
     tabsEl.querySelectorAll('.jb-tab').forEach((b, i) => b.classList.toggle('on', i === J.tab));
-    const first = host.querySelector('.btn, .card, .swatch, .codex-item, input');
+    const first = host.querySelector('.btn, .card, .swatch, .codex-item');
     if (first && first.focus) first.focus({ preventScroll: true });
   }
 

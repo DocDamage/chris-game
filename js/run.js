@@ -29,7 +29,7 @@
   Run.usesLevels = (n) => {
     if (!Run.levels) return false;
     const mode = X.run && X.run.mode;
-    if (mode === 'rush' || mode === 'tutorial') return false;
+    if (mode === 'rush' || mode === 'tutorial' || mode === 'training') return false; // arena modes
     return !G.isBossWave(n);
   };
 
@@ -369,9 +369,10 @@
     orig.call(G, dt);
     const L = G.level;
     if (!L || G.state === 'menu') return;
-    for (const p of G.players) if (!p.dead || true) L.pushOut(p, p.r || 8);
-    for (const e of G.enemies) if (!e.dead) L.pushOut(e, e.isBoss ? Math.min(e.r || 20, 20) : e.r || 8);
-    if (CH.SK) for (const s of CH.SK.list) L.pushOut(s, s.r || 8);
+    // everybody collides with the walls at the feet, so nobody sinks into rock or hovers in front of it
+    for (const p of G.players) L.pushOutFeet(p, p.r || 8, 10);
+    for (const e of G.enemies) if (!e.dead) L.pushOutFeet(e, e.isBoss ? Math.min(e.r || 20, 20) : e.r || 8, e.isBoss ? 14 : Math.min(10, ((e.look && e.look.foot) || 8) * 0.8));
+    if (CH.SK) for (const s of CH.SK.list) L.pushOutFeet(s, s.r || 8, 10);
     for (const pr of G.projectiles) {
       if (pr.dead) continue;
       if (L.solidAt(pr.x, pr.y)) {

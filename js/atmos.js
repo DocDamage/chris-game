@@ -220,6 +220,13 @@
   });
   /* the ground layer of puddles, drawn right after the floor so entities stand on top; the shader adds the shimmer */
   const GROUND = { water: ['rgba(20,40,70,0.55)', 'rgba(140,190,230,0.35)'], blood: ['rgba(90,0,12,0.78)', 'rgba(150,20,30,0.5)'], toxic: ['rgba(30,90,30,0.7)', 'rgba(150,255,90,0.45)'], lava: ['rgba(120,30,0,0.95)', 'rgba(255,170,40,0.8)'] };
+  /* a copy of the frame right after the floor: the shader compares against it so that puddle shimmer only touches the
+     floor, never the hero or the monsters standing in the puddle */
+  const floorCv = document.createElement('canvas');
+  floorCv.width = W;
+  floorCv.height = H;
+  const fctx = floorCv.getContext('2d');
+  A.floor = floorCv;
   const origBg = CH.Arenas.drawBg;
   CH.Arenas.drawBg = function (ctx, arena, cam) {
     origBg(ctx, arena, cam);
@@ -238,6 +245,7 @@
       ctx.ellipse(x - p.rx * 0.18, y - p.ry * 0.2, p.rx * (0.55 + wob * 0.02), p.ry * 0.45, 0, 0, U.TAU);
       ctx.fill();
     }
+    if (list.length && CH.PostFX && CH.PostFX.on) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.drawImage(G.canvas, 0, 0); }
   };
   wrap(G, 'render', function (orig) {
     A.beginFrame();

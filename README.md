@@ -25,7 +25,8 @@ The first click/keypress unlocks audio (browser autoplay rules); the soundtrack 
 | **RB** | Special ability |
 | **LB** | Throw a grenade (3 charges that recharge; the type is chosen with D-pad down) |
 | **A** | Dodge roll (jumps instead when a low prop is right in front of you) |
-| **B** | Interact (vending machines). In menus: back |
+| **B** | Jump (interacts instead when a machine, chest or person is right there) |
+| **B** | Jump; interact at machines, chests and people. In menus: back |
 | **X** | Reload |
 | **Y** | Swap the main and second weapon |
 | D-pad left / right | Cycle the main weapon |
@@ -53,7 +54,7 @@ The D-pad / left stick and **A** / **B** / **Start** also drive every menu. Cont
 | `Z` / `V` | Cycle the second weapon / swap the two weapons |
 | `Esc` | Pause / resume |
 | `F` | Build a barricade where you aim (2 wood + 1 scrap) |
-| `Space` | Also jumps onto low props (crates, barricades) when one is in front of you |
+| `B` | Jump (hop over low props and puddles, land on crates). `Space` still hops onto a low prop in front of you |
 | `M` / `F11` | Mute / fullscreen |
 
 Keyboard keys can be rebound in **Settings**. Menus work with the keyboard (arrows + Enter), the mouse and a controller. A solo run follows whichever device you touched last, so you can switch between keyboard and controller mid-run.

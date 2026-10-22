@@ -80,6 +80,14 @@
         continue;
       }
       for (const d of directions(pad, dt)) UI.navigate(d);
+      // shoulders: LB / RB step through cards (level-up) or tabs (Journal, shop, hero book, map); LT / RT flip pages
+      const sh = (pad.pressed[BTN.RB] ? 1 : 0) - (pad.pressed[BTN.LB] ? 1 : 0);
+      const pg = (pad.pressed[BTN.RT] ? 1 : 0) - (pad.pressed[BTN.LT] ? 1 : 0);
+      if (sh) {
+        if (UI.active === 'levelup' || UI.active === 'branch') UI.navigate(sh > 0 ? 'right' : 'left');
+        else if (['journal', 'vend', 'heroes', 'map'].includes(UI.active)) UI.onMenuKey({ code: sh > 0 ? 'KeyE' : 'KeyQ', preventDefault() {}, target: document.body });
+      }
+      if (pg && ['journal', 'heroes', 'map'].includes(UI.active)) UI.onMenuKey({ code: pg > 0 ? 'ArrowRight' : 'ArrowLeft', preventDefault() {}, target: document.body });
       if (pad.pressed[BTN.A]) UI.activate();
       if (pad.pressed[BTN.B]) UI.cancel();
       if (pad.pressed[BTN.START]) UI.startKey();

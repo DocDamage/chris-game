@@ -23,7 +23,7 @@ void main(){ vUv = vec2(aPos.x*0.5+0.5, 0.5-aPos.y*0.5); gl_Position = vec4(aPos
   const FS = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 outColor;
-uniform sampler2D uScene; uniform sampler2D uMask;
+uniform sampler2D uScene; uniform sampler2D uMask; uniform sampler2D uFloor;
 uniform vec2 uRes; uniform float uTime;
 uniform vec3 uTint; uniform float uSat; uniform float uContrast; uniform float uVig;
 uniform float uDark; uniform vec3 uAmb;
@@ -53,7 +53,9 @@ void main(){
     col *= 0.93 + 0.07 * sin(uv.y * uRes.y * 3.14159);
   } else col = texture(uScene, uv + d).rgb;
   // puddles: ripples, a mirrored copy of what stands above them, a glint
-  if (uPud > 0.5 && pud > 0.04) {
+  // entity pixels differ from the floor snapshot: puddles never shimmer over heroes, monsters or their shadows
+  bool ent = length(texture(uScene, uv).rgb - texture(uFloor, uv).rgb) > 0.03;
+  if (uPud > 0.5 && pud > 0.04 && !ent) {
     vec2 rip = vec2(sin(uv.y*160.0 + uTime*3.0), cos(uv.x*130.0 + uTime*2.4)) * 0.0022 * pud;
     float rainRip = uRain > 0.0 ? sin(length(fract(uv*vec2(26.0,15.0))-0.5)*32.0 - uTime*9.0) * 0.5 + 0.5 : 0.0;
     vec3 refl = texture(uScene, vec2(uv.x + rip.x, uv.y - 0.05 + rip.y)).rgb;
@@ -120,7 +122,7 @@ void main(){
     frozen: { tint: [0.9, 1.0, 1.1], sat: 0.88, con: 1.08, vig: 0.3, fog: 0, haze: 0 },
   };
 
-  let gl = null, prog = null, vbo = null, texScene = null, texMask = null, loc = {}, fx = null;
+  let gl = null, prog = null, vbo = null, texScene = null, texMask = null, texFloor = null, loc = {}, fx = null;
 
   function compile(type, src) {
     const s = gl.createShader(type);
@@ -160,11 +162,13 @@ void main(){
       const a = gl.getAttribLocation(prog, 'aPos');
       gl.enableVertexAttribArray(a);
       gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-      for (const n of ['uScene', 'uMask', 'uRes', 'uTime', 'uTint', 'uSat', 'uContrast', 'uVig', 'uDark', 'uAmb', 'uL0', 'uL1', 'uLN', 'uFlash', 'uRain', 'uHaze', 'uBliz', 'uGlitch', 'uLow', 'uFog', 'uPud', 'uHero', 'uBloom']) loc[n] = gl.getUniformLocation(prog, n);
+      for (const n of ['uScene', 'uMask', 'uFloor', 'uRes', 'uTime', 'uTint', 'uSat', 'uContrast', 'uVig', 'uDark', 'uAmb', 'uL0', 'uL1', 'uLN', 'uFlash', 'uRain', 'uHaze', 'uBliz', 'uGlitch', 'uLow', 'uFog', 'uPud', 'uHero', 'uBloom']) loc[n] = gl.getUniformLocation(prog, n);
       texScene = tex();
       texMask = tex();
+      texFloor = tex();
       gl.uniform1i(loc.uScene, 0);
       gl.uniform1i(loc.uMask, 1);
+      gl.uniform1i(loc.uFloor, 2);
       gl.uniform2f(loc.uRes, W, H);
       fx.addEventListener('webglcontextlost', (e) => { e.preventDefault(); PostFX.disable(); PostFX.failed = true; });
       PostFX.supported = true;
@@ -220,6 +224,10 @@ void main(){
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, texMask);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, A.mask);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, texFloor);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, A.floor);
+    gl.activeTexture(gl.TEXTURE0);
     const mode = A.mode;
     const n = Math.min(MAXL, low ? 8 : A.lights.length, A.lights.length);
     for (let i = 0; i < n; i++) {

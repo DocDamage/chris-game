@@ -49,7 +49,7 @@
     right: 'KeyD',
     sprint: 'ShiftLeft',
     dodge: 'Space',
-    jump: 'Space',
+    jump: 'KeyB', // a real jump of its own; Space (dodge) still hops onto a low prop next to you
     reload: 'KeyR',
     interact: 'KeyE',
     special: 'KeyQ',
@@ -124,6 +124,8 @@
       for (const k of Object.keys(DEFAULT_KEYS)) {
         if (typeof s.keys[k] === 'string' && s.keys[k].length < 24) o.keys[k] = s.keys[k];
       }
+      // older saves bound jump to Space, the same key as dodge: give jump its own key
+      if (o.keys.jump === o.keys.dodge) o.keys.jump = DEFAULT_KEYS.jump;
     }
     const st = raw.stats && typeof raw.stats === 'object' ? raw.stats : {};
     for (const k of Object.keys(d.stats)) d.stats[k] = num(st[k], d.stats[k], 0, 1e12);

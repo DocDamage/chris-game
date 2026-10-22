@@ -222,6 +222,8 @@
   };
 
   const start = (setup) => {
+    if (CH.Journal && CH.Journal.open) CH.Journal.close(true); // the run starts from inside the book: shut it first
+    if (CH.MapScroll && CH.MapScroll.open) CH.MapScroll.open = false;
     UI.hideAll();
     M.launch(setup, null);
   };
@@ -271,7 +273,7 @@
     tutorial: () => start({ mode: 'tutorial' }),
     training: () => start({ mode: 'training' }),
   };
-  extrasEl.addEventListener('click', (ev) => {
+  extrasEl.querySelector('.panel').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-act]');
     if (!b || !ACTS[b.dataset.act]) return;
     CH.Audio.sfx('click');

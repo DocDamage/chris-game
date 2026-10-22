@@ -326,7 +326,7 @@
     if (G.arena && G.arena.props) {
       for (const prop of G.arena.props) {
         if (!prop.solid || prop.dead) continue;
-        const dx = s.x - (prop.x + (prop.cx || 0)), dy = s.y - (prop.y + (prop.cy || 0));
+        const dx = s.x - (prop.x + (prop.cx || 0)), dy = s.y + 10 - (prop.y + (prop.cy || 0));
         const minD = (prop.cr || 10) + s.r;
         const d2 = dx * dx + dy * dy;
         if (d2 < minD * minD && d2 > 0.0001) {

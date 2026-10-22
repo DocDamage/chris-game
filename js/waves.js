@@ -22,9 +22,9 @@
   X.run = { mode: 'classic', seed: null, challenge: null, heat: [] };
   X.pending = null;
   X.MODES = {
-    classic: { name: 'CAMPAIGN', desc: '10 waves, 4 bosses, then Endless.', len: 10 },
-    short: { name: 'QUICK RUN', desc: '5 waves, 2 bosses. Perfect for a short session.', len: 5 },
-    marathon: { name: 'MARATHON', desc: '15 waves and 6 bosses before the final.', len: 15 },
+    classic: { name: 'CAMPAIGN', desc: '10 stages: close the breaches, find the exit, 4 bosses, then the Endless descent.', len: 10 },
+    short: { name: 'QUICK RUN', desc: '5 stages, 2 bosses. Perfect for a short session.', len: 5 },
+    marathon: { name: 'MARATHON', desc: '15 stages and 6 bosses before the final.', len: 15 },
     rush: { name: 'BOSS RUSH', desc: '8 bosses back to back. Heal a little between fights.', len: 8 },
   };
   /* base seed: the daily seed when set, otherwise the run counter (keeps the alternate-boss rotation) */

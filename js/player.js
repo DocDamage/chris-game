@@ -380,7 +380,7 @@
           const px = prop.x + (prop.cx || 0);
           const py = prop.y + (prop.cy || 0);
           const dx = this.x - px;
-          const dy = this.y - py;
+          const dy = this.y + 10 - py; // collide with the feet, not the middle of the body
           const d2 = dx * dx + dy * dy;
 
           // Solid prop collision (trees, rocks, pillars, desks, etc.)
