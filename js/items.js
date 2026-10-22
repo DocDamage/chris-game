@@ -438,3 +438,62 @@
     return out;
   };
 })(window.CH);
+
+/* ---- the vending machine and the town vendor deal in gear too ---- */
+(function (CH) {
+  'use strict';
+  const Shop = CH.Shop, Items = CH.Items;
+  if (!Shop) return;
+  Shop.makers.gear = (p) => Items.shopGear(p);
+  Shop.extraCats.push({ id: 'gear', name: 'GEAR' });
+  Shop.sellers.push(() =>
+    Items.bag().map((it, i) => ({ id: 'gs_' + it.uid, name: it.name, desc: Items.describe(it).slice(1).map((l) => l.t).join(' / '), price: Items.sellValue(it), icon: { gear: it }, sell: true, gearSell: it }))
+  );
+})(window.CH);
+
+/* ---- the consumable belt: HUD, keys 7-0 and the pad's View button ---- */
+(function (CH) {
+  'use strict';
+  const G = CH.G, Items = CH.Items, B = CH.Balance, UIK = CH.UIK;
+  const kbPlayer = () => G.players.find((p) => !p.dead && p.inp && p.inp.kind !== 'pad' && p.inp.src.kind !== 'script') || null;
+  window.addEventListener('keydown', (e) => {
+    if (G.state !== 'playing' || e.repeat) return;
+    const i = { Digit7: 0, Digit8: 1, Digit9: 2, Digit0: 3 }[e.code];
+    if (i === undefined) return;
+    const p = kbPlayer() || G.player;
+    if (p) Items.useBelt(p, i);
+  });
+  const prevBtn = {};
+  const origUpdate = Items.update;
+  Items.update = function (dt) {
+    origUpdate(dt);
+    const pads = CH.Input.pads || [];
+    for (const pad of pads) {
+      if (!pad) continue;
+      const down = !!(pad.b && pad.b[8]);
+      if (down && !prevBtn[pad.index]) {
+        const p = G.players.find((q) => q.inp && q.inp.src && q.inp.src.kind === 'pad' && q.inp.src.index === pad.index) || (G.players.length === 1 ? G.player : null);
+        if (p) { const belt = Items.belt(p); const i = belt.findIndex((s) => s && s.n > 0); if (i >= 0) Items.useBelt(p, i); }
+      }
+      prevBtn[pad.index] = down;
+    }
+  };
+  CH.Hooks.screen.push((ctx, cam, v) => {
+    if (G.state === 'menu' || !UIK || !UIK.on) return;
+    const p = (v.players && v.players[0]) || G.player;
+    if (!p) return;
+    const belt = Items.belt(p);
+    const x0 = v.x + 8, y0 = B.view.h - 62;
+    const keys = ['7', '8', '9', '0'];
+    for (let i = 0; i < 4; i++) {
+      const x = x0 + i * 22;
+      UIK.draw(ctx, '1 - Brown/Content/Holders/40.png', x, y0, { w: 20, h: 20 });
+      const s = belt[i];
+      if (s) {
+        UIK.draw(ctx, '0 - Sprites/items/' + Items.CONSUMABLES[s.id].pack + '.png', x + 2, y0 + 2, { w: 16, h: 16, alpha: p.beltCd > 0 ? 0.5 : 1 });
+        CH.Font.draw(ctx, 'x' + s.n, x + 19, y0 + 15, '#ffffff', 1, true, 'right');
+      }
+      CH.Font.draw(ctx, keys[i], x + 3, y0 - 2, '#b9b4c8', 1, true);
+    }
+  });
+})(window.CH);

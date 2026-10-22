@@ -86,6 +86,7 @@
     loot: {}, // mob-drop item id -> how many are in stock
     seen: {}, // mob-drop item id -> true once found (the Trophy Codex)
     unlocked: ['Mercenary'],
+    diablo: { bag: [], stash: [], equipped: {}, tier: 0, tierUnlocked: 0, quests: {}, counts: {}, waypoints: {} }, // gear, quests and tiers (js/items.js, js/quests.js)
     sidekicks: { unlocked: [], pick: {} }, // secret sidekicks found so far and the one each hero brings (js/sidekicks.js)
     meta: {}, // add-on progress (achievements, history, mastery, daily board...), owned by CH.Meta
   });
@@ -140,6 +141,22 @@
       const ids = CH.Balance.heroes.map((h) => h.id);
       d.unlocked = Array.from(new Set(['Mercenary'].concat(raw.unlocked.filter((x) => typeof x === 'string' && ids.includes(x)))));
     }
+    const dr = raw.diablo && typeof raw.diablo === 'object' ? raw.diablo : {};
+    const vi = (it) => (CH.Items ? CH.Items.validate(it) : null);
+    if (Array.isArray(dr.bag)) d.diablo.bag = dr.bag.map(vi).filter(Boolean).slice(0, 24);
+    if (Array.isArray(dr.stash)) d.diablo.stash = dr.stash.map(vi).filter(Boolean).slice(0, 48);
+    if (dr.equipped && typeof dr.equipped === 'object') {
+      for (const h of Object.keys(dr.equipped)) {
+        if (!/^[A-Za-z]{2,16}$/.test(h) || !dr.equipped[h] || typeof dr.equipped[h] !== 'object') continue;
+        d.diablo.equipped[h] = {};
+        for (const sl of Object.keys(dr.equipped[h])) { const it = vi(dr.equipped[h][sl]); if (it && it.slot === sl) d.diablo.equipped[h][sl] = it; }
+      }
+    }
+    d.diablo.tier = num(dr.tier, 0, 0, 2);
+    d.diablo.tierUnlocked = num(dr.tierUnlocked, 0, 0, 2);
+    if (dr.quests && typeof dr.quests === 'object') for (const k of Object.keys(dr.quests)) { const q = dr.quests[k]; if (/^a[1-4]_[a-z]+$/.test(k) && q && ['active', 'done', 'claimed'].includes(q.st)) d.diablo.quests[k] = { n: Math.floor(num(q.n, 0, 0, 9999)), st: q.st }; }
+    if (dr.counts && typeof dr.counts === 'object') for (const k of Object.keys(dr.counts)) if (/^[a-zA-Z]{2,12}$/.test(k)) d.diablo.counts[k] = Math.floor(num(dr.counts[k], 0, 0, 1e9));
+    if (dr.waypoints && typeof dr.waypoints === 'object') for (const k of Object.keys(dr.waypoints)) if (/^[0-9]{1,2}$/.test(k) && dr.waypoints[k] === true) d.diablo.waypoints[k] = true;
     const sk = raw.sidekicks && typeof raw.sidekicks === 'object' ? raw.sidekicks : {};
     const idOk2 = (v) => typeof v === 'string' && /^[a-z]{2,16}$/.test(v);
     if (Array.isArray(sk.unlocked)) d.sidekicks.unlocked = Array.from(new Set(sk.unlocked.filter(idOk2))).slice(0, 40);

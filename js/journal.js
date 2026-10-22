@@ -413,6 +413,138 @@
     },
   });
 
+  /* ---------------------------------------------------------------- gear pages (js/items.js) */
+  const slotImg = (it, slot) => {
+    const I = CH.Items;
+    if (it) return UIK.url(I.artPath(it.slot, it.rarity === 'normal' || it.rarity === 'magic' ? 'leather' : 'iron'));
+    return UIK.url(I.artPath(slot, 'empty'));
+  };
+  const frameUrl = () => UIK.cUrl(J.color, 'Content/Holders/40.png');
+  const tipHtml = (it, p) => {
+    const I = CH.Items;
+    let h = I.describe(it).map((l) => `<div style="color:${l.c === '#ffffff' ? '#2a1a14' : l.c === '#b9b4c8' ? '#5a4a3a' : l.c === '#ffe14a' ? '#8a6a00' : l.c === '#6a9bff' ? '#2a4a9a' : l.c}">${esc(l.t)}</div>`).join('');
+    const cmp = I.compare(it, p);
+    if (cmp.length) h += '<div class="jp-dim" style="margin-top:calc(var(--p)*3)">vs. equipped:</div>' + cmp.map((c) => `<div style="color:${c.d > 0 ? '#2a7a2a' : '#9a2a2a'}">${c.d > 0 ? '+' : '-'}${esc(c.label)}</div>`).join('');
+    return h;
+  };
+
+  J.addPage('inventory', {
+    title: 'BAG',
+    render(h) {
+      const I = CH.Items;
+      const p = G.player || { hero: heroOf(null), stats: {} };
+      let sel = null;
+      const draw = () => {
+        const bag = I.bag();
+        let cells = '';
+        for (let i = 0; i < I.BAG_SIZE; i++) {
+          const it = bag[i];
+          cells += `<button class="ig-cell${it && it === sel ? ' sel' : ''}" data-i="${i}" style="background-image:url(${frameUrl()})">${it ? `<img src="${slotImg(it)}" alt="" style="filter:drop-shadow(0 0 calc(var(--p)*1.5) ${I.RARITY[it.rarity].color})">` : ''}</button>`;
+        }
+        const belt = G.player ? I.belt(G.player) : [];
+        let bl = '';
+        for (let i = 0; i < 4; i++) { const b = belt[i]; bl += `<span class="ig-belt" style="background-image:url(${frameUrl()})">${b ? `<img src="${UIK.url('0 - Sprites/items/' + I.CONSUMABLES[b.id].pack + '.png')}" alt=""><i>${b.n}</i>` : ''}</span>`; }
+        const bin = UIK.cUrl('brown', '') || '';
+        h.innerHTML =
+          `<div class="jp spread"><div class="jp-col" style="flex:1.1"><div class="ig-grid">${cells}</div><div class="jp-dim">${bag.length} / ${I.BAG_SIZE} &nbsp; BELT:</div><div>${bl}</div></div>` +
+          `<div class="jp-col"><div class="ig-tip">${sel ? tipHtml(sel, p) : '<span class="jp-dim">Select an item. Gold drops, magic items glow blue, rare yellow, legendary orange, sets green.</span>'}</div>` +
+          `<div class="row-btns"><button class="btn small" id="ig-eq" ${sel ? '' : 'disabled'}>EQUIP</button><button class="btn small danger" id="ig-salv" ${sel ? '' : 'disabled'}>RECYCLE</button><img id="ig-bin" class="ig-bin" alt="" src="${UIK.url('0 - Sprites/Recycle Bin/1.png')}"></div></div></div>`;
+        h.querySelectorAll('.ig-cell').forEach((b) => {
+          b.onclick = () => { sel = bag[+b.dataset.i] || null; Audio.sfx('hover'); draw(); };
+          b.ondblclick = () => { if (sel && G.player) { I.equip(G.player, sel); sel = null; draw(); } };
+        });
+        const eq = h.querySelector('#ig-eq'), sv = h.querySelector('#ig-salv');
+        if (eq) eq.onclick = () => { if (sel && (G.player || true)) { const pl = G.player || { hero: heroOf(null), stats: {}, buffs: {} }; if (G.player) I.equip(pl, sel); else { /* menu: gear belongs to the chosen hero */ I.equip(G.players[0] || pl, sel); } sel = null; draw(); } };
+        if (sv) sv.onclick = () => {
+          if (!sel) return;
+          const frames = [];
+          for (let k = 1; k <= 6; k++) frames.push(UIK.url('0 - Sprites/Recycle Bin/' + k + '.png'));
+          UIK.anim(h.querySelector('#ig-bin'), frames, 16, {});
+          const got = I.salvage(sel);
+          if (got && G.ui && G.ui.toast) G.ui.toast('RECYCLED: ' + Object.keys(got).filter((k) => got[k]).map((k) => got[k] + ' ' + k).join(', '));
+          sel = null;
+          setTimeout(draw, window.__uikInstant ? 0 : 450);
+        };
+      };
+      draw();
+    },
+  });
+
+  J.addPage('equipment', {
+    title: 'PAPER DOLL',
+    render(h) {
+      const I = CH.Items;
+      const p = G.player || G.players[0];
+      const hero = heroOf(p);
+      const eqd = p ? I.equippedOf(p) : I.equippedOf({ hero });
+      const pos = { helm: [50, 2], chest: [14, 26], gloves: [86, 26], ring: [86, 54], legs: [14, 54], boots: [50, 80] };
+      let slots = '';
+      for (const sl of I.SLOTS) {
+        const it = eqd[sl];
+        slots += `<button class="pd-slot" data-slot="${sl}" title="${SLOT_T[sl]}" style="left:${pos[sl][0]}%;top:${pos[sl][1]}%;background-image:url(${frameUrl()})"><img src="${slotImg(it, sl)}" alt="" style="${it ? 'filter:drop-shadow(0 0 calc(var(--p)*1.5) ' + I.RARITY[it.rarity].color + ')' : 'opacity:.55'}"></button>`;
+      }
+      const w = p && p.weapons ? p.weapons : [];
+      const wl = w.map((x) => esc((B.weapons[x.id || x] || {}).name || x.id || x)).join('<br>');
+      const sk = CH.SK && CH.SK.list.find((s) => s.owner === p);
+      const skid = CH.SK ? (sk ? sk.id : CH.SK.chosen(hero.id)) : null;
+      const skim = skid ? CH.Assets.images['sk.' + skid + '.rot_s'] : null;
+      h.innerHTML =
+        `<div class="jp spread"><div class="jp-col" style="flex:1.2"><div class="pd"><img class="pd-hero" src="${portrait(hero.id)}" alt="">${slots}</div></div>` +
+        `<div class="jp-col"><div class="jp-sub">WEAPONS</div><div>${wl || '<span class="jp-dim">none yet</span>'}</div><div class="jp-sub">COMPANION</div>` +
+        `<div class="jp-row">${skim ? `<img class="ico" style="width:calc(var(--p)*30);height:calc(var(--p)*30)" src="${skim.src}" alt="">` : ''}<span>${skid ? esc(CH.SK.DEFS[skid].name) : ''}</span></div>` +
+        `<div class="ig-tip" id="pd-tip"><span class="jp-dim">Click a slot to take the item off.</span></div></div></div>`;
+      h.querySelectorAll('.pd-slot').forEach((b) => {
+        b.onmouseenter = () => { const it = eqd[b.dataset.slot]; h.querySelector('#pd-tip').innerHTML = it ? tipHtml(it, p || { hero }) : '<span class="jp-dim">Empty ' + SLOT_T[b.dataset.slot] + ' slot.</span>'; };
+        b.onclick = () => { if (p && I.unequip(p, b.dataset.slot)) { Audio.sfx('back'); J.refresh(); } else Audio.sfx('nope'); };
+      });
+    },
+  });
+  const SLOT_T = { helm: 'Helm', chest: 'Chest', legs: 'Legs', boots: 'Boots', ring: 'Ring', gloves: 'Gloves' };
+
+  J.addPage('equipment', {
+    title: 'STATS',
+    render(h) {
+      const p = G.player;
+      const st = (p && p.stats) || null;
+      const ic = (n) => UIK.cUrl(J.color, 'Content/icons/' + n + '.png');
+      const row = (img, name, val) => `<div class="jp-row"><img class="ico" style="width:calc(var(--p)*14);height:calc(var(--p)*14);image-rendering:pixelated" src="${img}" alt=""><span>${name}</span><b>${val}</b></div>`;
+      if (!st) { h.innerHTML = '<div class="jp spread"><div class="jp-col"><p class="jp-dim">Start a run to see your stats.</p></div></div>'; return; }
+      const pc = (v) => Math.round(v * 100) + '%';
+      h.innerHTML = '<div class="jp spread"><div class="jp-col">' +
+        row(ic(7), 'Health', Math.ceil(p.hp) + ' / ' + p.maxHp) + row(ic(8), 'Speed', pc(st.speedMult)) + row(ic(9), 'Coins', U.fmtNum(G.coins)) + row(ic(10), 'Armour', pc(1 - st.dmgReduction)) + row(ic(11), 'Level', p.level) +
+        '</div><div class="jp-col">' + row(CH.Sprites.icon('ic_bonk'), 'Damage', pc(st.dmgMult)) + row(CH.Sprites.icon('ic_crit'), 'Crit chance', pc(st.critChance)) + row(CH.Sprites.icon('ic_multi'), 'Fire rate', pc(st.fireRate || 1)) + row(CH.Sprites.icon('ic_reality'), 'Luck', pc(st.luck || 0)) + row(ic(17), 'Depth', G.wave) + '</div></div>';
+    },
+  });
+
+  J.addPage('journal', {
+    title: 'QUESTS',
+    render(h) {
+      const Q = CH.Quests;
+      const act = Q.actOf(G.wave || 1);
+      let html = '<div class="jp-sub">' + esc(Q.ACTS[act - 1]) + '</div>';
+      for (const q of Q.LIST) {
+        if (q.act > act && Q.state(q.id).st === 'active') continue;
+        const s = Q.state(q.id);
+        const done = s.st === 'done', claimed = s.st === 'claimed';
+        html += `<div class="jq${claimed ? ' claimed' : ''}"><div><b>${esc(q.name)}</b> <span class="jp-dim">${s.n || 0}/${q.goal}</span><br><span class="jp-dim">${esc(q.desc)}</span></div>` +
+          `${done ? `<button class="btn small primary" data-q="${q.id}">CLAIM ${q.coins}c</button>` : claimed ? '<span class="jp-dim">done</span>' : ''}</div>`;
+      }
+      // difficulty tier
+      html += '<div class="jp-sub" style="margin-top:calc(var(--p)*4)">DIFFICULTY</div><div class="row-btns">';
+      Q.TIERS.forEach((t, i) => { html += `<button class="btn small${Q.tier() === i ? ' sel' : ''}" data-t="${i}" ${i > Q.unlockedTier() ? 'disabled' : ''}>${t.name}</button>`; });
+      html += '</div>';
+      h.innerHTML = '<div class="jp spread" style="flex-direction:column;gap:calc(var(--p)*2)">' + html + '</div>';
+      h.querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => { if (Q.claim(b.dataset.q)) J.refresh(); }; });
+      h.querySelectorAll('[data-t]').forEach((b) => { b.onclick = () => { if (Q.setTier(+b.dataset.t)) J.refresh(); }; });
+    },
+  });
+
+  /* page order: the bag first, the quests second, and the old loadout stub gives way to the paper doll */
+  J.refresh = () => { if (J.open && !busy) renderPage(); };
+  J.pages[1].unshift(J.pages[1].pop());
+  J.pages[2] = J.pages[2].filter((p) => p.title !== 'LOADOUT');
+  J.pages[0].splice(1, 0, J.pages[0].pop());
+
   /* main-menu and pause-menu entry points */
   J.init = function () {
     if (!UIK.on || root) return;

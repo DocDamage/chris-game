@@ -25,12 +25,13 @@
   /* icon: {pack: n} = a pack item (large art), {spr: 'name'} = a game sprite icon, {pu: n} = a power-up icon */
   const P = (id) => G.players.filter((p) => !p.dead);
   const FOOD = [
-    { id: 'meat', name: 'Meat Scraps', desc: 'Heals 30% of max HP.', price: 14, icon: { pack: 7 }, use: (p) => G.healPlayer((p.maxHp * 0.3) / p.stats.healMult / G.diff.heal, p) },
-    { id: 'steak', name: 'Prime Steak', desc: 'Heals 60% of max HP.', price: 28, icon: { pack: 20 }, use: (p) => G.healPlayer((p.maxHp * 0.6) / p.stats.healMult / G.diff.heal, p) },
-    { id: 'egg', name: 'Golden Egg', desc: 'Heals 10% and grants a 40 point shield.', price: 22, icon: { pack: 15 }, use: (p) => { G.healPlayer((p.maxHp * 0.1) / p.stats.healMult / G.diff.heal, p); p.buffs.shield = 10; p.shield = Math.max(p.shield || 0, 40); } },
-    { id: 'fish', name: 'Glow Fish', desc: 'Refills stamina and heals 20%.', price: 20, icon: { pack: 16 }, use: (p) => { p.stamina = B.player.stamina; p.exhausted = false; G.healPlayer((p.maxHp * 0.2) / p.stats.healMult / G.diff.heal, p); } },
-    { id: 'candy', name: 'Sugar Rush', desc: 'Haste for 12 seconds.', price: 18, icon: { pack: 17 }, use: (p) => { p.buffs.haste = Math.max(p.buffs.haste || 0, 12); CH.Upgrades.recalc(p); } },
-    { id: 'herb', name: 'Healing Herb', desc: 'Cleanses poison, webs and slows; heals 15%.', price: 12, icon: { pack: 23 }, use: (p) => { X.cleanse && X.cleanse(p); G.healPlayer((p.maxHp * 0.15) / p.stats.healMult / G.diff.heal, p); } },
+    { id: 'meat', belt: 'meat', name: 'Meat Scraps', desc: 'Goes on your belt. Heals 30% of max HP over time.', price: 14, icon: { pack: 7 }, use: (p) => G.healPlayer((p.maxHp * 0.3) / p.stats.healMult / G.diff.heal, p) },
+    { id: 'steak', belt: 'steak', name: 'Prime Steak', desc: 'Goes on your belt. Heals 60% of max HP over time.', price: 28, icon: { pack: 20 }, use: (p) => G.healPlayer((p.maxHp * 0.6) / p.stats.healMult / G.diff.heal, p) },
+    { id: 'egg', belt: 'egg', name: 'Golden Egg', desc: 'Goes on your belt. A 40 point shield and a little healing.', price: 22, icon: { pack: 15 }, use: (p) => { G.healPlayer((p.maxHp * 0.1) / p.stats.healMult / G.diff.heal, p); p.buffs.shield = 10; p.shield = Math.max(p.shield || 0, 40); } },
+    { id: 'fish', belt: 'fish', name: 'Glow Fish', desc: 'Goes on your belt. Refills stamina, heals 20%.', price: 20, icon: { pack: 16 }, use: (p) => { p.stamina = B.player.stamina; p.exhausted = false; G.healPlayer((p.maxHp * 0.2) / p.stats.healMult / G.diff.heal, p); } },
+    { id: 'candy', belt: 'candy', name: 'Sugar Rush', desc: 'Goes on your belt. Haste for 12 seconds.', price: 18, icon: { pack: 17 }, use: (p) => { p.buffs.haste = Math.max(p.buffs.haste || 0, 12); CH.Upgrades.recalc(p); } },
+    { id: 'feather', belt: 'feather', name: 'Portal Quill', desc: 'Goes on your belt. Opens a town portal: go shopping, then walk back through.', price: 30, icon: { pack: 13 }, repeat: true, use: () => {} },
+    { id: 'herb', belt: 'herb', name: 'Healing Herb', desc: 'Goes on your belt. Cleanses status effects; heals 15%.', price: 12, icon: { pack: 23 }, use: (p) => { X.cleanse && X.cleanse(p); G.healPlayer((p.maxHp * 0.15) / p.stats.healMult / G.diff.heal, p); } },
     { id: 'nades', name: 'Grenade Crate', desc: '+3 grenades.', price: 24, icon: { spr: 'prob_bomb' }, use: (p) => { p.nades = (p.nades || 0) + 3; } },
   ];
   function powerItems() {
@@ -68,6 +69,7 @@
     { id: 'sell', name: 'SELL' },
   ];
   /* other modules (gear in M10) add categories and item makers here */
+  Shop.sellers = []; // gear (items.js) adds what it can buy from you
   Shop.makers = {
     food: () => FOOD.map((i) => Object.assign({}, i)),
     power: () => U.shuffle(powerItems()).slice(0, 4),
@@ -182,12 +184,26 @@
       const v = CH.Loot.RARITY ? (CH.Loot.RARITY[it.rarity] || { value: 1 }).value : 1;
       out.push({ id: 'sell_' + k, name: it.name, desc: 'In stock: ' + n + '. Sells for ' + Math.max(1, v) * 2 + ' coins.', price: Math.max(1, v) * 2, icon: { loot: +k }, sell: true, lootId: +k, count: n });
     }
+    for (const s of Shop.sellers) for (const q of s()) out.push(q);
     return out.concat(Shop.buyback.map((b, i) => Object.assign({}, b, { id: 'bb_' + i, name: 'Buy back: ' + b.name, desc: 'You sold this a moment ago.', price: b.price * 2, buyback: i, sell: false })));
   }
 
   Shop.buy = function (it) {
     const p = Shop.owner;
     if (!it) return false;
+    if (it.gearSell) {
+      const bag = CH.Items.bag();
+      const i = bag.indexOf(it.gearSell);
+      if (i < 0) return false;
+      bag.splice(i, 1);
+      G.coins += it.price;
+      G.coinsEarned = (G.coinsEarned || 0) + it.price;
+      Audio.sfx('coin');
+      say('NICE STUFF. I WILL RESELL IT AT TRIPLE.');
+      CH.Storage.save();
+      render();
+      return true;
+    }
     if (it.sell) {
       const k = it.lootId;
       if (CH.Storage.sellLoot(k, 1) < 1) return false;
@@ -212,11 +228,13 @@
     }
     const cost = priceOf(it);
     const sold = G.machine.stock.sold[it.id];
-    if (sold && !it.repeat) return !!fail('SOLD OUT');
+    if (sold && !it.repeat && !it.belt) return !!fail('SOLD OUT');
     if (G.coins < cost) return !!fail('NEED ' + cost + ' COINS');
     G.coins -= cost;
-    if (!it.repeat) G.machine.stock.sold[it.id] = true;
-    if (it.party) for (const q of P()) it.use(q);
+    if (!it.repeat && !it.belt) G.machine.stock.sold[it.id] = true;
+    if (it.belt && CH.Items) {
+      if (!CH.Items.addConsumable(p, it.belt, 1)) { G.coins += cost; delete G.machine.stock.sold[it.id]; return !!fail('BELT FULL'); }
+    } else if (it.party) for (const q of P()) it.use(q);
     else it.use(p);
     Audio.sfx('buy');
     FX.text(p.x, p.y - 28, it.name.toUpperCase(), '#fee761', 1);
@@ -244,6 +262,7 @@
     if (!ic) return '';
     if (ic.pack) return UIK.on ? UIK.url('0 - Sprites/items/' + ic.pack + '.png') : '';
     if (ic.pu) return CH.Sprites.has('pu.' + ic.pu) ? CH.Sprites.icon('pu.' + ic.pu) : '';
+    if (ic.gear) return CH.UIK.on ? CH.UIK.url(CH.Items.artPath(ic.gear.slot, ic.gear.rarity === 'normal' || ic.gear.rarity === 'magic' ? 'leather' : 'iron')) : '';
     if (ic.loot) return CH.Sprites.has('loot.' + ic.loot) ? CH.Sprites.icon('loot.' + ic.loot) : '';
     if (ic.spr) return CH.Sprites.has(ic.spr) ? CH.Sprites.icon(ic.spr) : '';
     return '';
