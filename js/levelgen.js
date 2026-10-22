@@ -247,7 +247,7 @@
       if (r === start) continue;
       const hive = chosen.includes(r);
       if (R.f() > (hive ? 0.9 : 0.62)) continue;
-      const n = U.clamp(R.int(3, 5) + Math.floor(stage / 3), 3, 9);
+      const n = U.clamp(R.int(4, 6) + Math.floor(stage / 2), 4, 11);
       const type = R.pick(mobs);
       const p = L.randomNear(r.cx, r.cy, 20, Math.max(40, Math.min((r.w || 10) * TS * 0.3, 140)), 24, R.f) || L.nearestOpen(r.cx, r.cy);
       L.packs.push({ x: p.x, y: p.y, room: r.id, type, n, elite: R.f() < 0.18 + stage * 0.012, leader: R.f() < 0.22, woke: false, mixed: R.pick(mobs) });
@@ -276,6 +276,7 @@
         for (let i = 0; i < n; i++) {
           const p = L.randomNear(r.cx, r.cy, 20, Math.max(50, Math.min((r.w || 10) * TS * 0.45, 200)), 26, R.f);
           if (!p || reserved.some((q) => U.dist(p.x, p.y, q.x, q.y) < 70)) continue;
+          if (L.props.some((q) => U.dist(p.x, p.y, q.x, q.y) < 42)) continue; // no wedges: two props never stand close enough to trap a hero between them
           CH.Arenas.addProp(L.props, R.pick(decor), p.x, p.y, { solid: true, cr: 11, destructible: R.f() < 0.35, hp: 30, jumpable: true, resourceType: R.pick(['wood', 'scrap', 'stone']), resourceAmt: 2 });
         }
       }

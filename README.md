@@ -236,3 +236,51 @@ node batch.js normal 10 human    # balance: win rate of a human-like bot
 ```
 
 Set `CHROME_PATH` if Chrome is not in the default Windows location.
+
+---
+
+## The overhaul: levels, hives, town, gear
+
+The game is no longer a wave arena. A run is a walk through generated **levels** (dungeons and open maps with walls,
+fog of war and a minimap); boss stages stay arena fights.
+
+- **Breaches (hives and portals):** every stage has 3-6 spawners (hive, glitch portal, ossuary, hell gate, war camp, frost
+  rift). They only breed while you are near, have three levels (damage makes them weaker and slower) and speed up if left
+  open too long. Close them all (all but one on big stages) to break the seal on the **exit**, then walk to it.
+- **Sleeping packs, champions, a named unique per stage, shrines (blood / challenge / healing / speed), chests, secret rooms**
+  behind cracked walls (shoot them), waypoints (house sign) and the exit (castle sign).
+- **Gear:** six slots (helm, chest, legs, boots, ring, gloves), rarities Normal / Magic / Rare / Legendary / Set with
+  affixes. Pick up drops by walking over them (hold `Alt` to show every label). Equip, compare and recycle in the Journal.
+- **Consumable belt** (keys `7 8 9 0`, or the pad's View button): food heals over time, herbs cleanse, the **Portal Quill**
+  opens a town portal.
+- **Town:** reached by the quill, by a waypoint (`E` on an active one) and automatically after an act boss. Vendor, stash,
+  smith, sidekick trainer, elder (quests) and the waypoint keeper.
+- **Sidekicks:** every hero brings one companion (KAEL-09, VELKHAR, INFERNA, ELOWEN, NEON VIPER, ARCHANGEL COMMANDER). Eleven
+  secret ones are unlocked by bosses, challenges, secret rooms and a quest; choose them in Journal > Codex > Sidekicks.
+- **Heroes:** Elven Enchantress, Neon Specter and The Grinning Stranger replaced the three placeholder kits.
+- **Atmosphere:** day and night, weather per biome (rain, thunderstorms with telegraphed lightning, snow, blizzard, ash, fog,
+  blood rain), puddles of water / blood / toxic goo / lava, a WebGL shader pass (Settings > Video: Effects High / Low / Off,
+  heat haze on / off). Night: enemies hit 10% harder and drops are 15% richer.
+- **Difficulty tiers:** win a run to unlock Nightmare, then Hell (Journal > Journal > Quests).
+
+### New keys
+
+| Key | Action |
+|---|---|
+| `J` | Journal (Journal, Inventory, Equipment, Codex, Save & Quit, Settings) |
+| `I` | Journal, Inventory tab |
+| `N` | Map scroll (stage automap and the four-act map) |
+| `Q` / `E` | Journal and map: previous / next tab or page |
+| `7 8 9 0` | Use belt slot 1-4 (pad: View button uses the first filled slot) |
+| `Alt` | Show all item labels on the floor |
+| `E` | Interact: vending machine, chests, waypoints, town people |
+
+### Tests
+
+`tests/` now holds `t1` to `t30`. New ones: `t20_storage` (save versions and migrations), `t21_assets` (every asset of the
+UI pack, heroes and sidekicks is packed), `t22_newheroes`, `t23_shop`, `t24_sidekicks`, `t25_levelgen`, `t26_levels`,
+`t27_items` (gear, quests, tiers, sidekick unlocks), `t28_town`, `t29_postfx`, `t30_menus`. The older tests run in wave mode
+without sidekicks and with the shader off; `open({ levels, sidekicks, fx })` in `tests/lib.js` turns those on.
+Balance: `node tests/batch_levels.js <casual|normal|chaotic> <runs> <perfect|human|sloppy> [classic|short|marathon]` runs a
+bot that navigates the levels (`tests/navbot.js`). Rebuild the art bundles with `node tools/build-assets.js` (needs
+Aseprite and 7-Zip for the UI and sidekick packs).

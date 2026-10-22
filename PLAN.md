@@ -421,10 +421,13 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 | M3 UI | done (first pass) | `uikit.js`, pack-styled panels/buttons/HUD bars + portrait, the Journal (`journal.js`) |
 | M4 shop | done | `shop.js`, `G.state = 'shop'`, categories, sell/buyback, reroll, `$` sign |
 | M5 sidekicks | done | `sidekicks.js`, 17 companions, AI, revive, roster page |
-| M6 PostFX | not started | |
+| M6 PostFX | done | `atmos.js` (clock, weather, strikes, lights, puddles, Day & Night widget) + `postfx.js` (WebGL2 pass, Settings > Video) |
 | M7 levels | done | `level.js`, `levelgen.js`: tile grid, walls, flow field, fog, chunked floor, minimap, secrets |
 | M8 hives | done (first pass) | `spawners.js`, `run.js`: hives with 3 levels, packs, shrines, chests, waypoints, exit |
-| M9-M12 | see below | |
+| M9 puddles | done | water / blood / toxic / lava, blood pools grow from kills, lava and goo hurt |
+| M10 Diablo layer | done | `items.js`, `quests.js`, `dialogue.js`, `town.js`: gear, bag, belt, town, portal quill, waypoints, quests, tiers |
+| M11 secret sidekicks + map | done | unlock conditions in `quests.js`, `mapscroll.js` (automap + act map), `menus.js` (pause row, hero select book) |
+| M12 balance, perf, README | done (first pass) | `tests/batch_levels.js` + `navbot.js`; `tests/perf_levels.js`: about 3 ms per frame with 4 players, 4 sidekicks, 98 enemies |
 
 **Deviations from the plan, and why**
 
@@ -439,3 +442,11 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 - **Boss stages stay arena fights** (wave code), levels are the stages between them. Boss Rush, tutorial and the old wave
   loop are still available (`CH.Run.levels = false`; the tests that are about waves run that way).
 - **Tests default to wave mode and no sidekicks** (`open()` in `tests/lib.js` takes `{ levels, sidekicks }`).
+
+**Not done / deferred (honest list)**
+
+- Snow footprints, slippery ice and wet footprints (the puddles themselves, reflections, burning lava and goo are in).
+- Chaos events forcing a weather type; dedicated gear art beyond the pack's Equipments icons (the 650 power-up icons are used for power-ups, not gear).
+- The pack's baked label sheet (PAUSE / OPTIONS ...) is exported but the screens use the game font in the pack's ink colour.
+- Co-op: the Journal, shop and dialogue take the colour of the player who opened them for the shop and dialogue; the Journal itself always opens in Brown.
+- Balance was tuned with bots only (they win about 85-100% of classic runs and take real damage); human playtesting will want a pass.

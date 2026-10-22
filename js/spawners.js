@@ -40,7 +40,7 @@
 
   /* make the spawner enemy for a generator hive spot */
   Sp.create = function (def, stage) {
-    const hpBase = 240 * (1 + 0.16 * (stage - 1)) * (G.coop ? 1.5 : 1) * (G.diff ? G.diff.enemyHp : 1);
+    const hpBase = 330 * (1 + 0.18 * (stage - 1)) * (G.coop ? 1.5 : 1) * (G.diff ? G.diff.enemyHp : 1);
     const e = G.spawnEnemy('spawner', def.x, def.y, { spawnTime: 0.3 });
     e.x = def.x; // spawnEnemy pushes things away from heroes: a hive stays where the generator put it
     e.y = def.y;
@@ -64,6 +64,13 @@
 
   /* the spawner's "AI": count down and breed */
   E.AI.spawner = function (e, g, dt) {
+    // a 'spawner' that did not come from the generator (a necromancer revived a dead hive): let it vanish
+    if (!e.isSpawner) {
+      e.dead = true; // the step loop sweeps dead enemies out itself; never splice the list while it is walked
+      e.hp = 0;
+      e.state = 'dead';
+      return;
+    }
     e.dvx = e.dvy = 0;
     e.state = 'idle';
     if (e.dead) return;
@@ -81,13 +88,13 @@
     if (nearestDist(e) > 600) return; // only breeds while a hero is within about a screen and a half
     const mine = g.enemies.filter((q) => q.hive === e.hive && !q.dead).length;
     const extra = Math.max(0, players().length - 1);
-    const cap = 2 + lv * 2 + extra * 2;
+    const cap = 3 + lv * 2 + extra * 2;
     e.spawnT -= dt;
     if (e.spawnT > 0 || mine >= cap) return;
     const run = CH.Run;
     if (run && run.aliveCount() >= g.aliveCap()) { e.spawnT = 0.6; return; }
     const threat = (g.level && g.level.threat) || 0;
-    const base = Math.max(1.1, 5.6 - lv * 1.15) * Math.pow(0.86, threat) / (1 + 0.22 * extra);
+    const base = Math.max(0.9, 4.4 - lv * 1.0) * Math.pow(0.86, threat) / (1 + 0.22 * extra);
     e.spawnT = base * U.rand(0.8, 1.2);
     const mobs = (CH.LevelGen.MOBS[g.level ? g.level.biome : 'dungeon'] || CH.LevelGen.MOBS.dungeon);
     const type = mobs[Math.min(mobs.length - 1, Math.floor(Math.random() * (lv + 1.2)))];

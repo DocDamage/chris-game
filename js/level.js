@@ -162,13 +162,23 @@
         for (let r = 1; r < 4 && !found; r++) for (let oy = -r; oy <= r && !found; oy++) for (let ox = -r; ox <= r && !found; ox++) if (!this.solid(tx + ox, ty + oy)) { q[t++] = this.idx(tx + ox, ty + oy); dist[q[t - 1]] = 0; found = true; }
       } else { q[t++] = this.idx(tx, ty); dist[q[0]] = 0; }
       const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+      // solid props block their tile for walkers (a monster should path around a crate, not push into it)
+      const pb = new Uint8Array(this.tw * this.th);
+      for (const p of this.props) {
+        if (!p.solid || p.dead || (p.cr || 10) < 9) continue;
+        const px = p.x + (p.cx || 0), py = p.y + (p.cy || 0), rr = (p.cr || 10) + 11; // a walker's body plus a little room
+        for (let ty = Math.floor((py - rr) / TS); ty <= Math.floor((py + rr) / TS); ty++) for (let tx = Math.floor((px - rr) / TS); tx <= Math.floor((px + rr) / TS); tx++) {
+          if (this.inb(tx, ty) && Math.hypot((tx + 0.5) * TS - px, (ty + 0.5) * TS - py) < rr) pb[ty * this.tw + tx] = 1;
+        }
+      }
+      pb[q[0]] = 0;
       while (h < t) {
         const c = q[h++];
         const cx = c % this.tw, cy = (c / this.tw) | 0;
         const dc = dist[c];
         for (let k = 0; k < 8; k++) {
           const nx = cx + D8[k][0], ny = cy + D8[k][1];
-          if (!this.inb(nx, ny) || this.cells[ny * this.tw + nx] !== FLOOR) continue;
+          if (!this.inb(nx, ny) || this.cells[ny * this.tw + nx] !== FLOOR || pb[ny * this.tw + nx]) continue;
           if (k > 3 && (this.cells[cy * this.tw + nx] !== FLOOR || this.cells[ny * this.tw + cx] !== FLOOR)) continue; // no corner cutting
           const ni = ny * this.tw + nx;
           if (dist[ni] >= 0) continue;
@@ -183,18 +193,21 @@
     /* unit vector from (x, y) toward the field's target, or null when it is unreachable from here */
     flowDir(f, x, y) {
       const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
-      const c = f.dist[this.idx(tx, ty)];
-      if (c < 0) return null;
+      let c = f.dist[this.idx(tx, ty)];
       if (c === 0) return { x: 0, y: 0 };
-      let best = c, bx = 0, by = 0;
+      let best = c < 0 ? 1e9 : c, bx = 0, by = 0;
+      // standing on a tile the field does not cover (right next to a crate): step to the best covered neighbour
+      if (c < 0) c = 1e9;
       for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
         if (!ox && !oy) continue;
         const nx = tx + ox, ny = ty + oy;
         if (!this.inb(nx, ny)) continue;
+        if (ox && oy && (this.cell(tx + ox, ty) !== FLOOR || this.cell(tx, ty + oy) !== FLOOR)) continue; // no cutting corners (the BFS forbids it too)
         const d = f.dist[this.idx(nx, ny)];
         if (d >= 0 && d < best) { best = d; bx = ox; by = oy; }
       }
       if (!bx && !by) return null;
+      if (best >= 1e9) return null;
       // aim at the middle of the chosen tile, not its corner
       const px = (tx + bx + 0.5) * TS - x, py = (ty + by + 0.5) * TS - y;
       const l = Math.hypot(px, py) || 1;
@@ -202,7 +215,13 @@
     }
     pathDist(x0, y0, x1, y1) {
       const f = this.flowFor(x1, y1);
-      const d = f.dist[this.idx(Math.floor(x0 / TS), Math.floor(y0 / TS))];
+      const tx = Math.floor(x0 / TS), ty = Math.floor(y0 / TS);
+      let d = f.dist[this.idx(tx, ty)];
+      if (d < 0) { // inside a tile the field skips (a crate stands there): count from the best neighbour
+        let m = -1;
+        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) if ((ox || oy) && this.inb(tx + ox, ty + oy)) { const q = f.dist[this.idx(tx + ox, ty + oy)]; if (q >= 0 && (m < 0 || q < m)) m = q; }
+        d = m < 0 ? -1 : m + 1;
+      }
       return d < 0 ? Infinity : d * TS;
     }
 

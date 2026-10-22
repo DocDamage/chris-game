@@ -33,11 +33,17 @@ const NAV = () => {
       if (e.isSpawner) { if (d < 190 && L.los(p.x, p.y, e.x, e.y)) nearHive = e; continue; }
       if (d < 120) threat += 1;
     }
-    if (nearHive && tgt === nearHive) { // in range of the breach: stand and shoot it
+    if (nearHive && tgt === nearHive) { // in range of the breach: focus it (minions keep coming, so ignoring the hive never ends)
       I.mouse.x = nearHive.x - G.cam.x; I.mouse.y = nearHive.y - G.cam.y; I.mouse.down = true;
       if (threat === 0) { I.held = {}; return; }
+      return; // keep the base bot's dodging while shooting the hive
     }
     if (threat >= 2) return; // fighting: keep the base bot's dodging
+    // anti-stuck: no progress for ~1.5 s while walking -> shuffle sideways and roll
+    const nv = bot.nav;
+    if (G.time < (nv.t0 || 0) - 0.5) { nv.t0 = 0; nv.stuck = 0; nv.lx = p.x; nv.ly = p.y; } // a new run started: forget the old one
+    if (G.time - (nv.t0 || 0) > 1.5) { nv.t0 = G.time; nv.stuck = Math.hypot(p.x - nv.lx, p.y - nv.ly) < 14 ? nv.stuck + 1 : 0; nv.lx = p.x; nv.ly = p.y; }
+    if (nv.stuck >= 1) { const a = Math.atan2(tgt.y - p.y, tgt.x - p.x) + (nv.stuck % 2 ? 1.2 : -1.2); I.held = {}; if (Math.cos(a) > 0.3) I.held.right = true; if (Math.cos(a) < -0.3) I.held.left = true; if (Math.sin(a) > 0.3) I.held.down = true; if (Math.sin(a) < -0.3) I.held.up = true; if (p.rollCd <= 0) I.pressed.dodge = true; return; }
     const f = L.flowFor(tgt.x, tgt.y);
     const d = L.flowDir(f, p.x, p.y);
     if (!d) return;
