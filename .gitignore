@@ -4,3 +4,4 @@ assets/
 *.jpg
 tests/node_modules/
 tests/*.png
+.baseline/
