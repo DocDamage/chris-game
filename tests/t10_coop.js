@@ -296,11 +296,10 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     __tap(0, 13, 3); // down
   });
   r = await E(() => ({ focus: document.activeElement && document.activeElement.id }));
-  ok('D-pad down moves the focus', r.focus === 'btn-coop', r);
+  ok('D-pad down moves the focus', r.focus === 'btn-heroes', r);
   // settings: navigate + slider with left/right
   await E(() => {
-    __tap(0, 13, 3);
-    __tap(0, 13, 3);
+    for (let i = 0; i < 4; i++) __tap(0, 13, 3); // heroes -> co-op -> journal -> how to -> settings
     __tap(0, 0, 3); // A on SETTINGS
   });
   r = await E(() => ({ active: CH.UI.active }));
