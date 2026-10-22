@@ -278,10 +278,22 @@
     const y = m.y - cam.y;
     CH.Enemies.shadow(ctx, x, y + 13, 18);
     CH.Sprites.draw(ctx, 'vending', x, y + 14, { frame: m.uses > 0 && Math.sin(G.wall * 7) > 0.2 ? 1 : 0, alpha: m.uses > 0 ? 1 : 0.65 });
+    // the pack's $ road sign floats above the machine
+    if (CH.UIK && CH.UIK.on && m.uses > 0) {
+      const sy = y - 46 + Math.sin(G.wall * 3) * 1.5;
+      ctx.fillStyle = '#d1c29a';
+      ctx.beginPath();
+      ctx.moveTo(x, sy + 1);
+      ctx.lineTo(x + 11, sy + 12);
+      ctx.lineTo(x, sy + 23);
+      ctx.lineTo(x - 11, sy + 12);
+      ctx.fill();
+      CH.UIK.draw(ctx, '0 - Sprites/Signs/4.png', x - 12, sy, { w: 24, h: 24 });
+    }
     const p = G.players.find((q) => !q.dead && U.dist(q.x, q.y, m.x, m.y) < 60);
     if (p) {
-      const txt = m.uses > 0 ? (p.inp.kind === 'pad' ? 'B:' : 'E:') + B.shop.cost + '$' : 'EMPTY';
-      const ok = m.uses > 0 && G.coins >= B.shop.cost;
+      const txt = m.uses > 0 ? (p.inp.kind === 'pad' ? 'B:' : 'E:') + 'SHOP' : 'EMPTY';
+      const ok = m.uses > 0;
       Font.draw(ctx, txt, x, y - 24 + Math.sin(G.wall * 6) * 1.2, ok ? '#fee761' : '#b9b4c8', 1, true);
     } else if (m.uses > 0 && m.t < 6) {
       Font.draw(ctx, 'VENDING!', x, y - 24, '#ffffff', 1, true);

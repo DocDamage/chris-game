@@ -222,9 +222,12 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     G.machine = { x: p.x + 10, y: p.y, uses: 1, t: 0 };
     __f(2);
     __tap(0, 1, 3);
-    return { coins: G.coins, uses: G.machine.uses };
+    const opened = G.state === 'shop' && CH.Shop.owner === p;
+    CH.Shop.buy(CH.Shop.items()[0]);
+    CH.Shop.close();
+    return { coins: G.coins, opened, state: G.state };
   });
-  ok('B interacts with the vending machine', r.coins === 100 - 25 && r.uses === 0, r);
+  ok('B opens the vending machine menu and buying spends coins', r.opened && r.coins < 100 && r.state === 'playing', r);
 
   // rumble on getting hurt, and the setting turns it off
   r = await E(() => {
@@ -642,9 +645,12 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     G.machine = { x: b.x + 8, y: b.y, uses: 1, t: 0 };
     b.hp = 10;
     __tap(1, 1, 3);
-    return { coins: G.coins, uses: G.machine.uses };
+    const opened = G.state === 'shop' && CH.Shop.owner === b;
+    CH.Shop.buy(CH.Shop.items()[0]);
+    CH.Shop.close();
+    return { coins: G.coins, opened };
   });
-  ok('either player can use the vending machine (coins are shared)', r.coins === 35 && r.uses === 0, r);
+  ok('either player can use the vending machine (coins are shared, the opener owns the menu)', r.opened && r.coins < 60, r);
 
   // pause belongs to the players' pads, and a pad pulling out stops the game
   r = await E(() => {

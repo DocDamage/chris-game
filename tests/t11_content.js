@@ -128,9 +128,11 @@ const ok = (name, cond, extra) => results.push([cond ? 'PASS' : 'FAIL', name, ex
     const x0 = p.x;
     __tap(0, 1, 3); // B at the vending machine
     __f(10);
-    return { coins: G.coins, rolled: Math.abs(p.x - x0) > 6 || p.rolling || p.rollCd > 0.2 };
+    const opened = G.state === 'shop';
+    CH.Shop.close();
+    return { opened, rolled: Math.abs(p.x - x0) > 6 || p.rolling || p.rollCd > 0.2 };
   });
-  ok('B at a vending machine buys without also dodge-rolling away', r.coins === 75 && !r.rolled, r);
+  ok('B at a vending machine opens the shop without also dodge-rolling away', r.opened && !r.rolled, r);
 
   /* ================================================================ 5. arenas, weather, split screen in every arena */
   const arenaIds = ['backyard', 'office', 'glitch', 'zombie', 'wasteland', 'volcano', 'dungeon'];

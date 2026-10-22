@@ -444,7 +444,7 @@
         return true;
       }
     }
-    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item')).filter((b) => b.offsetParent !== null && !b.disabled);
+    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item, .vend-cell')).filter((b) => b.offsetParent !== null && !b.disabled);
     if (!items.length) return false;
     // read-only screens (how to play, credits, stats) have nothing to focus but BACK: up / down scrolls them instead
     const sc = root.querySelector('.scroll');

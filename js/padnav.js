@@ -26,6 +26,11 @@
       const s = G.luPlayer.inp.src;
       return s.kind === 'auto' || (s.kind === 'pad' && s.index === pad.index);
     }
+    if (G.state === 'shop' && G.coop && CH.Shop && CH.Shop.owner) {
+      // the player who opened the machine owns the menu
+      const s = CH.Shop.owner.inp.src;
+      return s.kind === 'auto' || (s.kind === 'pad' && s.index === pad.index);
+    }
     if ((G.state === 'paused' || G.state === 'branch') && G.coop) return assigned(G, pad);
     return true; // single player: whatever pad you are holding
   }

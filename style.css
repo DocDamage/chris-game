@@ -496,3 +496,24 @@ body.uik .php.hasport { padding-left: calc(var(--u) * 31); min-height: calc(var(
 .hud-port img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; image-rendering: pixelated; display: block; transform: scale(1.7); transform-origin: 50% 20%; }
 .hud-port.hidden { display: none; }
 .php .ptag { z-index: 1; }
+
+/* ---------- vending machine shop ---------- */
+.vend { width: calc(var(--u) * 330); max-width: 98%; gap: calc(var(--u) * 2); }
+.vend-head { display: flex; align-items: center; justify-content: space-between; }
+.vend-head h2 { font-size: calc(var(--u) * 9); }
+.vend-coins { display: flex; align-items: center; gap: calc(var(--u) * 2); font-size: calc(var(--u) * 7); color: var(--gold); }
+.vend-quip { text-align: center; color: var(--pink); font-size: calc(var(--u) * 4.6); min-height: calc(var(--u) * 6); }
+.vend-tabs { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 1.5); justify-content: center; }
+.vend-main { display: flex; gap: calc(var(--u) * 4); min-height: calc(var(--u) * 100); }
+.vend-grid { flex: 1.4; display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 2); align-content: start; }
+.vend-cell { position: relative; aspect-ratio: 1; background: rgba(0, 0, 0, 0.35); border: calc(var(--p) * 3) solid #1b1226; padding: calc(var(--u) * 2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.vend-cell img { width: 72%; height: 72%; object-fit: contain; image-rendering: pixelated; }
+.vend-cell.sel, .vend-cell:focus-visible { border-color: var(--gold); background: rgba(254, 231, 97, 0.15); outline: none; }
+.vend-cell.sold { opacity: 0.4; }
+.vend-cell .vp { position: absolute; bottom: calc(var(--u) * 0.5); right: calc(var(--u) * 1.2); font-size: calc(var(--u) * 4); color: var(--gold); text-shadow: 0 calc(var(--u) * 0.5) 0 var(--ink); }
+.vend-cell .vc { position: absolute; top: calc(var(--u) * 0.5); left: calc(var(--u) * 1.2); font-size: calc(var(--u) * 3.6); }
+.vend-detail { flex: 1; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 2.5); text-align: center; padding: calc(var(--u) * 2); background: rgba(0, 0, 0, 0.25); }
+.vend-big { width: calc(var(--u) * 34); height: calc(var(--u) * 34); object-fit: contain; image-rendering: pixelated; }
+.vend-name { font-size: calc(var(--u) * 6.4); color: var(--gold); }
+.vend-desc { font-size: calc(var(--u) * 4.6); line-height: 1.35; flex: 1; }
+.vend-price { font-size: calc(var(--u) * 5.4); }
