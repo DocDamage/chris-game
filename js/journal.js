@@ -539,9 +539,30 @@
     },
   });
 
+  J.addPage('inventory', {
+    title: 'STASH',
+    render(h) {
+      const I = CH.Items;
+      const D = I.data();
+      const town = CH.Town && CH.Town.inTown;
+      const grid = (list, size, kind) => { let c = ''; for (let i = 0; i < size; i++) { const it = list[i]; c += `<button class="ig-cell" data-k="${kind}" data-i="${i}" style="background-image:url(${frameUrl()})">${it ? `<img src="${slotImg(it)}" alt="" title="${esc(it.name)}" style="filter:drop-shadow(0 0 calc(var(--p)*1.5) ${I.RARITY[it.rarity].color})">` : ''}</button>`; } return c; };
+      const draw = () => {
+        h.innerHTML = `<div class="jp spread"><div class="jp-col"><div class="jp-sub">BAG</div><div class="ig-grid" style="grid-template-columns:repeat(6,calc(var(--p)*22))">${grid(I.bag(), I.BAG_SIZE, 'bag')}</div></div><div class="jp-col"><div class="jp-sub">STASH ${town ? '' : '(town only)'}</div><div class="ig-grid" style="grid-template-columns:repeat(6,calc(var(--p)*22))">${grid(D.stash, 24, 'stash')}</div></div></div>`;
+        h.querySelectorAll('.ig-cell').forEach((b) => { b.style.width = b.style.height = 'calc(var(--p)*22)'; b.onclick = () => {
+          if (!town) { Audio.sfx('nope'); return; }
+          const from = b.dataset.k === 'bag' ? I.bag() : D.stash, to = b.dataset.k === 'bag' ? D.stash : I.bag();
+          const it = from[+b.dataset.i];
+          if (!it || to.length >= (to === D.stash ? I.STASH_SIZE : I.BAG_SIZE)) { Audio.sfx('nope'); return; }
+          from.splice(+b.dataset.i, 1); to.push(it); Storage.save(); Audio.sfx('hover'); draw();
+        }; });
+      };
+      draw();
+    },
+  });
   /* page order: the bag first, the quests second, and the old loadout stub gives way to the paper doll */
   J.refresh = () => { if (J.open && !busy) renderPage(); };
-  J.pages[1].unshift(J.pages[1].pop());
+  J.pages[1].unshift(J.pages[1].splice(J.pages[1].findIndex((p) => p.title === 'BAG'), 1)[0]);
+  J.pages[1].splice(1, 0, J.pages[1].splice(J.pages[1].findIndex((p) => p.title === 'STASH'), 1)[0]);
   J.pages[2] = J.pages[2].filter((p) => p.title !== 'LOADOUT');
   J.pages[0].splice(1, 0, J.pages[0].pop());
 

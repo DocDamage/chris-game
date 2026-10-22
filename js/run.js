@@ -104,6 +104,16 @@
       const p = L.randomNear(mid.cx, mid.cy, 60, 120, 20) || L.nearestOpen(mid.cx, mid.cy);
       G.machine = { x: p.x, y: p.y, uses: 1, t: 0 };
     }
+    // the Lost Shrine of the act I quest, and a named unique monster per stage
+    const Qs = CH.Quests;
+    if (Qs && n === 2 && Qs.state('a1_lost').st === 'active') {
+      const rm = L.rooms.filter((r) => r.tag !== 'start' && r.tag !== 'exit')[Math.floor(rng() * Math.max(1, L.rooms.length - 2))] || L.rooms[1];
+      const sp = L.randomNear(rm.cx, rm.cy, 0, 60, 18) || L.nearestOpen(rm.cx, rm.cy);
+      L.shrines.push({ x: sp.x, y: sp.y, used: false, id: 99, kind: 'lost' });
+    }
+    const UNI = ['Gordon the Gnome-Slayer', 'Big Dave', 'Mildred the Mild', 'Chop-Shop Chuck', 'Sir Reginald Fluffington', 'The Unpaid Intern', 'Lord Gluten', 'Karen of the Deep'];
+    const lead = L.packs.filter((pk) => pk.leader)[0] || L.packs[Math.floor(rng() * L.packs.length)];
+    if (lead) { lead.unique = UNI[Math.floor(rng() * UNI.length)]; lead.leader = true; if (L.biome === 'zombie') lead.unique = 'Chop-Shop Chuck'; }
     const sub = 'Close the breaches (' + L.hivesNeeded + ') and find the exit.';
     G.banner('STAGE ' + n, L.name.toUpperCase() + '  -  ' + sub, 3.2);
     Run.cache = {};
@@ -190,6 +200,7 @@
       const e = G.spawnEnemy(type, p.x, p.y, { elite: pk.elite && i === 0, variant: CH.Enemies.rollVariant(type, G.wave, arenaId), spawnTime: 0.25 + Math.random() * 0.2 });
       e.pack = pk;
       if (pk.leader && i === 0) { e.isElite = true; e.leader = true; }
+      if (pk.unique && i === 0) { e.unique = pk.unique; e.isElite = true; e.maxHp = e.hp = Math.round(e.maxHp * 2.6); e.scale *= 1.25; }
     }
     FX.ring(pk.x, pk.y, 4, 30, '#e43b44', 0.35);
   }
@@ -219,6 +230,7 @@
         for (let i = 0; i < 4; i++) G.dropPickup('coin', s.x + U.rand(-20, 20), s.y + U.rand(-20, 20), 4, {});
         G.dropPickup('curio', s.x, s.y, 3, { icon: 'pu.' + U.pick([46, 170, 171, 259]), life: 30 });
         FX.text(s.x, s.y - 20, 'CHAMPIONS SLAIN', '#fee761', 2);
+        if (s.onClear) s.onClear(s);
       }
     }
   }
@@ -239,6 +251,14 @@
         s.challenge.push(G.spawnEnemy(t, q.x, q.y, { elite: true, spawnTime: 0.3 }));
       }
       G.banner('CHALLENGE SHRINE', 'Slay the champions for treasure', 2);
+    } else if (s.kind === 'lost') {
+      s.challenge = [];
+      for (let i = 0; i < 4; i++) {
+        const q = L.randomNear(s.x, s.y, 50, 100, 14) || { x: s.x, y: s.y };
+        s.challenge.push(G.spawnEnemy(U.pick(LG.MOBS[L.biome] || LG.MOBS.dungeon), q.x, q.y, { elite: true, spawnTime: 0.3 }));
+      }
+      s.onClear = () => { if (CH.Quests) CH.Quests.event('lost'); if (CH.Dialogue) CH.Dialogue.say({ who: 'THE LOST SHRINE', portrait: 'sk:runegolem', lines: ['The runes flicker, then blaze.', 'Something enormous, made of stone and patience, stands up and nods at you.'] }); };
+      G.banner('THE LOST SHRINE', 'Guardians awaken. Defeat them to restore it.', 2.4);
     } else if (s.kind === 'healing') {
       for (const q of players()) G.healPlayer(q.maxHp * 0.5 / q.stats.healMult / G.diff.heal, q);
       G.banner('HEALING SHRINE', 'Restored', 1.6);
@@ -256,10 +276,20 @@
       const tx = Math.floor(pr.x / TS), ty = Math.floor(pr.y / TS);
       if (L.cell(tx, ty) === CH.Level.CRACKED) {
         pr.dead = true;
+        if (!canCrack(L, tx, ty)) continue;
         if (L.crack(tx, ty, pr.dmg || 10)) foundSecret(L, tx, ty);
         else FX.burst(pr.x, pr.y, { n: 5, colors: ['#8a7a6a', '#4a3a2a'], speed: 60, life: 0.3 });
       }
     }
+  }
+  /* the garage of the Outbreak City stays shut until a named unique has dropped the key */
+  function canCrack(L, tx, ty) {
+    const s = L.secrets.find((q) => q.crack.x === tx && q.crack.y === ty);
+    if (s && s.kind === 'garage' && !G.garageKey) {
+      if (!s.hinted || G.time - s.hinted > 3) { s.hinted = G.time; FX.text(tx * TS + 16, ty * TS - 4, 'LOCKED GARAGE', '#e43b44', 1); Audio.sfx('nope'); }
+      return false;
+    }
+    return true;
   }
   function foundSecret(L, tx, ty) {
     const s = L.secrets.find((q) => q.crack.x === tx && q.crack.y === ty);
@@ -268,7 +298,7 @@
     G.shake(4, 0.3);
     if (s && !s.found) {
       s.found = true;
-      G.banner('SECRET FOUND', s.kind === 'dojo' ? 'A hidden dojo' : 'A hidden stash', 2);
+      G.banner('SECRET FOUND', s.kind === 'dojo' ? 'A hidden dojo' : s.kind === 'garage' ? 'The garage is open' : 'A hidden stash', 2);
       L.reveal(s.cx, s.cy, 6);
       if (CH.Run.onSecret) CH.Run.onSecret(s);
     }
@@ -278,7 +308,7 @@
     const L = G.level;
     if (L && L.secrets.length && o && o.owner === 'p') {
       for (let ty = Math.floor((y - r) / TS); ty <= Math.floor((y + r) / TS); ty++) for (let tx = Math.floor((x - r) / TS); tx <= Math.floor((x + r) / TS); tx++) {
-        if (L.cell(tx, ty) === CH.Level.CRACKED && L.crack(tx, ty, 30)) foundSecret(L, tx, ty);
+        if (L.cell(tx, ty) === CH.Level.CRACKED && canCrack(L, tx, ty) && L.crack(tx, ty, 30)) foundSecret(L, tx, ty);
       }
     }
     return res;
@@ -397,8 +427,19 @@
     }
     return orig.call(G, type, x, y, value, o);
   });
+  /* unique monsters: a name tag, and the garage key in the Outbreak City */
+  wrap(G, 'killEnemy', function (orig, e) {
+    const was = e.dead;
+    orig.call(G, e);
+    if (!was && e.unique && G.level && G.level.biome === 'zombie' && !G.garageKey) { G.garageKey = true; G.ui.toast('GARAGE KEY FOUND'); Audio.sfx('levelup'); }
+  });
+  CH.Hooks.world.push((ctx, cam) => {
+    if (!G.level) return;
+    for (const e of G.enemies) if (e.unique && !e.dead) CH.Font.draw(ctx, e.unique.toUpperCase(), Math.round(e.x - cam.x), Math.round(e.y - cam.y) - 34, '#ff8a1e', 1, true, 'center');
+  });
   wrap(G, 'newRun', function (orig, config) {
     G.runSeed = null;
+    G.garageKey = false;
     G.level = null;
     return orig.call(G, config);
   });
@@ -527,7 +568,7 @@
     ctx.strokeStyle = '#d1c29a';
     ctx.lineWidth = 1;
     ctx.strokeRect(mx - 0.5, my - 0.5, size + 1, size + 1);
-    CH.Font.draw(ctx, 'STAGE ' + G.wave, mx + size / 2, my - 4, '#d1c29a', 1, true, 'center');
+    CH.Font.draw(ctx, L.isTown ? 'TOWN' : 'STAGE ' + G.wave, mx + size / 2, my - 4, '#d1c29a', 1, true, 'center');
   };
 
   /* HUD text in level mode */
@@ -535,6 +576,7 @@
     orig.call(UI);
     const L = G.level;
     if (!L) return;
+    if (L.isTown) { const el = document.getElementById('wavetxt'); if (el) el.textContent = 'TOWN'; const en = document.getElementById('enemytxt'); if (en) en.textContent = 'SAFE'; return; }
     const set = (id, t) => { const el = document.getElementById(id); if (el && el.textContent !== t) el.textContent = t; };
     set('wavetxt', 'STAGE ' + G.wave + (G.endless ? ' ENDLESS' : ''));
     set('enemytxt', G.waveState === 'clear' ? 'CLEARED!' : L.exit.open ? 'FIND THE EXIT' : 'BREACHES ' + Run.hivesClosed() + '/' + L.hivesNeeded);

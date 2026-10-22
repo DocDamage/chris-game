@@ -275,6 +275,7 @@
   }
 
   function drawMachine(ctx, m, cam) {
+    if (m.town) return; // in town the vendor NPC stands there instead
     const x = m.x - cam.x;
     const y = m.y - cam.y;
     CH.Enemies.shadow(ctx, x, y + 13, 18);

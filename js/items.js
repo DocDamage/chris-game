@@ -333,6 +333,7 @@
     let boss = false;
     if (e.isBoss) { chance = 1; boss = true; }
     else if (e.isSpawner) chance = 0.45 + night;
+    else if (e.unique) { chance = 1; boss = true; }
     else if (e.isElite || e.affix) chance = 0.2 + luck * 0.1 + night;
     if (Math.random() > chance + night * 0.05) return;
     const n = boss ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1;

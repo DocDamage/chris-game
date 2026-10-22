@@ -92,7 +92,7 @@
     const ob = R.onBreachClosed;
     R.onBreachClosed = function (h) { ob(h); Q.event('breach'); };
     R.onChest = () => Q.event('chest');
-    R.onSecret = (s) => { Q.event('secret'); if (s.kind === 'dojo') CH.SK && CH.SK.unlock('monk'); };
+    R.onSecret = (s) => { Q.event('secret'); if (s.kind === 'dojo') CH.SK && CH.SK.unlock('monk'); if (s.kind === 'garage') CH.SK && CH.SK.unlock('nightrider'); };
   }
   wrap(G, 'waveComplete', function (orig) {
     const r = orig.call(G);
