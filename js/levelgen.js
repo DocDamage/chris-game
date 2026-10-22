@@ -151,7 +151,7 @@
   /* ---------------------------------------------------------------- secret rooms (behind cracked walls) */
   function secretRooms(L, R, n) {
     const out = [];
-    for (let tries = 0; tries < 300 && out.length < n; tries++) {
+    for (let tries = 0; tries < 900 && out.length < n; tries++) {
       const room = R.pick(L.rooms);
       // a wall face of a room (or clearing): walk from its centre in a random direction until the first rock
       const side = R.int(0, 3);

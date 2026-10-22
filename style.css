@@ -596,3 +596,8 @@ body.uik .vend-cell.sel, body.uik .vend-cell:focus-visible, body.uik .ig-cell.se
 .ms-frame { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
 .ms-cv { position: absolute; left: calc(var(--p) * 100); top: calc(var(--p) * 84); width: calc(var(--p) * 440); height: calc(var(--p) * 270); image-rendering: pixelated; }
 .ms-title { position: absolute; left: calc(var(--p) * 100); width: calc(var(--p) * 440); top: calc(var(--p) * 64); text-align: center; font-size: calc(var(--p) * 8); color: #5a2418; letter-spacing: calc(var(--p) * 1); }
+
+/* the main menu grew two buttons (choose hero, journal): tighter so it still fits at 480x270 */
+body.uik #screen-main .menu-col { gap: calc(var(--u) * 1.1); }
+body.uik #screen-main .menu-col .btn { font-size: calc(var(--u) * 5.2); padding: calc(var(--u) * 0.4) calc(var(--u) * 3); }
+body.uik #screen-main .title-block { transform: scale(0.82); transform-origin: top center; margin-bottom: calc(var(--u) * -8); }

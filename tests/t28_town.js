@@ -47,7 +47,7 @@ const { open } = require('./lib');
     S.data.diablo.quests = {};
     G.startWave(2); step(5);
     r.lostShrine = !!G.level && G.level.shrines.some((s) => s.kind === 'lost');
-    const origPath = G.pathArena; G.pathArena = () => 'zombie'; G.startWave(6); step(5); G.pathArena = origPath;
+    const origPath = G.pathArena; G.pathArena = () => 'zombie'; for (let k = 0; k < 6; k++) { G.runSeed = 1000 + k; G.startWave(6); step(2); if (G.level.secrets.some((s) => s.kind === 'garage')) break; } step(3); G.pathArena = origPath;
     const pk = G.level.packs.find((q) => q.unique); r.unique = !!pk && pk.unique === 'Chop-Shop Chuck';
     r.garage = G.level.secrets.some((s) => s.kind === 'garage');
     if (pk) { G.player.x = pk.x; G.player.y = pk.y; step(25); const u = G.enemies.find((e) => e.unique); r.uniqueSpawned = !!u; if (u) { u.hp = 1; G.damageEnemy(u, 999, { src: 'player', shooter: G.player }); r.key = G.garageKey === true; r.dropped = I.ground.length >= 1; } }
