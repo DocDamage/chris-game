@@ -116,9 +116,9 @@
   UI.resize = function () {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const s = Math.max(0.5, Math.min(w / B.view.w, h / B.view.h));
-    stage.style.width = Math.floor(B.view.w * s) + 'px';
-    stage.style.height = Math.floor(B.view.h * s) + 'px';
+    const s = Math.max(0.5, Math.min(w / B.ui.w, h / B.ui.h));
+    stage.style.width = Math.floor(B.ui.w * s) + 'px';
+    stage.style.height = Math.floor(B.ui.h * s) + 'px';
     stage.style.setProperty('--u', s + 'px');
   };
 

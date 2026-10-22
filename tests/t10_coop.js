@@ -433,7 +433,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     __f(60);
     return { mid, end: { mode: G.viewMode, splitT: +G.splitT.toFixed(2), views: G.views.map((v) => [v.x, v.w]), order: G.viewOrder, sx: G.players.map((p) => Math.round(p.sx)) } };
   });
-  ok('drifting apart splits the screen: the divider slides in, then two halves', r.mid.mode === 'split' && r.mid.splitT > 0 && r.mid.splitT < 1 && r.end.splitT === 1 && r.end.views.length === 2 && r.end.views[0][1] === 240, r);
+  ok('drifting apart splits the screen: the divider slides in, then two halves', r.mid.mode === 'split' && r.mid.splitT > 0 && r.mid.splitT < 1 && r.end.splitT === 1 && r.end.views.length === 2 && r.end.views[0][1] === 320, r);
   ok('the hero further left gets the left screen', r.end.order[0] === 0, r.end.order);
   r = await E(() => {
     const G = CH.G;

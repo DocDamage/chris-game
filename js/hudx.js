@@ -11,7 +11,7 @@
   const X = CH.X;
   const M = CH.Meta;
   const wrap = X.wrap;
-  const H = 270;
+  const H = B.view.h;
   const opt = (k, dflt) => {
     const v = X.opts()[k];
     return v === undefined ? dflt : v;

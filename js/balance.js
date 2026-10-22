@@ -4,7 +4,8 @@ window.CH = window.CH || {};
   'use strict';
 
   CH.Balance = {
-    view: { w: 480, h: 270 }, // logical render buffer
+    view: { w: 640, h: 360 }, // logical render buffer (matches the Mini Pocket UI pack's native size)
+    ui: { w: 480, h: 270 }, // size of one DOM-menu pixel: --u = screen / 480, so menus keep their layout
     arena: { w: 2880, h: 1620, margin: 24 },
     maxDt: 0.1, // clamp after tab switches
     stepDt: 1 / 60, // max simulation substep

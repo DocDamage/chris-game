@@ -8,6 +8,7 @@
 (function (CH) {
   'use strict';
   const U = CH.U;
+  const B = CH.Balance;
 
   const Weather = (CH.Weather = {
     mode: 'sun', // 'sun' | 'rain' | 'wind' | 'glitch' | 'none'
@@ -47,8 +48,8 @@
     // Pre-populate particles so there's no pop-in
     for (let i = 0; i < Weather.maxDrops; i++) {
       Weather.drops.push({
-        x: Math.random() * 520 - 20,
-        y: Math.random() * 300,
+        x: Math.random() * (B.view.w + 40) - 20,
+        y: Math.random() * (B.view.h + 30),
         speed: U.rand(340, 480),
         len: U.rand(9, 16),
         alpha: U.rand(0.25, 0.65),
@@ -57,8 +58,8 @@
 
     for (let i = 0; i < Weather.maxLeaves; i++) {
       Weather.leaves.push({
-        x: Math.random() * 540 - 30,
-        y: Math.random() * 300,
+        x: Math.random() * (B.view.w + 60) - 30,
+        y: Math.random() * (B.view.h + 30),
         vx: U.rand(70, 140),
         vy: U.rand(25, 65),
         rot: Math.random() * U.TAU,
@@ -71,8 +72,8 @@
 
     for (let i = 0; i < Weather.maxMotes; i++) {
       Weather.motes.push({
-        x: Math.random() * 500,
-        y: Math.random() * 280,
+        x: Math.random() * B.view.w,
+        y: Math.random() * B.view.h,
         vx: U.rand(-5, 10),
         vy: U.rand(-8, 5),
         size: U.rand(1, 2),
@@ -122,13 +123,13 @@
         if (!d) continue;
         d.x += Math.cos(Weather.windAngle) * d.speed * dt * 0.4;
         d.y += d.speed * dt;
-        if (d.y > 280 || d.x > 500) {
+        if (d.y > B.view.h + 10 || d.x > B.view.w + 20) {
           d.y = -10;
-          d.x = Math.random() * 520 - 40;
+          d.x = Math.random() * (B.view.w + 40) - 40;
           if (Math.random() < 0.25 && Weather.ripples.length < Weather.maxRipples) {
             Weather.ripples.push({
               x: d.x,
-              y: U.rand(20, 270),
+              y: U.rand(20, B.view.h),
               r: 1,
               maxR: U.rand(3, 7),
               life: 0.3,
@@ -169,7 +170,7 @@
         lf.rot += lf.vrot * dt;
         if (lf.x > 510 || lf.y > 285) {
           lf.x = -20;
-          lf.y = Math.random() * 260 - 10;
+          lf.y = Math.random() * (B.view.h - 10) - 10;
         }
       }
     }
@@ -196,7 +197,7 @@
     ctx.save();
     // Wet sheen overlay
     ctx.fillStyle = 'rgba(10, 24, 45, 0.07)';
-    ctx.fillRect(0, 0, 480, 270);
+    ctx.fillRect(0, 0, B.view.w, B.view.h);
 
     // Ripple rings
     ctx.lineWidth = 1;
@@ -215,8 +216,8 @@
     const reduced = CH.Storage.settings && CH.Storage.settings.reduced;
     if (reduced || Weather.mode === 'none') return;
 
-    const W = 480;
-    const H = 270;
+    const W = B.view.w;
+    const H = B.view.h;
     ctx.save();
 
     // 1. SUNNY DAY: Volumetric Light Rays (God Rays) & warm dust motes

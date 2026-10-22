@@ -14,9 +14,9 @@
     // size the stage first so the loading screen is laid out correctly
     const fill = document.getElementById('lfill');
     const stage = document.getElementById('stage');
-    const s = Math.max(0.5, Math.min(window.innerWidth / B.view.w, window.innerHeight / B.view.h));
-    stage.style.width = Math.floor(B.view.w * s) + 'px';
-    stage.style.height = Math.floor(B.view.h * s) + 'px';
+    const s = Math.max(0.5, Math.min(window.innerWidth / B.ui.w, window.innerHeight / B.ui.h));
+    stage.style.width = Math.floor(B.ui.w * s) + 'px';
+    stage.style.height = Math.floor(B.ui.h * s) + 'px';
     stage.style.setProperty('--u', s + 'px');
     CH.Assets.load((p) => (fill.style.width = Math.round(p * 100) + '%')).then(() => {
       CH.Art.register();
