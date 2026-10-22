@@ -20,7 +20,8 @@ const ENV = require('./env');
     const out = [];
 
     // 1. Stage size test (3x size)
-    const is3x = G.arena.w === 2880 && G.arena.h === 1620;
+    // wave arenas are 2880x1620 (Balance.arena); tile levels, which a run starts in now, are at least that big
+    const is3x = CH.Balance.arena.w === 2880 && CH.Balance.arena.h === 1620 && G.arena.w >= 2880 && G.arena.h >= 1620;
     out.push({ test: '3x Stage Size (2880x1620)', pass: is3x, val: `${G.arena.w}x${G.arena.h}` });
 
     // 2. Movement speed test

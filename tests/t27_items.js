@@ -41,6 +41,8 @@ const { open } = require('./lib');
     X.startRun({}, null); G._scriptTesting = true; for (const q of G.players) q.hp = q.maxHp = 1e6;
     const q = G.player; const bag0 = I.bag().length;
     I.drop(q.x + 5, q.y, I.roll(3, { rarity: 'rare' })); step(30);
+    // the drop tumbles up to ~30px sideways before it lands: the hero walks over to it, as a player would
+    if (I.ground.length) { q.x = I.ground[0].x; q.y = I.ground[0].y; step(10); }
     r.pickedUp = I.bag().length === bag0 + 1 && I.ground.length === 0;
     // belt: meat heals over time; portal quill only on the belt
     q.hp = 10; I.addConsumable(q, 'steak', 1); const bi = I.belt(q).findIndex((s) => s && s.id === 'steak'); I.useBelt(q, bi); step(30 * 9);
