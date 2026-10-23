@@ -273,7 +273,8 @@ fog of war and a minimap); boss stages stay arena fights.
   secret ones are unlocked by bosses, challenges, secret rooms and a quest; choose them in Journal > Codex > Sidekicks.
 - **Heroes:** Elven Enchantress, Neon Specter and The Grinning Stranger replaced the three placeholder kits.
 - **Atmosphere:** day and night, weather per biome (rain, thunderstorms with telegraphed lightning, snow, blizzard, ash, fog,
-  blood rain), puddles of water / blood / toxic goo / lava, a WebGL shader pass (Settings > Video: Effects High / Low / Off,
+  blood rain), puddles of water / blood / toxic goo / lava that ripple, mirror what stands behind them and glint (kill
+  blood spreads, then dries brown), footprints out of blood, water and goo, a WebGL shader pass (Settings > Video: Effects High / Low / Off,
   heat haze on / off). Night: enemies hit 10% harder and drops are 15% richer.
 - **Difficulty tiers:** win a run to unlock Nightmare, then Hell (Journal > Journal > Quests).
 

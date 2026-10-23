@@ -466,6 +466,7 @@
     CH.Arenas.drawBg(ctx, G.arena, cam);
     CH.Arenas.drawAnim(ctx, G.arena, cam, G.wall, G.state === 'playing' ? 0.016 : 0);
     if (CH.Weather && CH.Weather.drawGround) CH.Weather.drawGround(ctx, cam);
+    if (CH.Atmos && CH.Atmos.snap) CH.Atmos.snap('floor', ctx, v); // the puddle shader tells floor from characters with these two
     if (G.mods.disco) drawDisco(ctx);
 
     for (const z of G.zones) drawZone(ctx, z, cam, false);
@@ -488,6 +489,7 @@
     for (const z of G.zones) drawZone(ctx, z, cam, true);
     FX.draw(ctx, cam);
     FX.drawTexts(ctx, cam);
+    if (CH.Atmos && CH.Atmos.snap) CH.Atmos.snap('actors', ctx, v); // before the full-screen tints, rays and vignette
     if (CH.Weather && CH.Weather.drawAtmosphere) CH.Weather.drawAtmosphere(ctx, cam, v);
     drawReticles(ctx, cam);
     CH.Hooks.run('world', ctx, cam, v);

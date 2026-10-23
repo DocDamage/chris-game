@@ -35,6 +35,7 @@
     storm(dt);
     particles(dt);
     puddlesTick(dt);
+    tracks(dt);
   };
 
   /* ------------------------------------------------------------------ weather */
@@ -61,6 +62,8 @@
     A.strikes.length = 0;
     A.flash = 0;
     A.dyn.length = 0;
+    A.prints.length = 0;
+    for (const p of G.players) p._wet = null;
   };
   X.statHooks.push((p, s) => { if (A.mode === 'blizzard') s.speedMult *= 0.9; });
 
@@ -112,17 +115,178 @@
   }
 
   /* ------------------------------------------------------------------ puddles */
-  /* water / blood / toxic / lava: { x, y, rx, ry, kind }. Levels carry their own; blood from kills is dynamic. */
+  /* water / blood / toxic / lava: { x, y, rx, ry, kind }. Levels carry their own; blood from kills is dynamic.
+     Each puddle has its own wobbly outline (from `seed`) and two cached pixel images: the ground layer (all the 2D
+     renderer shows) and its patch of the shader's mask: R kind, G distance down from the puddle's far edge (lava: heat),
+     B depth (0 at the rim, 1 in the middle), A coverage x gloss. Kill blood spreads as it lands and dries matte brown. */
   const KINDS = { water: 0, blood: 1, toxic: 2, lava: 3 };
   A.KINDS = KINDS;
   A.puddles = () => (G.level && G.level.puddles ? G.level.puddles.concat(A.dyn) : A.dyn);
+  const hash = (a, b) => { let h = Math.imul((a | 0) ^ 0x27d4eb2d, 0x165667b1) ^ Math.imul(b | 0, 0x9e3779b1); h ^= h >>> 15; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
+  const seedOf = (p) => (p.seed === undefined ? (p.seed = Math.floor(hash(Math.round(p.x), Math.round(p.y)) * 1e9)) : p.seed);
   A.addBlood = function (x, y, size) {
     let best = null, bd = 46 * 46;
     for (const p of A.dyn) { const d = U.dist2(p.x, p.y, x, y); if (p.kind === 'blood' && d < bd) { bd = d; best = p; } }
-    if (best) { best.rx = Math.min(44, best.rx + size * 0.35); best.ry = Math.min(30, best.ry + size * 0.25); best.x += (x - best.x) * 0.2; best.y += (y - best.y) * 0.2; return; }
+    if (best) { best.rx = Math.min(44, best.rx + size * 0.35); best.ry = Math.min(30, best.ry + size * 0.25); best.x += (x - best.x) * 0.2; best.y += (y - best.y) * 0.2; best.born = Math.max(best.born || 0, G.wall - 14); return; }
     if (A.dyn.length >= 40) A.dyn.shift();
-    A.dyn.push({ x, y, rx: 6 + size * 0.6, ry: 4 + size * 0.4, kind: 'blood', born: G.wall });
+    const p = { x, y, rx: 6 + size * 0.6, ry: 4 + size * 0.4, kind: 'blood', born: G.wall };
+    seedOf(p);
+    A.dyn.push(p);
   };
+
+  const DRY = 60; // kill blood starts drying after 15 s and is matte brown a minute later
+  const dryOf = (p) => (p.kind === 'blood' && p.born !== undefined ? U.clamp((G.wall - p.born - 15) / DRY, 0, 1) : 0);
+  const spreadOf = (p) => { if (p.kind !== 'blood' || p.born === undefined) return 1; const t = U.clamp((G.wall - p.born) / 0.45, 0, 1); return 0.35 + 0.65 * (1 - (1 - t) * (1 - t)); };
+  const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t];
+  /* the ground colour of one pixel: d = depth (<0 outside the rim), u / v = position in radii, n = per-pixel noise */
+  function groundPx(kind, d, u, v, n, dry, s, x, y) {
+    const lit = d > 0.08 && d < (kind === 'blood' ? 0.2 : 0.28) && v < -0.38 && u > -0.65 && u < 0.12; // the far rim catches the light
+    if (kind === 'water') {
+      if (d <= 0) return d > -0.14 && n > 0.2 + (-d / 0.14) * 0.6 ? [0, 0, 0, 0.2] : null; // wet ground round the rim
+      if (d < 0.1) return [40, 62, 88, 0.62];
+      if (lit) return [165, 208, 236, 0.46];
+      if (d > 0.22 && n > 0.994) return [205, 232, 250, 0.55];
+      return mixc([30, 52, 84, 0.5], [12, 26, 52, 0.7], Math.min(1, d * 1.6));
+    }
+    if (kind === 'blood') {
+      if (d <= 0) return d > -0.4 && n > 0.9 + (-d / 0.4) * 0.09 ? mixc([122, 6, 18, 0.92], [64, 20, 12, 0.85], dry) : null; // spatter
+      let c = d < 0.09 ? [150, 12, 24, 0.94] : mixc([112, 4, 16, 0.92], [50, 0, 8, 0.97], Math.min(1, d * 1.5));
+      c = mixc(c, d < 0.09 ? [84, 28, 18, 0.88] : mixc([66, 20, 13, 0.88], [42, 12, 8, 0.92], Math.min(1, d * 1.5)), dry);
+      if (lit && dry < 0.75) return mixc(c, [228, 98, 108, 0.75], 1 - dry);
+      if (d > 0.3 && n > 0.996 && dry < 0.3) return [190, 50, 60, 0.85];
+      return c;
+    }
+    if (kind === 'toxic') {
+      if (d <= 0) return d > -0.1 && n > 0.35 ? [30, 42, 8, 0.38] : null; // the goo eats the ground
+      if (d < 0.1) return [72, 152, 46, 0.86];
+      if (lit) return [182, 255, 122, 0.56];
+      if (d > 0.25 && n > 0.975) return [150, 240, 100, 0.75];
+      return mixc([40, 110, 35, 0.78], [22, 70, 26, 0.86], Math.min(1, d * 1.5));
+    }
+    // lava: a dark crust at the rim and in drifting plates, white-hot spots in the middle
+    if (d <= 0) return d > -0.1 && n > 0.3 ? [40, 16, 10, 0.5] : null;
+    if (d < 0.14) return [62, 22, 12, 0.97];
+    if (d < 0.75 && hash(s + Math.floor(x / 4) * 3, Math.floor(y / 3) * 5) > 0.74) return [74, 26, 12, 0.95];
+    if (d > 0.55 && n > 0.9) return [255, 222, 120, 0.95];
+    return mixc([200, 62, 0, 0.95], [255, 150, 40, 0.97], Math.min(1, d * 1.4));
+  }
+  const ART = new WeakMap();
+  function puddleArt(p) {
+    const q = p.born !== undefined ? 2 : 1; // growing kill blood is rebuilt every 2 px, not on every kill
+    const dry = Math.round(dryOf(p) * 4) / 4, rx = Math.max(3, Math.round(p.rx / q) * q), ry = Math.max(2, Math.round(p.ry / q) * q);
+    const key = p.kind + ' ' + rx + ' ' + ry + ' ' + dry;
+    let c = ART.get(p);
+    if (c && c.key === key) return c;
+    const s = seedOf(p), blood = p.kind === 'blood';
+    const amp = blood ? [0.1, 0.09, 0.07, 0.05] : [0.08, 0.06, 0.04, 0.02], fr = [2, 3, 5, blood ? 9 : 7], ph = fr.map((_, i) => hash(s, i + 1) * U.TAU);
+    const rim = (th) => { let r = 0.92; for (let i = 0; i < 4; i++) r += amp[i] * Math.sin(fr[i] * th + ph[i]); return r; };
+    const ox = Math.ceil(rx * 1.45) + 3, oy = Math.ceil(ry * 1.45) + 3, w = ox * 2, h = oy * 2;
+    const dep = new Float32Array(w * h), top = new Int16Array(w).fill(-1);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const u = (x + 0.5 - ox) / rx, v = (y + 0.5 - oy) / ry;
+      const d = 1 - Math.hypot(u, v) / rim(Math.atan2(v, u));
+      dep[y * w + x] = d;
+      if (d > 0 && top[x] < 0) top[x] = y;
+    }
+    const ground = document.createElement('canvas'), mask = document.createElement('canvas');
+    ground.width = mask.width = w;
+    ground.height = mask.height = h;
+    const gc = ground.getContext('2d'), mc = mask.getContext('2d'), gi = gc.createImageData(w, h), mi = mc.createImageData(w, h);
+    const k = KINDS[p.kind] || 0, gloss = blood ? 1 - 0.85 * dry : 1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x, d = dep[i], o = i * 4;
+      const col = groundPx(p.kind, d, (x + 0.5 - ox) / rx, (y + 0.5 - oy) / ry, hash(s + x * 7, y * 13 + 1), dry, s, x, y);
+      if (col) { gi.data[o] = col[0]; gi.data[o + 1] = col[1]; gi.data[o + 2] = col[2]; gi.data[o + 3] = Math.round(col[3] * 255); }
+      if (d > 0) {
+        mi.data[o] = k * 60 + 20;
+        mi.data[o + 1] = p.kind === 'lava' ? 255 : Math.min(255, y - top[x]);
+        mi.data[o + 2] = Math.min(255, Math.round(d * 1.6 * 255));
+        mi.data[o + 3] = Math.round(255 * gloss * (d < 0.04 ? 0.6 : 1));
+      }
+    }
+    gc.putImageData(gi, 0, 0);
+    mc.putImageData(mi, 0, 0);
+    c = { key, ground, mask, ox, oy };
+    ART.set(p, c);
+    return c;
+  }
+  /* draws one puddle's ground or mask image, centred, grown by its spread */
+  function drawPuddle(ctx, p, x, y, which) {
+    const a = puddleArt(p), k = spreadOf(p), img = a[which];
+    if (k >= 1) ctx.drawImage(img, Math.round(x - a.ox), Math.round(y - a.oy));
+    else ctx.drawImage(img, Math.round(x - a.ox * k), Math.round(y - a.oy * k), Math.round(img.width * k), Math.round(img.height * k));
+  }
+
+  /* ------------------------------------------------------------------ tracks */
+  /* feet that walked through blood, water or goo print it for a while: shoes for heroes and sidekicks, paws for
+     monsters (not flyers), fainter with every step as the feet dry. Prints are floor, so the shader leaves them be. */
+  const TRACK = { blood: { n: 18, life: 50 }, water: { n: 9, life: 8 }, toxic: { n: 12, life: 24 } };
+  const PCOL = { blood: [104, 4, 14, 235], dried: [66, 20, 12, 220], water: [8, 12, 22, 105], toxic: [72, 152, 44, 220], mask: [80, 0, 128, 255] };
+  const MAXP = 360;
+  A.prints = [];
+  const PRINT = new Map();
+  function printArt(kind, dir, side, paw) {
+    const key = kind + dir + side + (paw ? 'p' : 's');
+    let c = PRINT.get(key);
+    if (c) return c;
+    c = document.createElement('canvas');
+    c.width = c.height = 9;
+    const cx = c.getContext('2d'), id = cx.createImageData(9, 9), col = PCOL[kind];
+    const phi = (dir / 16) * U.TAU, cs = Math.cos(phi), sn = Math.sin(phi);
+    const ell = (lx, ly, ex, ey, ax, ay) => ((lx - ex) / ax) ** 2 + ((ly - ey) / ay) ** 2 <= 1;
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) {
+      const px = x - 4, py = y - 4, lx = px * cs + py * sn, ly = -px * sn + py * cs; // into the print's frame, toes up
+      const sx = lx + (side ? 0.3 : -0.3);
+      const on = paw
+        ? ell(sx, ly, 0, 0.9, 1.8, 1.5) || ell(sx, ly, -1.7, -1.3, 0.95, 0.95) || ell(sx, ly, 0, -2.1, 0.95, 0.95) || ell(sx, ly, 1.7, -1.3, 0.95, 0.95)
+        : ell(sx, ly, 0, -1.1, 1.7, 2.3) || ell(sx, ly, 0, 2.1, 1.4, 1.1);
+      if (!on) continue;
+      const o = (y * 9 + x) * 4;
+      id.data[o] = col[0]; id.data[o + 1] = col[1]; id.data[o + 2] = col[2]; id.data[o + 3] = col[3];
+    }
+    cx.putImageData(id, 0, 0);
+    PRINT.set(key, c);
+    return c;
+  }
+  const printAlpha = (q) => { const life = TRACK[q.kind].life, age = G.wall - q.born; return q.str * (1 - sstep(life * 0.55, life, age)); };
+  function walk(a, fx, fy, paw, air, list) {
+    if (air) { a._tx = undefined; return; }
+    let pd = null;
+    for (const p of list) if (inside(p, fx, fy, 0)) { pd = p; break; }
+    if (pd) { // standing in it: the feet soak it up, no prints inside the puddle
+      const T = TRACK[pd.kind];
+      a._wet = T ? { kind: pd.kind, n: T.n, max: T.n } : null;
+      a._tx = fx; a._ty = fy; a._ta = 0;
+      return;
+    }
+    if (!a._wet) return;
+    if (a._tx === undefined) { a._tx = fx; a._ty = fy; a._ta = 0; return; }
+    const dx = fx - a._tx, dy = fy - a._ty, d = Math.hypot(dx, dy);
+    a._tx = fx; a._ty = fy;
+    if (d > 40) return; // a teleport: no trail across the gap
+    if (d < 0.01) return;
+    const ux = dx / d, uy = dy / d, stride = paw ? 6 : 8, dir = (((Math.round(((Math.atan2(dy, dx) + Math.PI / 2) / U.TAU) * 16)) % 16) + 16) % 16;
+    let acc = a._ta + d;
+    while (acc >= stride && a._wet) {
+      const back = acc - stride, w = a._wet, side = (a._side = !a._side) ? 1 : 0, off = side ? 1.6 : -1.6;
+      if (A.prints.length >= MAXP) A.prints.shift();
+      A.prints.push({ x: fx - ux * back - uy * off, y: fy - uy * back + ux * off * 0.7, d: dir, s: side, kind: w.kind, str: Math.pow(w.n / w.max, 0.6), born: G.wall, paw });
+      if (--w.n <= 0) a._wet = null;
+      acc -= stride;
+    }
+    a._ta = acc;
+  }
+  function tracks(dt) {
+    if ((A.pclean = (A.pclean || 0) - dt) <= 0) { A.pclean = 2; A.prints = A.prints.filter((q) => G.wall - q.born < TRACK[q.kind].life); }
+    const list = A.puddles();
+    if (!list.length) return;
+    for (const p of G.players) if (!p.dead) walk(p, p.x, p.y + 12, false, p.z > 4, list);
+    if (CH.SK) for (const s of CH.SK.list) if (s.state !== 'down') walk(s, s.x, s.y + 8, false, false, list);
+    for (const e of G.enemies) {
+      if (e.dead || e.isSpawner || e.state === 'spawn') continue;
+      walk(e, e.x, e.y + Math.min(14, ((e.look && e.look.foot) || 6) * (e.scale || 1)), true, !!(e.look && e.look.fly), list);
+    }
+  }
   G.on('kill', function (e) {
     if (!e.training && !e.isSpawner) A.addBlood(e.x, e.y + 4, e.isBoss ? 18 : e.r || 6);
   });
@@ -196,55 +360,54 @@
     mx.clip();
     for (const p of list) {
       const x = p.x - cam.x, y = p.y - cam.y;
-      if (x < -p.rx - 4 || x > W + p.rx + 4 || y < -p.ry - 4 || y > H + p.ry + 4) continue;
-      const k = KINDS[p.kind] || 0;
-      // red channel: kind, green: heat haze, alpha: coverage with a soft rim
-      const g = mx.createRadialGradient(x, y, Math.min(p.rx, p.ry) * 0.35, x, y, Math.max(p.rx, p.ry));
-      const col = 'rgba(' + (k * 60 + 20) + ',' + (p.kind === 'lava' ? 255 : 0) + ',0,';
-      g.addColorStop(0, col + '1)');
-      g.addColorStop(0.75, col + '0.9)');
-      g.addColorStop(1, col + '0)');
-      mx.fillStyle = g;
-      mx.save();
-      mx.translate(x, y);
-      mx.scale(1, p.ry / p.rx);
-      mx.translate(-x, -y);
-      mx.beginPath();
-      mx.arc(x, y, p.rx, 0, U.TAU);
-      mx.fill();
-      mx.restore();
+      if (x < -p.rx * 1.5 || x > W + p.rx * 1.5 || y < -p.ry * 1.5 || y > H + p.ry * 1.5) continue;
+      drawPuddle(mx, p, x, y, 'mask');
       A.maskUsed = true;
     }
+    // fresh blood prints are still wet: a little shine for their first seconds
+    for (const q of A.prints) {
+      if (q.kind !== 'blood' || G.wall - q.born > 8) continue;
+      const x = Math.round(q.x - cam.x), y = Math.round(q.y - cam.y);
+      if (x < -6 || x > W + 6 || y < -6 || y > H + 6) continue;
+      mx.globalAlpha = q.str * 0.8 * (1 - (G.wall - q.born) / 8);
+      mx.drawImage(printArt('mask', q.d, q.s, q.paw), x - 4, y - 4);
+    }
+    mx.globalAlpha = 1;
     mx.restore();
   });
   /* the ground layer of puddles, drawn right after the floor so entities stand on top; the shader adds the shimmer */
-  const GROUND = { water: ['rgba(20,40,70,0.55)', 'rgba(140,190,230,0.35)'], blood: ['rgba(90,0,12,0.78)', 'rgba(150,20,30,0.5)'], toxic: ['rgba(30,90,30,0.7)', 'rgba(150,255,90,0.45)'], lava: ['rgba(120,30,0,0.95)', 'rgba(255,170,40,0.8)'] };
-  /* a copy of the frame right after the floor: the shader compares against it so that puddle shimmer only touches the
-     floor, never the hero or the monsters standing in the puddle */
-  const floorCv = document.createElement('canvas');
-  floorCv.width = W;
-  floorCv.height = H;
-  const fctx = floorCv.getContext('2d');
-  A.floor = floorCv;
+  /* two copies of each view, taken by js/render.js: the floor (after animated tiles and the rain sheen) and the same
+     frame once the characters are on it, before the full-screen tints, rays and vignette. Where they differ something
+     stands there, so puddles never shimmer over heroes, monsters or shadows; comparing against the final frame
+     instead made every overlay count as a character and switched the puddles off. */
+  const snapCv = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+  A.floor = snapCv();
+  A.actors = snapCv();
+  A.snap = function (which, ctx, v) {
+    if (!CH.PostFX || !CH.PostFX.on || !(A.puddles().length || A.prints.length)) return;
+    const c = (which === 'floor' ? A.floor : A.actors).getContext('2d'), x = Math.max(0, Math.round(v.x)), w = Math.min(W - x, Math.round(v.w));
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(x, 0, w, H);
+    c.drawImage(ctx.canvas, x, 0, w, H, x, 0, w, H);
+  };
   const origBg = CH.Arenas.drawBg;
   CH.Arenas.drawBg = function (ctx, arena, cam) {
     origBg(ctx, arena, cam);
     const list = A.puddles();
     for (const p of list) {
-      const x = Math.round(p.x - cam.x), y = Math.round(p.y - cam.y);
-      if (x < -p.rx - 4 || x > W + p.rx + 4 || y < -p.ry - 4 || y > H + p.ry + 4) continue;
-      const c = GROUND[p.kind] || GROUND.water;
-      ctx.fillStyle = c[0];
-      ctx.beginPath();
-      ctx.ellipse(x, y, p.rx, p.ry, 0, 0, U.TAU);
-      ctx.fill();
-      ctx.fillStyle = c[1];
-      const wob = p.kind === 'lava' ? Math.sin(A.k * 2 + p.x) * 2 : 0;
-      ctx.beginPath();
-      ctx.ellipse(x - p.rx * 0.18, y - p.ry * 0.2, p.rx * (0.55 + wob * 0.02), p.ry * 0.45, 0, 0, U.TAU);
-      ctx.fill();
+      const x = p.x - cam.x, y = p.y - cam.y;
+      if (x < -p.rx * 1.5 || x > W + p.rx * 1.5 || y < -p.ry * 1.5 || y > H + p.ry * 1.5) continue;
+      drawPuddle(ctx, p, x, y, 'ground');
     }
-    if (list.length && CH.PostFX && CH.PostFX.on) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.drawImage(G.canvas, 0, 0); }
+    for (const q of A.prints) {
+      const x = Math.round(q.x - cam.x), y = Math.round(q.y - cam.y);
+      if (x < -6 || x > W + 6 || y < -6 || y > H + 6) continue;
+      const a = printAlpha(q);
+      if (a <= 0.02) continue;
+      ctx.globalAlpha = a;
+      ctx.drawImage(printArt(q.kind === 'blood' && G.wall - q.born > 20 ? 'dried' : q.kind, q.d, q.s, q.paw), x - 4, y - 4);
+    }
+    ctx.globalAlpha = 1;
   };
   wrap(G, 'render', function (orig) {
     A.beginFrame();
@@ -326,5 +489,5 @@
     if (!(G.level && G.level.isTown)) A.forStage(biome, n, U.seeded(((G.runSeed || 0) + n * 131) >>> 0));
     return r;
   });
-  wrap(G, 'newRun', function (orig, c) { A.dyn.length = 0; A.strikes.length = 0; A.flash = 0; return orig.call(G, c); });
+  wrap(G, 'newRun', function (orig, c) { A.dyn.length = 0; A.prints.length = 0; A.strikes.length = 0; A.flash = 0; return orig.call(G, c); });
 })(window.CH);

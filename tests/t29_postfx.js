@@ -36,13 +36,50 @@ const { open } = require('./lib');
     const n0 = A.dyn.length; const e = G.spawnEnemy('orc', p.x + 80, p.y, { spawnTime: 0 }); step(20); e.hp = 1; G.damageEnemy(e, 99, { src: 'player', shooter: p }); r.blood = A.dyn.length > n0;
     const L = G.level; L.puddles.push({ x: p.x, y: p.y + 8, rx: 40, ry: 24, kind: 'lava' }); const h1 = p.hp; step(40); r.lava = p.hp < h1;
     L.puddles.pop();
+    // tracks: walking out of blood leaves 18 prints, each fainter than the last and none inside the puddle; monsters
+    // print paws, flyers nothing; water prints evaporate
+    const rm = L.rooms.slice().sort((a, b) => b.w * b.h - a.w * a.h)[0], c0 = L.nearestOpen(rm.cx - 90, rm.cy);
+    for (const e2 of G.enemies) e2.dead = true;
+    G.enemies.length = 0; A.prints.length = 0; A.dyn.length = 0; A.setMode('clear'); A.clock = 0.3; A.dark = 0;
+    p.x = c0.x; p.y = c0.y;
+    const bp = { x: p.x, y: p.y + 12, rx: 20, ry: 12, kind: 'blood' };
+    L.puddles.push(bp);
+    step(2);
+    for (let i = 0; i < 120; i++) { p.x += 1.5; CH.stepFrame(1 / 60); }
+    // the hero's prints (a monster elsewhere on the map may print too)
+    const pr = A.prints.filter((q) => !q.paw), inPud = (q) => ((q.x - bp.x) / bp.rx) ** 2 + ((q.y - bp.y) / bp.ry) ** 2 < 1;
+    r.tracks = { n: pr.length, blood: pr.every((q) => q.kind === 'blood'), fading: pr.every((q, i) => i === 0 || q.str <= pr[i - 1].str), outside: !pr.some(inPud) };
+    const mob = (type, dx) => { const e2 = G.spawnEnemy(type, bp.x + dx, bp.y - 4, { spawnTime: 0 }); e2.state = 'idle'; e2.update = function () {}; return e2; };
+    const orc = mob('orc', 0), bird = mob('pigeon', 4);
+    CH.stepFrame(1 / 60);
+    A.prints.length = 0;
+    for (let i = 0; i < 60; i++) { orc.x -= 1.5; bird.x -= 1.5; CH.stepFrame(1 / 60); }
+    r.paws = A.prints.length > 3 && A.prints.every((q) => q.paw) && !!(bird.look && bird.look.fly);
+    A.prints.push({ x: p.x, y: p.y, d: 0, s: 0, kind: 'water', str: 1, born: G.wall - 9, paw: false });
+    A.pclean = 0; CH.stepFrame(1 / 60);
+    r.evaporate = !A.prints.some((q) => q.kind === 'water');
+    orc.dead = bird.dead = true; G.enemies.length = 0;
+    L.puddles.pop();
+    // the shader still shades a puddle under the rain's tint and the screen vignette (they once switched it off):
+    // water lifts the blue channel more than the rain's grade does on the grass beside it (skipped, they were equal)
+    A.setMode('rain');
+    const wp = { x: p.x - 70, y: p.y - 50, rx: 26, ry: 16, kind: 'water' };
+    L.puddles.push(wp);
+    step(4);
+    const read = (src, x, y) => { const t = document.createElement('canvas'); t.width = t.height = 1; const k = t.getContext('2d', { willReadFrequently: true }); k.drawImage(src, x, y, 1, 1, 0, 0, 1, 1); return k.getImageData(0, 0, 1, 1).data; };
+    const fxc = document.getElementById('fx'), sx = Math.round(wp.x - G.cam.x), sy = Math.round(wp.y - G.cam.y);
+    const lift = (x, y) => read(fxc, x, y)[2] - read(G.canvas, x, y)[2];
+    r.rainShade = { puddle: lift(sx, sy), grass: lift(sx, sy + 40) };
+    L.puddles.pop(); A.setMode('clear');
     // effects off falls back to the plain frame
     S.settings.fx = 'off'; P.apply(); r.off = !P.on && document.getElementById('game').style.visibility === '';
     S.settings.fx = 'high'; P.apply(); step(2); r.back = P.on;
     return r;
   });
   console.log(JSON.stringify(out));
-  const ok = out.supported && out.on && out.canvas && out.lights && out.puddles && Object.values(out.weather).every(Boolean) && out.night && out.nightDmg && out.widgetNight && out.blizzard && out.strike && out.widgetFlash && out.blood && out.lava && out.off && out.back;
+  const ok = out.supported && out.on && out.canvas && out.lights && out.puddles && Object.values(out.weather).every(Boolean) && out.night && out.nightDmg && out.widgetNight && out.blizzard && out.strike && out.widgetFlash && out.blood && out.lava && out.off && out.back
+    && out.tracks.n === 18 && out.tracks.blood && out.tracks.fading && out.tracks.outside && out.paws && out.evaporate
+    && out.rainShade.puddle - out.rainShade.grass > 10;
   console.log('errors', errs);
   console.log(ok && !errs.length ? 'ALL PASSED' : 'FAILED');
   await browser.close();

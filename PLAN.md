@@ -424,7 +424,7 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 | M6 PostFX | done | `atmos.js` (clock, weather, strikes, lights, puddles, Day & Night widget) + `postfx.js` (WebGL2 pass, Settings > Video) |
 | M7 levels | done | `level.js`, `levelgen.js`: tile grid, walls, flow field, fog, chunked floor, minimap, secrets |
 | M8 hives | done (first pass) | `spawners.js`, `run.js`: hives with 3 levels, packs, shrines, chests, waypoints, exit |
-| M9 puddles | done | water / blood / toxic / lava, blood pools grow from kills, lava and goo hurt |
+| M9 puddles | done | water / blood / toxic / lava, blood pools grow from kills, lava and goo hurt; footprints and the shader rework in §17 |
 | M10 Diablo layer | done | `items.js`, `quests.js`, `dialogue.js`, `town.js`: gear, bag, belt, town, portal quill, waypoints, quests, tiers |
 | M11 secret sidekicks + map | done | unlock conditions in `quests.js`, `mapscroll.js` (automap + act map), `menus.js` (pause row, hero select book) |
 | M12 balance, perf, README | done (first pass) | `tests/batch_levels.js` + `navbot.js`; `tests/perf_levels.js`: about 3 ms per frame with 4 players, 4 sidekicks, 98 enemies |
@@ -521,3 +521,13 @@ Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), colli
 | 2c. More events | todo | `newRun` (12 wrappers) and `startWave` (6) mix before / after / skip-the-original: needs before and after events with the order kept; `Player.update` (9), `damageEnemy` (7), `hurtPlayer` (5) change arguments or results |
 | 3. One movement / collision function | todo | |
 | 4. Shared actor base | todo | |
+
+## 17. Puddles and tracks (2026-10-23)
+
+| Step | State | Notes |
+| --- | --- | --- |
+| Puddle art | done | `js/atmos.js`: every puddle has its own wobbly outline (`seed`) and two cached pixel images, the ground layer and its patch of the shader mask (R kind, G distance down from the far edge or lava heat, B depth, A coverage x gloss). Water darkens the ground round its rim and catches light on the far rim; blood has spatter, a thick dark middle and a gloss, spreads as it lands and dries matte brown over a minute; goo eats the ground; lava has crust plates. Kill blood is rebuilt every 2 px of growth |
+| Shader | done | `js/postfx.js`: a moving surface (two drifting ripple octaves, raindrop rings), the bed refracted through it, what stands behind a puddle mirrored about its far edge (the biome's sky or ceiling, `GRADE.sky`, where nothing does), a soft sun sheen and twinkling pixel sparkles; blood slow, thick and glossy; at night every light behind a puddle shows as a long streak in it; lava and goo glow after the light map instead of being darkened by it |
+| The overlay bug | done | The shader told floor from characters by comparing the *final* frame with a floor copy, so the rain tint, god rays, wind tint and the screen vignette counted as characters and switched most puddle pixels off. `js/render.js` now has `Atmos.snap` take the floor (after animated tiles and the rain sheen) and the characters (before the full-screen overlays), per view |
+| Tracks | done | Feet that leave blood, water or goo print it: 18 blood prints, 9 water (evaporate in 8 s), 12 goo; each print fainter than the last; shoes for heroes and sidekicks, paws for monsters, nothing for flyers or a hero in the air; fresh blood prints shine for 8 s and turn brown after 20. No randomness, so replays don't change |
+| Tests | done | `t29_postfx`: 18 fading blood prints, none inside the puddle; monster paws, no flyer prints; water prints evaporate; the shader still shades a puddle under rain and the vignette |
