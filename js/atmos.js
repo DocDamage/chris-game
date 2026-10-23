@@ -144,7 +144,8 @@
         if (p.kind === 'lava') G.hurtPlayer(G.edmg(6), { x: p.x, y: p.y, fx: 'fire' }, { p: pl });
         else { G.hurtPlayer(G.edmg(2), { x: p.x, y: p.y, fx: 'toxic' }, { p: pl, slow: { t: 1.2, mul: 0.8 } }); }
       }
-      for (const e of G.enemies) if (!e.dead && !e.isBoss && !e.isSpawner && inside(p, e.x, e.y + 6, e.r)) X.hitEnemy(e, p.kind === 'lava' ? 9 : 3, G.player, p.kind === 'lava' ? 'fire' : 'toxic');
+      // a camp's loiterers live with its puddles: a hit would count as the hero's and wake the camp (js/setpieces.js)
+      for (const e of G.enemies) if (!e.dead && !e.isBoss && !e.isSpawner && !e.loiter && inside(p, e.x, e.y + 6, e.r)) X.hitEnemy(e, p.kind === 'lava' ? 9 : 3, G.player, p.kind === 'lava' ? 'fire' : 'toxic');
     }
   }
 

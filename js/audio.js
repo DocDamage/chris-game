@@ -23,6 +23,17 @@
 
   let noiseBuf = null;
 
+  // Sound gets its own random numbers so the game's Math.random sequence doesn't depend on which samples have
+  // decoded yet (or whether audio is on at all): a seeded run then replays the same whatever the sound does.
+  let rndState = (Date.now() ^ 0x9e3779b9) >>> 0;
+  function rnd() {
+    rndState = (rndState + 0x6d2b79f5) >>> 0;
+    let t = rndState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
   A.bank = {}; // sound name -> [AudioBuffer, ...] decoded from the bundled samples
   A.loopBank = {}; // ambience name -> AudioBuffer
   A.bankReady = false;
@@ -92,7 +103,7 @@
         const len = A.ctx.sampleRate;
         noiseBuf = A.ctx.createBuffer(1, len, A.ctx.sampleRate);
         const d = noiseBuf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        for (let i = 0; i < len; i++) d[i] = rnd() * 2 - 1;
         A.applySettings();
         if (A.ctx.state === 'suspended') A.ctx.resume();
         decodeBank();
@@ -174,7 +185,7 @@
     src.connect(f);
     f.connect(g);
     g.connect(o.bus || A.sfxBus);
-    src.start(t0, Math.random() * 0.5);
+    src.start(t0, rnd() * 0.5);
     src.stop(t0 + dur + 0.03);
     A.voices++;
     src.onended = () => {
@@ -196,13 +207,13 @@
     back: () => tone({ f: 500, f2: 280, dur: 0.08, vol: 0.12 }),
     shoot_junk: () => {
       noise({ dur: 0.05, f: 3000, filter: 'highpass', vol: 0.08 });
-      tone({ f: 340 + Math.random() * 80, f2: 120, dur: 0.09, vol: 0.12 });
+      tone({ f: 340 + rnd() * 80, f2: 120, dur: 0.09, vol: 0.12 });
     },
     shoot_chicken: () => {
       tone({ f: 650, f2: 1700, dur: 0.07, type: 'sawtooth', vol: 0.1 });
       tone({ f: 1700, f2: 800, dur: 0.1, type: 'sawtooth', vol: 0.1, delay: 0.07 });
     },
-    squeak: () => tone({ f: 900 + Math.random() * 500, f2: 1900, dur: 0.08, type: 'sawtooth', vol: 0.09 }),
+    squeak: () => tone({ f: 900 + rnd() * 500, f2: 1900, dur: 0.08, type: 'sawtooth', vol: 0.09 }),
     shoot_pizza: () => {
       tone({ f: 180, f2: 420, dur: 0.14, type: 'triangle', vol: 0.2 });
       noise({ dur: 0.1, f: 800, vol: 0.08 });
@@ -217,7 +228,7 @@
       noise({ dur: 0.15, f: 600, vol: 0.12 });
     },
     shoot_problem: () => {
-      const b = 330 + Math.floor(Math.random() * 6) * 90;
+      const b = 330 + Math.floor(rnd() * 6) * 90;
       tone({ f: b, f2: b * 1.5, dur: 0.05, vol: 0.13 });
       tone({ f: b * 2, f2: b * 1.2, dur: 0.07, vol: 0.1, delay: 0.05 });
     },
@@ -242,7 +253,7 @@
       tone({ f: 988, dur: 0.05, vol: 0.1 });
       tone({ f: 1319, dur: 0.1, vol: 0.1, delay: 0.05 });
     },
-    pickup_xp: () => tone({ f: 640 + Math.random() * 160, f2: 1100, type: 'triangle', dur: 0.07, vol: 0.09 }),
+    pickup_xp: () => tone({ f: 640 + rnd() * 160, f2: 1100, type: 'triangle', dur: 0.07, vol: 0.09 }),
     pickup_hp: () => arp([523, 659, 784], 0.06, 'sine', 0.18),
     pickup_power: () => {
       tone({ f: 300, f2: 1300, dur: 0.28, type: 'sawtooth', vol: 0.12 });
@@ -317,11 +328,11 @@
     if (!ctx) return false;
     if (ctx.state === 'suspended') ctx.resume();
     const src = ctx.createBufferSource();
-    let vi = Math.floor(Math.random() * list.length);
-    if (list.length > 1 && vi === A.lastVariant[name]) vi = (vi + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
+    let vi = Math.floor(rnd() * list.length);
+    if (list.length > 1 && vi === A.lastVariant[name]) vi = (vi + 1 + Math.floor(rnd() * (list.length - 1))) % list.length;
     A.lastVariant[name] = vi;
     src.buffer = list[vi];
-    src.playbackRate.value = 0.94 + Math.random() * 0.12;
+    src.playbackRate.value = 0.94 + rnd() * 0.12;
     const g = ctx.createGain();
     g.gain.value = TRIM[name] === undefined ? 0.85 : TRIM[name];
     src.connect(g);

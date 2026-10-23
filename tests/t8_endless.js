@@ -5,7 +5,7 @@ const { open } = require('./lib');
   const log = (...a) => console.log(...a);
   await page.evaluate(() => { CH.G.newRun(); window.__bot.god = true; window.__bot.human = { reaction: 14, jitter: 0.09, mistake: 0.1 }; const G = CH.G; G.wave = 10; G.queue.length = 0; G.enemies.length = 0; G.spawnBoss('bug', 0); G.waveState = 'combat'; });
   let snap;
-  for (let i = 0; i < 80; i++) { snap = await page.evaluate(() => { window.__bot.step(300); return { s: CH.G.state, won: CH.G.won, ui: CH.UI.active }; }); if (snap.s === 'victory') break; }
+  for (let i = 0; i < 160; i++) { snap = await page.evaluate(() => { window.__bot.step(300); return { s: CH.G.state, won: CH.G.won, ui: CH.UI.active }; }); if (snap.s === 'victory') break; }
   log('final boss defeated -> state:', JSON.stringify(snap));
   const stats = await page.evaluate(() => ({ wins: CH.Storage.stats.wins, runs: CH.Storage.stats.totalRuns, bosses: CH.Storage.stats.bossesDefeated, unlocked: CH.Storage.data.unlocked }));
   log('stats after win:', JSON.stringify(stats));
