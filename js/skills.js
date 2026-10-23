@@ -162,12 +162,12 @@
     if (r('legend')) { s.dmgMult *= 1.15; s.critChance += 0.1; s.maxHp += 30; }
   });
   /* Vigil: a slow regeneration */
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    if (this.stats && this.stats.vigil && !this.dead) {
-      this.vigilT = (this.vigilT || 0) + dt;
-      if (this.vigilT >= 2) { this.vigilT = 0; this.hp = Math.min(this.maxHp, this.hp + this.stats.vigil); }
+  G.on('playerUpdate:before', function (ev) {
+    const p = ev.p;
+    if (p.stats && p.stats.vigil && !p.dead) {
+      p.vigilT = (p.vigilT || 0) + ev.dt;
+      if (p.vigilT >= 2) { p.vigilT = 0; p.hp = Math.min(p.maxHp, p.hp + p.stats.vigil); }
     }
-    return orig.call(this, g, dt);
   });
 
   /* ------------------------------------------------------------------ levelling: points instead of cards */

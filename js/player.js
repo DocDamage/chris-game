@@ -31,6 +31,8 @@
     return false;
   }
 
+  const updateCore = (ev) => ev.p.coreUpdate(ev.g, ev.dt);
+
   class Player {
     constructor(g, idx, heroId, src) {
       this.g = g;
@@ -121,7 +123,13 @@
       return P.speed * (this.stats && this.stats.speedMult ? this.stats.speedMult : 1);
     }
 
+    /* the frame's update goes through the 'playerUpdate' events (G.call in js/game.js): status effects, attacks,
+       crawling and regeneration step in before and after the core below */
     update(g, dt) {
+      return CH.G.call('playerUpdate', { p: this, g, dt }, updateCore);
+    }
+
+    coreUpdate(g, dt) {
       if (this.dead) {
         this.deathT += dt;
         this.vx = this.vy = 0;

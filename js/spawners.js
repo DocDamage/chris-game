@@ -12,7 +12,6 @@
   const X = CH.X;
   const E = CH.Enemies;
   const Audio = CH.Audio;
-  const wrap = X.wrap;
 
   const Sp = (CH.Spawners = { list: [] });
 

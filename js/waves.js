@@ -564,8 +564,8 @@
     e.partsBroken = (e.partsBroken || 0) + 1;
     G.runStat && G.runStat('bossParts', 1);
   };
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    const r = orig.call(G, e, dmg, o);
+  G.on('damageEnemy', function (ev) {
+    const e = ev.e;
     if (e.isBoss && e.partsLeft > 0 && !e.dead) {
       const frac = e.hp / e.maxHp;
       if (e.parts && e.parts[0] && !e.parts[0].dead && frac <= 0.5) breakPart(e, 0);
@@ -576,7 +576,6 @@
         G.banner('THE BOSS SPLITS!', '', 1.2);
       }
     }
-    return r;
   });
   wrap(G, 'updateWave', function (orig, dt) {
     for (const b of G.enemies) {

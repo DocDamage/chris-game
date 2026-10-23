@@ -159,9 +159,9 @@
 
   /* ---------- status effects on the player ---------- */
   const isWeb = (src) => src && src.sprite === 'vfx.p5.23';
-  wrap(G, 'hurtPlayer', function (orig, dmg, src, o) {
-    const p = (o && o.p) || G.player;
-    const r = orig.call(G, dmg, src, o);
+  G.on('hurtPlayer', function (ev) {
+    const src = ev.src, r = ev.result;
+    const p = (ev.o && ev.o.p) || G.player;
     if (r > 0 && p && !p.dead) {
       if (isWeb(src)) {
         p.rootT = 1.0;
@@ -177,7 +177,6 @@
         FX.text(p.x, p.y - 26, 'FROZEN SLOW', '#8be9ff', 1);
       }
     }
-    return r;
   });
   wrap(G, 'healPlayer', function (orig, raw, p) {
     p = p || G.player;
@@ -201,25 +200,29 @@
     if (pk && pk.type === 'hp' && p && (p.poisonT > 0 || p.rootT > 0 || p.slowT > 0)) X.cleanse(p);
     return orig.call(G, pk, who);
   });
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    const x0 = this.x, y0 = this.y;
-    orig.call(this, g, dt);
-    if (this.poisonT > 0) this.poisonT -= dt;
-    if (this.rootT > 0) {
-      this.rootT -= dt;
-      if (this.rolling) this.rootT = 0;
+  /* a rooted hero stays where the frame started */
+  G.on('playerUpdate:before', function (ev) {
+    ev.x0 = ev.p.x;
+    ev.y0 = ev.p.y;
+  });
+  G.on('playerUpdate', function (ev) {
+    const p = ev.p, dt = ev.dt;
+    if (p.poisonT > 0) p.poisonT -= dt;
+    if (p.rootT > 0) {
+      p.rootT -= dt;
+      if (p.rolling) p.rootT = 0;
       else {
-        this.x = x0;
-        this.y = y0;
-        this.kx = 0;
-        this.ky = 0;
+        p.x = ev.x0;
+        p.y = ev.y0;
+        p.kx = 0;
+        p.ky = 0;
       }
     }
-    if (this.arT > 0) {
-      this.arT -= dt;
-      if (this.arT <= 0) Up.recalc(this);
+    if (p.arT > 0) {
+      p.arT -= dt;
+      if (p.arT <= 0) Up.recalc(p);
     }
-    if (!this.rolling) this._pd = false;
+    if (!p.rolling) p._pd = false;
   });
 
   /* ---------- environmental kills ---------- */
@@ -230,9 +233,8 @@
     if (prop && !wasDead && prop.dead && (prop.kind === 'barrel' || prop.kind === 'car')) X.envUntil = G.time + 0.35;
     return r;
   });
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    if (!e.dead) e._env = !(o && (o.shooter || o.src === 'player'));
-    return orig.call(G, e, dmg, o);
+  G.on('damageEnemy:before', function (ev) {
+    if (!ev.e.dead) ev.e._env = !(ev.o && (ev.o.shooter || ev.o.src === 'player'));
   });
   X.envKills = 0;
   G.on('kill', function (e) {

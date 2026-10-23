@@ -282,16 +282,22 @@
 
   /* per frame: advance the attack, land its hits, slow the hero while swinging */
   const SLOW = { melee: [0.32, 0.65], pulse: [0.4, 0.7], bow: [0.55, 0.75], gun: [0.8, 0.9] };
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    const p = this;
+  /* a swing slows the hero for the core update of the frame (ev.atk, ev.sm), then plays on */
+  G.on('playerUpdate:before', function (ev) {
+    const p = ev.p, g = ev.g, dt = ev.dt;
     const A = p.atk;
     if (p.quick) { p.quick.t += dt; if (p.quick.t >= p.quick.dur) p.quick = null; }
-    if (!A || p.dead) return orig.call(this, g, dt);
-    if (p.rolling || p.cast) { p.atk = null; p.atkEnd = g.time; return orig.call(this, g, dt); }
-    const sm = p.stats.speedMult;
+    if (!A || p.dead) return;
+    if (p.rolling || p.cast) { p.atk = null; p.atkEnd = g.time; return; }
+    ev.atk = A;
+    ev.sm = p.stats.speedMult;
     const sl = SLOW[A.d.kind] || [1, 1];
-    p.stats.speedMult = sm * (A.done < A.hits.length ? sl[0] : sl[1]);
-    try { orig.call(this, g, dt); } finally { p.stats.speedMult = sm; }
+    p.stats.speedMult = ev.sm * (A.done < A.hits.length ? sl[0] : sl[1]);
+  });
+  G.on('playerUpdate', function (ev) {
+    const p = ev.p, g = ev.g, dt = ev.dt, A = ev.atk;
+    if (!A) return;
+    p.stats.speedMult = ev.sm;
     if (p.atk !== A) return;
     A.t += dt;
     while (A.done < A.hits.length && A.t >= A.hits[A.done] * A.dur) {

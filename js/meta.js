@@ -138,12 +138,12 @@
     const r = orig.call(this, g);
     return r;
   });
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    if (this.deadeyeT > 0) {
-      this.deadeyeT -= dt;
-      if (this.deadeyeT <= 0) Up.recalc(this);
+  G.on('playerUpdate:before', function (ev) {
+    const p = ev.p;
+    if (p.deadeyeT > 0) {
+      p.deadeyeT -= ev.dt;
+      if (p.deadeyeT <= 0) Up.recalc(p);
     }
-    return orig.call(this, g, dt);
   });
 
   /* ------------------------------------------------------------------ run stats */
@@ -170,8 +170,8 @@
     return orig.call(X);
   });
 
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    const r = orig.call(G, e, dmg, o);
+  G.on('damageEnemy', function (ev) {
+    const e = ev.e, o = ev.o, r = ev.result;
     if (r > 0) {
       const sh = o && o.shooter;
       const label = sh && sh.weapon ? sh.weapon : 'other';
@@ -185,7 +185,6 @@
       }
       if (e.training) M.train.dealt += r;
     }
-    return r;
   });
   G.on('kill', function (e) {
     if (e.training) return;
@@ -743,9 +742,8 @@
     if (X.run.mode === 'training') return;
     return orig.call(G);
   });
-  wrap(G, 'hurtPlayer', function (orig, dmg, src, o) {
-    if (X.run.mode === 'training') return 0;
-    return orig.call(G, dmg, src, o);
+  G.on('hurtPlayer:before', function (ev) {
+    if (X.run.mode === 'training') { ev.stop = true; ev.result = 0; } // nothing hurts in training
   });
 
   const ghostKey = () => (X.run.daily ? 'daily' : X.run.mode || 'classic') + '|' + (G.coop ? 'co' : 'solo');

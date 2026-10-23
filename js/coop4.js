@@ -8,7 +8,6 @@
   const U = CH.U;
   const G = CH.G;
   const X = CH.X;
-  const wrap = X.wrap;
 
   const BASE = Object.assign({}, B.coop);
   X.applyCoopScale = (n) => {
@@ -30,23 +29,23 @@
   /* ---- crawling ---- */
   const CRAWL_SPEED = 26;
   X.crawl = (p) => G.coop && p.dead && !G.allDead() && G.state === 'playing';
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    orig.call(this, g, dt);
-    if (!X.crawl(this)) {
-      this.crawling = false;
+  G.on('playerUpdate', function (ev) {
+    const p = ev.p, g = ev.g, dt = ev.dt;
+    if (!X.crawl(p)) {
+      p.crawling = false;
       return;
     }
-    const inp = this.inp;
-    this.updateAim(g, dt);
-    this.crawling = inp.mx !== 0 || inp.my !== 0;
-    const m = B.arena.margin + this.r;
-    this.x = U.clamp(this.x + inp.mx * CRAWL_SPEED * dt, m, g.arena.w - m);
-    this.y = U.clamp(this.y + inp.my * CRAWL_SPEED * dt, m, g.arena.h - m);
-    this.face = Math.cos(this.aim) >= 0 ? 1 : -1;
-    this._crawlT = (this._crawlT || 0) - dt;
-    if ((inp.fire1 || inp.fire2) && this._crawlT <= 0) {
-      this._crawlT = 0.85;
-      g.spawnProjectile({ owner: 'p', shooter: this, kind: 'junk', x: this.x, y: this.y - 4, ang: this.aim, speed: 210, r: 2.5, dmg: 4 * ((this.stats && this.stats.dmgMult) || 1), life: 0.6, sprite: 'junk' + U.randInt(0, 5), spin: 10, knock: 30, trail: 'junk' });
+    const inp = p.inp;
+    p.updateAim(g, dt);
+    p.crawling = inp.mx !== 0 || inp.my !== 0;
+    const m = B.arena.margin + p.r;
+    p.x = U.clamp(p.x + inp.mx * CRAWL_SPEED * dt, m, g.arena.w - m);
+    p.y = U.clamp(p.y + inp.my * CRAWL_SPEED * dt, m, g.arena.h - m);
+    p.face = Math.cos(p.aim) >= 0 ? 1 : -1;
+    p._crawlT = (p._crawlT || 0) - dt;
+    if ((inp.fire1 || inp.fire2) && p._crawlT <= 0) {
+      p._crawlT = 0.85;
+      g.spawnProjectile({ owner: 'p', shooter: p, kind: 'junk', x: p.x, y: p.y - 4, ang: p.aim, speed: 210, r: 2.5, dmg: 4 * ((p.stats && p.stats.dmgMult) || 1), life: 0.6, sprite: 'junk' + U.randInt(0, 5), spin: 10, knock: 30, trail: 'junk' });
       CH.Audio.sfx('shoot_junk');
     }
   });

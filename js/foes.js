@@ -242,19 +242,21 @@
     return e;
   });
   /* shields soak damage first */
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
+  /* a shield takes its share of the hit first; a hit it swallows whole never reaches the core */
+  G.on('damageEnemy:before', function (ev) {
+    const e = ev.e;
     if (e.shieldHp > 0 && !e.dead && e.state !== 'spawn') {
-      const a = Math.min(e.shieldHp, dmg);
+      const a = Math.min(e.shieldHp, ev.dmg);
       e.shieldHp -= a;
-      dmg -= a;
+      ev.dmg -= a;
       FX.burst(e.x, e.y - 4, { n: 3, colors: ['#3ccbe6', '#ffffff'], speed: 60, life: 0.25 });
       if (e.shieldHp <= 0) FX.text(e.x, e.y - 18, 'SHIELD BROKEN', '#3ccbe6', 1);
-      if (dmg <= 0) {
+      if (ev.dmg <= 0) {
         e.flash = 1;
-        return 0;
+        ev.stop = true;
+        ev.result = 0;
       }
     }
-    return orig.call(G, e, dmg, o);
   });
   X.chain('onHurt', (p, dmg, src) => {
     F.dir.lastHurt = G.time;
@@ -265,10 +267,9 @@
     if (p && p.hp / p.maxHp < 0.25) F.dir.ease = 12;
   });
   /* enemy damage on an audited player is 25% higher */
-  wrap(G, 'hurtPlayer', function (orig, dmg, src, o) {
-    const p = (o && o.p) || G.player;
-    if (p && p.auditT > 0) dmg *= 1.25;
-    return orig.call(G, dmg, src, o);
+  G.on('hurtPlayer:before', function (ev) {
+    const p = (ev.o && ev.o.p) || G.player;
+    if (p && p.auditT > 0) ev.dmg *= 1.25;
   });
 
   G.on('kill', function (e) {

@@ -12,7 +12,6 @@
   const Up = CH.Upgrades;
   const Audio = CH.Audio;
   const Storage = CH.Storage;
-  const wrap = X.wrap;
 
   const Items = (CH.Items = { ground: [] });
   const SLOTS = (Items.SLOTS = ['helm', 'chest', 'legs', 'boots', 'ring', 'gloves']);
@@ -194,20 +193,19 @@
     s.regen = s.regen || 0;
   });
   /* regeneration affixes tick here */
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    const r = orig.call(this, g, dt);
-    if (!this.dead && this.stats && this.stats.regen > 0 && g.state === 'playing') {
-      this._regenAcc = (this._regenAcc || 0) + this.stats.regen * dt;
-      if (this._regenAcc >= 1) { const n = Math.floor(this._regenAcc); this._regenAcc -= n; this.hp = Math.min(this.maxHp, this.hp + n); }
+  G.on('playerUpdate', function (ev) {
+    const p = ev.p, g = ev.g, dt = ev.dt;
+    if (!p.dead && p.stats && p.stats.regen > 0 && g.state === 'playing') {
+      p._regenAcc = (p._regenAcc || 0) + p.stats.regen * dt;
+      if (p._regenAcc >= 1) { const n = Math.floor(p._regenAcc); p._regenAcc -= n; p.hp = Math.min(p.maxHp, p.hp + n); }
     }
     // heal-over-time from food
-    if (this.hot && !this.dead) {
-      this.hot.t -= dt;
-      this._hotAcc = (this._hotAcc || 0) + (this.hot.amt / this.hot.dur) * dt;
-      if (this._hotAcc >= 1) { const n = Math.floor(this._hotAcc); this._hotAcc -= n; this.hp = Math.min(this.maxHp, this.hp + n); }
-      if (this.hot.t <= 0) this.hot = null;
+    if (p.hot && !p.dead) {
+      p.hot.t -= dt;
+      p._hotAcc = (p._hotAcc || 0) + (p.hot.amt / p.hot.dur) * dt;
+      if (p._hotAcc >= 1) { const n = Math.floor(p._hotAcc); p._hotAcc -= n; p.hp = Math.min(p.maxHp, p.hp + n); }
+      if (p.hot.t <= 0) p.hot = null;
     }
-    return r;
   });
 
   /* ---------------------------------------------------------------- bag / equip / salvage */
@@ -306,9 +304,8 @@
     Audio.sfx('buy');
     return true;
   };
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    if (this.beltCd > 0) this.beltCd -= dt;
-    return orig.call(this, g, dt);
+  G.on('playerUpdate:before', function (ev) {
+    if (ev.p.beltCd > 0) ev.p.beltCd -= ev.dt;
   });
   /* each run starts with a couple of snacks on the belt */
   X.ownerHooks.push((g, p) => {
@@ -348,14 +345,13 @@
       if (Items.hasFx(q, 'greed') && Math.random() < 0.2) G.addCoins(2 + Math.floor(G.wave / 2), e.x, e.y);
     }
   });
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    const r = orig.call(G, e, dmg, o);
+  G.on('damageEnemy', function (ev) {
+    const e = ev.e, o = ev.o, r = ev.result;
     if (r > 0 && o && o.crit && o.shooter && o.shooter.hero) {
       const p = o.shooter;
       if (Items.hasFx(p, 'critboom') && !o._boom) G.explode(e.x, e.y, 28, Math.round(r * 0.5), { owner: 'p', colors: 'fire', noPlayerHurt: true, shooter: p, _boom: true, lite: true });
       if (Items.hasFx(p, 'lifesteal')) p.hp = Math.min(p.maxHp, p.hp + Math.max(1, Math.round(r * 0.06)));
     }
-    return r;
   });
   X.chain('onHurt', (p, dmg, src) => {
     if (Items.hasFx(p, 'thorns') && src && src.type !== undefined && !src.dead) X.hitEnemy(src, Math.max(4, dmg * 1.2), p, 'phys');

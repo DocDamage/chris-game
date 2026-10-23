@@ -639,7 +639,9 @@
   /* ---------------------------------------------------------------- damage */
   G.spawnProjectile = (o) => CH.Weapons.spawn(G, o);
 
-  G.damageEnemy = function (e, dmg, o) {
+  const damageCore = (ev) => damageEnemyCore(ev.e, ev.dmg, ev.o);
+  G.damageEnemy = (e, dmg, o) => G.call('damageEnemy', { e, dmg, o }, damageCore);
+  function damageEnemyCore(e, dmg, o) {
     o = o || {};
     if (e.dead || e.immune || e.state === 'spawn') return 0;
     dmg = Math.max(1, Math.round(dmg * (e.dmgTaken || 1)));
@@ -663,10 +665,12 @@
       else G.killEnemy(e);
     }
     return dmg;
-  };
+  }
 
   /* o.p = the player being hurt (defaults to player 1) */
-  G.hurtPlayer = function (dmg, src, o) {
+  const hurtCore = (ev) => hurtPlayerCore(ev.dmg, ev.src, ev.o);
+  G.hurtPlayer = (dmg, src, o) => G.call('hurtPlayer', { dmg, src, o }, hurtCore);
+  function hurtPlayerCore(dmg, src, o) {
     o = o || {};
     const p = o.p || G.player;
     if (G.state !== 'playing' || !p.canBeHurt) return 0;
@@ -712,7 +716,7 @@
     G.combo = 0;
     if (p.hp <= 0) G.killPlayer(p);
     return dmg;
-  };
+  }
 
   /* hurt every living player that satisfies test(p) */
   G.hurtPlayers = function (dmg, src, o, test) {

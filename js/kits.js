@@ -43,9 +43,8 @@
     this.integrate(g, dt);
     if (this.fearT <= 0) this.fearT = 0;
   });
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    if (e && e.fearT > 0) dmg *= 1.25;
-    return orig.call(G, e, dmg, o);
+  G.on('damageEnemy:before', function (ev) {
+    if (ev.e && ev.e.fearT > 0) ev.dmg *= 1.25;
   });
   G.on('kill', function (e) {
     const wasFeared = e.fearT > 0; // the core does not change fear or the killer
@@ -128,13 +127,13 @@
     if (X.heroIs(p, 'Enchantress')) s.healMult *= 1.2;
     if (X.heroIs(p, 'Specter')) s.critChance += Math.min(0.3, Math.floor(p.noHitT || 0) * 0.03);
   });
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    if (X.heroIs(this, 'Specter')) {
-      const before = Math.floor(this.noHitT || 0);
-      this.noHitT = (this.noHitT || 0) + dt;
-      if (Math.floor(this.noHitT) !== before && before < 11) Up.recalc(this);
+  G.on('playerUpdate:before', function (ev) {
+    const p = ev.p;
+    if (X.heroIs(p, 'Specter')) {
+      const before = Math.floor(p.noHitT || 0);
+      p.noHitT = (p.noHitT || 0) + ev.dt;
+      if (Math.floor(p.noHitT) !== before && before < 11) Up.recalc(p);
     }
-    return orig.call(this, g, dt);
   });
   X.chain('onHurt', (p) => {
     if (X.heroIs(p, 'Specter') && (p.noHitT || 0) > 0) {

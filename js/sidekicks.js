@@ -403,9 +403,9 @@
       s.anim = 'block';
     }
   }
-  wrap(G, 'hurtPlayer', function (orig, dmg, src, o) {
-    const p = (o && o.p) || G.player;
-    const r = orig.call(G, dmg, src, o);
+  G.on('hurtPlayer', function (ev) {
+    const src = ev.src, r = ev.result;
+    const p = (ev.o && ev.o.p) || G.player;
     if (r > 0 && src && src.x !== undefined) {
       for (const s of SK.list) {
         if (s.owner !== p || !s.d.counter || !alive(s) || s.cd.counter > 0) continue;
@@ -418,7 +418,6 @@
         }
       }
     }
-    return r;
   });
 
   /* ---- reviving the owner ---- */

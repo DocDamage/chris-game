@@ -538,8 +538,8 @@
     }
   });
   /* Vexaria: crits heal. Dreadbloom: being hit pricks nearby enemies. */
-  wrap(G, 'damageEnemy', function (orig, e, dmg, o) {
-    const r = orig.call(G, e, dmg, o);
+  G.on('damageEnemy', function (ev) {
+    const e = ev.e, o = ev.o, r = ev.result;
     const p = o && o.shooter;
     if (r && o && o.crit && p && X.heroIs(p, 'Vexaria') && !p.dead) {
       if (G.time - (p._critHealT || -9) > 0.35) {
@@ -548,11 +548,10 @@
       }
     }
     if (r && X.onDamage) X.onDamage(e, r, o);
-    return r;
   });
-  wrap(G, 'hurtPlayer', function (orig, dmg, src, o) {
-    const p = (o && o.p) || G.player;
-    const r = orig.call(G, dmg, src, o);
+  G.on('hurtPlayer', function (ev) {
+    const src = ev.src, r = ev.result;
+    const p = (ev.o && ev.o.p) || G.player;
     if (r > 0 && p) {
       ensure(p);
       if (X.heroIs(p, 'Dreadbloom')) {
@@ -566,7 +565,6 @@
       }
       if (X.onHurt) X.onHurt(p, r, src);
     }
-    return r;
   });
 
   /* healing rules: Glass Cannon refuses pickup healing, Share the Snacks passes healing on */

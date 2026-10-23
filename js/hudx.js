@@ -191,13 +191,13 @@
     const e = X.nearestEnemy(this.x, this.y, 300);
     if (e) this.aim = Math.atan2(e.y - (this.y - 6), e.x - this.x);
   });
-  wrap(CH.Player.prototype, 'update', function (orig, g, dt) {
-    orig.call(this, g, dt);
-    if (this.fireT > 0 && hx.tut && !hx.tut.done) hx.tut.did.fire = true;
-    if (this.vx || this.vy) hx.tut && (hx.tut.did.move = true);
-    if (!opt('autoFire', false) || this.dead || this.rolling || g.state !== 'playing' || this.inp.src.kind === 'script') return;
-    if (this.inp.fire1) return;
-    if (X.nearestEnemy(this.x, this.y, 260)) CH.Weapons.tryFire(g, this, this.weapon);
+  G.on('playerUpdate', function (ev) {
+    const p = ev.p, g = ev.g;
+    if (p.fireT > 0 && hx.tut && !hx.tut.done) hx.tut.did.fire = true;
+    if (p.vx || p.vy) hx.tut && (hx.tut.did.move = true);
+    if (!opt('autoFire', false) || p.dead || p.rolling || g.state !== 'playing' || p.inp.src.kind === 'script') return;
+    if (p.inp.fire1) return;
+    if (X.nearestEnemy(p.x, p.y, 260)) CH.Weapons.tryFire(g, p, p.weapon);
   });
 
   /* ---- pause: current build list */
