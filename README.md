@@ -217,9 +217,22 @@ sound; if only the music files are missing it plays a synthesized soundtrack.
 The scripts drive the real game in headless Chrome (they use `playwright-core`; no browser download needed
 if Chrome is installed):
 
+The whole suite runs in parallel in about three minutes:
+
 ```
 cd tests
 npm install
+node run.js                  # every test, 6 at a time; logs in tests/logs/, exit code 1 if any fail
+node run.js --retry          # failures run once more on their own; passing then marks them FLAKY
+node run.js t10_coop t35_playtest3 --seed 7   # some tests, with another random seed
+```
+
+Tests that use `open()` from `tests/lib.js` seed `Math.random` (seed 1 by default) and print the seed, so a failure
+repeats with `CHAOS_SEED=<seed> node <test>.js`; `CHAOS_SEED=random` keeps real randomness. `__clear()` in the page
+empties enemies, shots, pickups and zones between checks (`__clear({ props: { x, y, r } })` also clears props there).
+Single tests:
+
+```
 node t5_ui.js        # menus, input, pause, settings persistence, level-up, death, restart, resize (37 checks)
 node t2_systems.js   # every weapon (damage, no double hits) and every enemy's state cycle
 node t3_bosses.js    # all 22 bosses: attacks, phases, kill

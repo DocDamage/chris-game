@@ -95,7 +95,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
   r = await E(() => {
     const G = CH.G;
     const p = G.player;
-    G.enemies.length = 0;
+    __clear({ props: { x: p.x, y: p.y, r: 160 } }); // open ground: next to a campfire or crate, A jumps instead of rolling
     p.addWeapon('pizza'); // a found weapon goes to slot II, the hero's own weapon stays in hand
     const slots = [p.weapon, p.weapon2];
     const kinds = () => [...new Set(G.projectiles.map((x) => x.kind))];
@@ -266,7 +266,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     const G = CH.G;
     const p = G.player;
     p.invuln = 1e9;
-    G.enemies.length = 0; // the rumble check left a monster at the hero's side, which would eat the shots
+    __clear(); // the rumble check left a monster at the hero's side, which would eat the shots
     CH.Input.lastUsed = 'kbm';
     CH.Input.mouse.inside = true;
     p.weapons = ['junk'];

@@ -5,3 +5,4 @@ assets/
 tests/node_modules/
 tests/*.png
 .baseline/
+tests/logs/

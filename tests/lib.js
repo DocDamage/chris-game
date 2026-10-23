@@ -2,7 +2,17 @@ const { chromium } = require('playwright-core');
 const ENV = require('./env');
 
 
+/* Math.random is seeded so a failure can be replayed: opts.seed, else CHAOS_SEED, else 1. CHAOS_SEED=random (or
+   seed: false) keeps the browser's own random. The seed is printed so a failing run says how to repeat it. */
+function seedOf(opts) {
+  const s = opts.seed !== undefined ? opts.seed : process.env.CHAOS_SEED !== undefined ? process.env.CHAOS_SEED : 1;
+  if (s === false || s === 'random') return null;
+  return s === 'pick' ? Math.floor(Math.random() * 1e9) : +s;
+}
+
 async function open(opts = {}) {
+  const seed = seedOf(opts);
+  if (!opts.quiet) console.log('seed ' + (seed === null ? 'random' : seed) + (seed === null ? '' : '   (repeat: CHAOS_SEED=' + seed + ')'));
   const browser = await chromium.launch({ executablePath: ENV.CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 720 } });
   const page = await ctx.newPage();
@@ -15,6 +25,12 @@ async function open(opts = {}) {
       window.requestAnimationFrame = (cb) => { window.__raf.push(cb); return 1; };
     });
   }
+  if (seed !== null) {
+    await page.addInitScript((s) => { // mulberry32
+      let a = s >>> 0;
+      Math.random = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }, seed);
+  }
   await page.addInitScript(() => { window.__uikInstant = true; }); // book animations are instant under test
   if (opts.init) await page.addInitScript(opts.init);
   await page.goto(ENV.URL);
@@ -24,12 +40,30 @@ async function open(opts = {}) {
   await page.evaluate(([sk, lv]) => { CH.SK.enabled = sk; CH.Run.levels = lv; }, [!!opts.sidekicks, !!opts.levels]); // levels: tile stages instead of the old wave arenas
   await page.evaluate((on) => { CH.SK.enabled = on; }, !!opts.sidekicks); // sidekicks fight and draw fire: off unless the test is about them
   await page.evaluate(BOT);
-  return { browser, page, errs, ctx };
+  return { browser, page, errs, ctx, seed };
 }
 
 // bot + manual stepping, injected into the page
 const BOT = () => {
   const CH = window.CH;
+  /* an empty field between checks, so one check's leftovers (a monster at the hero's side, a stray shot) do not decide
+     the next: __clear() empties enemies, shots, pickups and zones; __clear({ props: { x, y, r } }) also removes the
+     props around a spot (and the level's flow fields and prop grid follow) */
+  window.__clear = function (o) {
+    o = o || {};
+    const G = CH.G;
+    G.enemies.length = 0;
+    G.projectiles.length = 0;
+    G.pickups.length = 0;
+    if (G.zones) G.zones.length = 0;
+    if (G.queue) G.queue.length = 0;
+    const q = o.props, props = G.arena && G.arena.props;
+    if (q && props) {
+      for (let i = props.length - 1; i >= 0; i--) if (Math.hypot(props[i].x - q.x, props[i].y - q.y) < q.r) props.splice(i, 1);
+      if (G.level && G.level.flows) G.level.flows.clear();
+      if (CH.Props && CH.Props.invalidate) CH.Props.invalidate();
+    }
+  };
   const bot = (window.__bot = { god: false, log: [], pickPrefs: ['bonk', 'multi', 'crit', 'life', 'skull', 'speed', 'boom', 'magnet', 'loot'], stats: { steps: 0, dodges: 0, specials: 0, buys: 0 } });
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   bot.think = function () {
