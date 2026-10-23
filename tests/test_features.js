@@ -103,7 +103,7 @@ const ENV = require('./env');
     let swayOk = false;
     if (bush) {
       p.x = bush.x - 20;
-      p.y = bush.y;
+      p.y = bush.y - 10; // feet (10 px below the body centre) at the bush's base: rustle is measured from the feet
       p.vx = 80;
       p.vy = 0;
       p.moving = true;

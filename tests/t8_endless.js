@@ -9,7 +9,7 @@ const { open } = require('./lib');
   log('final boss defeated -> state:', JSON.stringify(snap));
   const stats = await page.evaluate(() => ({ wins: CH.Storage.stats.wins, runs: CH.Storage.stats.totalRuns, bosses: CH.Storage.stats.bossesDefeated, unlocked: CH.Storage.data.unlocked }));
   log('stats after win:', JSON.stringify(stats));
-  await page.screenshot({ path: 'e_victory.png' });
+  await page.screenshot({ path: __dirname + '/e_victory.png' });
   await page.click('#btn-endless');
   await page.waitForTimeout(100);
   log('after Continue:', JSON.stringify(await page.evaluate(() => ({ s: CH.G.state, endless: CH.G.endless, ui: CH.UI.active, wave: CH.G.wave, ws: CH.G.waveState }))));

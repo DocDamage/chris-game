@@ -25,7 +25,9 @@
   /* Enemies were too small next to the heroes. The native-size pixel packs (Tiny RPG characters, spiders) are
      up-scaled when baked (Sprites.sheet scale); the top-down packs and golems are packed bigger by the tools. Either
      way foot, height, shadow and collision radius grow by the same factor (Art.applyEnemyScale). */
-  const ESCALE = { chicken: 1.45, potato: 1.4, trashcan: 1.35, office: 1.45, toaster: 1.4, influencer: 1.45, cart: 1.3, pigeon: 1.4, fridge: 1.3, intern: 1.45, spider: 1.3, plant: 46 / 32, slime: 40 / 28, orc: 46 / 32, goblin: 40 / 28, golem: 1.2 };
+  /* the top-down packs are packed bigger (tools/pack-monsters.js); GROW is a baked up-scale on top of that */
+  const GROW = { goblin: 1.45 };
+  const ESCALE = { chicken: 1.45, potato: 1.4, trashcan: 1.35, office: 1.45, toaster: 1.4, influencer: 1.45, cart: 1.3, pigeon: 1.4, fridge: 1.3, intern: 1.65, spider: 1.3, plant: 46 / 32, slime: 40 / 28, orc: 46 / 32, goblin: (40 / 28) * GROW.goblin, golem: 1.2 };
   Art.ESCALE = ESCALE;
 
   /* sprite-sheet rectangles of the props in "stone and bush.png" (found by connected-component scan) */
@@ -314,7 +316,7 @@
     const enMeta = m.enemies || {};
     const stdEnemy = (type, fw, fh) => {
       if (!img['chr.' + type + '.idle']) return;
-      S.sheet(type, { fw, fh, feet: 'idle', anchor: 'feet', snap: true, strips: enemyStrips('chr.' + type) });
+      S.sheet(type, { fw, fh, feet: 'idle', anchor: 'feet', snap: true, scale: GROW[type], strips: enemyStrips('chr.' + type) });
     };
     stdEnemy('plant', (enMeta.plant && enMeta.plant.fw) || 32, (enMeta.plant && enMeta.plant.fh) || 32);
     stdEnemy('slime', (enMeta.slime && enMeta.slime.fw) || 28, (enMeta.slime && enMeta.slime.fh) || 28);

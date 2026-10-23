@@ -17,7 +17,7 @@ const { open } = require('./lib');
     const def = await page.evaluate((id) => ({ dur: CH.Events.byId[id].duration, warn: CH.Events.byId[id].warn || 0 }), id);
     await page.evaluate((n) => window.__bot.step(n), Math.round((def.warn + 4) * 60));
     const mid = await page.evaluate(() => { const G = CH.G; return { active: !!(G.event && G.event.active), mods: JSON.stringify(G.mods), zones: G.zones.length, ents: G.enemies.length, state: G.state }; });
-    if (['disco', 'lava', 'bighead', 'tiny', 'chickenrain', 'reverse'].includes(id)) await page.screenshot({ path: `ev_${id}.png` });
+    if (['disco', 'lava', 'bighead', 'tiny', 'chickenrain', 'reverse'].includes(id)) await page.screenshot({ path: `${__dirname}/ev_${id}.png` });
     // finish the event
     await page.evaluate((n) => window.__bot.step(n), Math.round((def.dur + 1) * 60));
     const end = await page.evaluate(() => { const G = CH.G; return { ev: !!G.event, mods: JSON.stringify(G.mods), state: G.state, hp: Math.round(G.player.hp) }; });

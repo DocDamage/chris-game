@@ -60,7 +60,7 @@ const ENV = require('./env');
       return { wave: G.wave, kills: G.kills, bosses: seen.join(' '), coop: [...modes].join('/'), revived: !G.players[0].dead };
     });
     console.log(mode.padEnd(15), JSON.stringify(info), JSON.stringify(res), 'errors:', errs.length ? errs.join(' | ') : 'none', JSON.stringify(await page.evaluate(() => CH.errors)));
-    await page.screenshot({ path: 'fb_' + mode + '.png' });
+    await page.screenshot({ path: __dirname + '/fb_' + mode + '.png' });
     await ctx.close();
   }
   await browser.close();

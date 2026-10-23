@@ -101,7 +101,8 @@
       for (const p of L.props) {
         if (p.dead || !p.solid) continue;
         const pw = p.box ? p.box.hw : p.cr || 10, ph = p.box ? p.box.hh * 2 : (p.cr || 10) * 1.2;
-        if (Math.abs(p.x - x) < pw + hw + 3 && Math.abs(p.y - y) < Math.max(ph, hh * 2) + 3) return false;
+        // a hero's feet (about 10 px) must fit between two solid pieces: a narrower gap traps them, pushed from one into the other
+        if (Math.abs(p.x - x) < pw + hw + 12 && Math.abs(p.y - y) < Math.max(ph, hh * 2) + 12) return false;
       }
       return true;
     };
@@ -590,7 +591,7 @@
     const lo = this.loiter;
     if (!lo || this.dead) return orig.call(this, g, dt);
     if (this.state === 'spawn' && this.spawnSilent) { this.state = 'idle'; this.t = 0.4; } // they were already here
-    if (this.asleep === undefined) this.asleep = !!(S.has(this.look.sprite) && S.get(this.look.sprite).anims.sleep && Math.random() < 0.6); // spiders curl up
+    if (this.asleep === undefined) this.asleep = !!(S.has(this.look.sprite) && (S.get(this.look.sprite).anims || {}).sleep && Math.random() < 0.6); // spiders curl up
     let alert = this.hp < this.maxHp || (this.pack && this.pack.alert);
     if (!alert) for (const pl of g.players) if (!pl.dead && U.dist(pl.x, pl.y, this.x, this.y) < 210) alert = true;
     if (alert) { // the whole camp turns on the hero

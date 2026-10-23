@@ -352,11 +352,14 @@
     }
     const w = ux1 - ux0 + 1;
     const h = uy1 - uy0 + 1;
+    const k0 = spec.scale || 1;
+    const read = k0 !== 1 || spec.snap; // the up-scale and the ground snap need the pixels: read them from the source image
     const frames = rects.map((r) => {
       const c = document.createElement('canvas');
       c.width = w;
       c.height = h;
       c.getContext('2d').drawImage(r.im, r.sx + ux0, uy0, w, h, 0, 0, w, h);
+      if (read) c.__px = pixels(r.im, r.sx + ux0, uy0, w, h);
       return c;
     });
     const fb = feet || { x0: 0, y0: 0, x1: FW - 1, y1: FH - 1 };
@@ -375,37 +378,59 @@
     }
     const s = { name, frames: out, w: ow, h: oh, ax, ay, head: 0, sil: {}, anims, sheet: true, body, scale: k };
     if (spec.snap && spec.anchor !== 'center') s.fdy = groundSnap(s);
+    for (const c of frames) delete c.__px;
     baked[name] = s;
     defs[name] = { kind: 'sheet' };
     return true;
   };
 
   /* lowest row of a frame with at least two solid pixels (soft edges, dust and baked shadows do not count) */
-  function solidBottom(c) {
-    const w = c.width, h = c.height;
-    const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+  function bottomOf(d, w, h) {
     for (let y = h - 1; y >= 0; y--) {
       let n = 0;
       for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 128 && ++n >= 2) return y + 1;
     }
     return -1;
   }
+  function solidBottom(c) {
+    if (c.__bottom !== undefined) return c.__bottom;
+    return bottomOf((c.__px || pixels(c, 0, 0, c.width, c.height)).data, c.width, c.height);
+  }
+  /* pixels of an image (or a region of it) through one CPU-backed scratch canvas: reading back the GPU canvases the
+     frames are drawn from is slow (thousands of frames at boot) */
+  let scratch = null, sg = null;
+  function pixels(src, sx, sy, w, h) {
+    if (!scratch) {
+      scratch = document.createElement('canvas');
+      sg = scratch.getContext('2d', { willReadFrequently: true });
+    }
+    if (scratch.width !== w || scratch.height !== h) {
+      scratch.width = w;
+      scratch.height = h;
+    } else sg.clearRect(0, 0, w, h);
+    sg.drawImage(src, sx, sy, w, h, 0, 0, w, h);
+    return sg.getImageData(0, 0, w, h);
+  }
   /* Ground snap: walk / run / idle frames of the packs drift 1-2 px above the feet line, which reads as floating.
-     Per animation, the lowest solid row is its ground; it is aligned to the anchor when it is within 3 px of it,
-     and single frames that sit 1-2 px above that ground are pulled down. Bigger lifts (jumps, leaps) are deliberate
-     and stay. Returns the per-frame y offset in pixels (added when drawing). */
+     Per animation, the most common lowest solid row is its ground (one frame with a foot dipping lower must not lift
+     all the others); it is aligned to the anchor when it is within 3 px of it, and frames that sit up to 2 source
+     pixels above or below that ground are snapped onto it. Bigger lifts (jumps, leaps) are deliberate and stay.
+     Returns the per-frame y offset in pixels (added when drawing). */
   function groundSnap(s) {
     const fdy = new Array(s.frames.length).fill(0);
     const bottoms = s.frames.map(solidBottom);
+    const lim = Math.max(2, Math.round(2 * (s.scale || 1))); // 2 source pixels, after the baked up-scale
     for (const a of Object.values(s.anims)) {
+      const n = {};
       let g = -1;
-      for (let i = a.s; i < a.s + a.n; i++) g = Math.max(g, bottoms[i]);
+      for (let i = a.s; i < a.s + a.n; i++) if (bottoms[i] >= 0) n[bottoms[i]] = (n[bottoms[i]] || 0) + 1;
+      for (const b of Object.keys(n)) if (g < 0 || n[b] > n[g] || (n[b] === n[g] && +b > g)) g = +b;
       if (g < 0) continue;
       const shift = Math.abs(s.ay - g) <= 3 ? s.ay - g : 0;
       for (let i = a.s; i < a.s + a.n; i++) {
         if (bottoms[i] < 0) continue;
         const lift = g - bottoms[i];
-        fdy[i] = shift + (lift > 0 && lift <= 2 ? lift : 0);
+        fdy[i] = shift + (Math.abs(lift) <= lim ? lift : 0);
       }
     }
     return fdy.some((v) => v) ? fdy : null;
@@ -415,7 +440,7 @@
      uneven pixel widths of a plain nearest-neighbour 1.4x */
   function scaleFrame(c, k) {
     const w = c.width, h = c.height;
-    const src = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+    const src = (c.__px || c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h)).data;
     const W2 = w * 2, H2 = h * 2;
     const big = new Uint8ClampedArray(W2 * H2 * 4);
     const px = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? -1 : (y * w + x) * 4);
@@ -467,6 +492,7 @@
       }
     }
     og.putImageData(od, 0, 0);
+    out.__bottom = bottomOf(od.data, ow, oh); // for the ground snap, without reading the canvas back
     return out;
   }
   Sprites.scaleFrame = scaleFrame;

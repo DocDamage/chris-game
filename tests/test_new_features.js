@@ -62,7 +62,10 @@ const ENV = require('./env');
       maxHp: 80,
       destructible: true
     };
+    // the level may have its own props at that spot: clear them so the hero lands on (and scraps) this car
+    for (let i = G.arena.props.length - 1; i >= 0; i--) if (Math.hypot(G.arena.props[i].x - carProp.x, G.arena.props[i].y - carProp.y) < 90) G.arena.props.splice(i, 1);
     G.arena.props.push(carProp);
+    if (CH.Props.invalidate) CH.Props.invalidate();
 
     // Place player jumping directly above car, falling down
     p.x = carProp.x;
@@ -101,8 +104,12 @@ const ENV = require('./env');
     // Damage and destroy car
     CH.Weapons.damageProp(G, carProp, 100, p);
     const carDestroyed = carProp.dead && carProp.sprite === 'obj.carWreck';
-    // Advance simulation to collect pickups
-    for (let s = 0; s < 30; s++) G.step(0.016);
+    // Advance simulation to collect pickups: the scrap scatters past the 16 px base pickup range, so walk over it
+    for (let s = 0; s < 60; s++) {
+      const sc = G.pickups.find((q) => q.type === 'scrap');
+      if (sc && s > 15) { p.x = sc.x; p.y = sc.y; }
+      G.step(0.016);
+    }
     const gotScrap = CH.Storage.resources.scrap > 0;
     out.push({ test: 'Car Destruction (Explodes, Drops Scrap Metal)', pass: carDestroyed && gotScrap, val: `scrap=${CH.Storage.resources.scrap}` });
 

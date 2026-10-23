@@ -17,7 +17,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui && document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
   ok('loading screen finishes, assets on', await page.evaluate(() => CH.Art.on && CH.Assets.ready));
   ok('menu shown', (await state()).ui === 'main');
-  await page.screenshot({ path: 'u_menu.png' });
+  await page.screenshot({ path: __dirname + '/u_menu.png' });
 
   // keyboard navigation in menu: ArrowDown moves focus, Enter activates
   await page.keyboard.press('ArrowDown');
@@ -25,20 +25,20 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   ok('arrow-key focus moves in menu', focused === 'btn-heroes' || focused === 'btn-coop' || focused === 'btn-settings', focused);
   await page.click('#btn-howto');
   ok('how to play opens', (await state()).ui === 'howto');
-  await page.screenshot({ path: 'u_howto.png' });
+  await page.screenshot({ path: __dirname + '/u_howto.png' });
   await page.keyboard.press('Escape');
   ok('Escape goes back to main menu', (await state()).ui === 'main');
 
   await page.click('#btn-stats');
-  await page.screenshot({ path: 'u_stats.png' });
+  await page.screenshot({ path: __dirname + '/u_stats.png' });
   await page.evaluate(() => CH.Journal.close());
   await page.click('#btn-credits');
-  await page.screenshot({ path: 'u_credits.png' });
+  await page.screenshot({ path: __dirname + '/u_credits.png' });
   await page.click('#screen-credits [data-back]');
 
   // settings: difficulty + hero + toggles persist across reload
   await page.click('#btn-settings');
-  await page.screenshot({ path: 'u_settings.png' });
+  await page.screenshot({ path: __dirname + '/u_settings.png' });
   await page.click('#diff-buttons [data-diff="chaotic"]');
   await page.click('#swatches [data-pal="Mercenary"]');
   await page.click('#set-shake');
@@ -79,12 +79,12 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.mouse.up();
   const px2 = await page.evaluate(() => CH.G.player.x);
   ok('player moved with D', px2 > 480 || px1 > 480, { px1, px2 });
-  await page.screenshot({ path: 'u_play.png' });
+  await page.screenshot({ path: __dirname + '/u_play.png' });
 
   // pause / resume
   await page.keyboard.press('Escape');
   ok('Escape pauses', (await state()).s === 'paused');
-  await page.screenshot({ path: 'u_pause.png' });
+  await page.screenshot({ path: __dirname + '/u_pause.png' });
   const t1 = await page.evaluate(() => CH.G.time);
   await page.waitForTimeout(600);
   const t2 = await page.evaluate(() => CH.G.time);
@@ -100,7 +100,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.keyboard.press('Escape');
   await page.click('#btn-restart');
   ok('restart asks for confirmation', (await state()).ui === 'confirm');
-  await page.screenshot({ path: 'u_confirm.png' });
+  await page.screenshot({ path: __dirname + '/u_confirm.png' });
   await page.click('#confirm-no');
   ok('confirm No returns to pause', (await state()).ui === 'pause');
   await page.click('#btn-restart');
@@ -117,7 +117,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.keyboard.press('KeyK');
   await page.waitForTimeout(300);
   ok('K opens the skill tree and pauses', (await page.evaluate(() => CH.UI.active === 'skills' && CH.G.state === 'paused')));
-  await page.screenshot({ path: 'u_levelup.png' });
+  await page.screenshot({ path: __dirname + '/u_levelup.png' });
   const before = await page.evaluate(() => ({ sp: CH.G.player.sp, focus: document.activeElement && document.activeElement.dataset.id }));
   await page.keyboard.press('Enter');
   await page.waitForTimeout(150);
@@ -144,7 +144,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   ok('player dies when hp hits 0', deaths);
   await page.waitForTimeout(2600);
   ok('game over screen shown', (await state()).s === 'gameover' && (await state()).ui === 'gameover');
-  await page.screenshot({ path: 'u_gameover.png' });
+  await page.screenshot({ path: __dirname + '/u_gameover.png' });
   const st = await page.evaluate(() => CH.Storage.stats);
   ok('stats recorded exactly once for the run', st.totalRuns === 2 && st.deaths === 2, st); // first run abandoned by restart + this death
   await page.click('#btn-retry');
@@ -190,10 +190,10 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.setViewportSize({ width: 800, height: 450 });
   await page.click('#btn-play');
   await page.waitForTimeout(3600);
-  await page.screenshot({ path: 'u_small.png' });
+  await page.screenshot({ path: __dirname + '/u_small.png' });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.waitForTimeout(300);
-  await page.screenshot({ path: 'u_big.png' });
+  await page.screenshot({ path: __dirname + '/u_big.png' });
 
   // window blur auto-pauses and clears input
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));

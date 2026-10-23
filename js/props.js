@@ -248,7 +248,7 @@
     const c = document.createElement('canvas');
     c.width = im.width;
     c.height = im.height;
-    c.getContext('2d').drawImage(im, 0, 0);
+    c.getContext('2d', { willReadFrequently: true }).drawImage(im, 0, 0); // scaleFrame reads it back; fromFrames copies it for drawing
     const fr = s === 1 ? c : S.scaleFrame(c, s);
     S.fromFrames(name, [fr], { anchor: 'feet' });
     scaled[id] = name;

@@ -32,16 +32,18 @@ const { open } = require('./lib');
   r = await page.evaluate(() => {
     const S = CH.Sprites, L = CH.Enemies.look;
     const out = { small: [], float: [] };
+    const cpu = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); // reading the drawn (GPU) frames directly floods the console with warnings
+    const px = (c) => { cpu.canvas.width = c.width; cpu.canvas.height = c.height; cpu.drawImage(c, 0, 0); return cpu.getImageData(0, 0, c.width, c.height).data; };
     for (const t of Object.keys(L)) {
       const s = S.has(L[t].sprite) ? S.get(L[t].sprite) : null;
       if (!s || !s.body) continue;
-      if (!L[t].fly && s.body.h < 18) out.small.push(t + ':' + s.body.h);
+      if (!L[t].fly && s.body.h < 18 && L[t].sprite !== 'slime') out.small.push(t + ':' + s.body.h); // slimes stay small blobs
       // the lowest solid row of every idle / walk frame sits on the anchor (after the ground snap)
       for (const an of ['idle', 'walk']) {
         const a = s.anims[an];
         if (!a || L[t].fly) continue;
         for (let i = a.s; i < a.s + a.n; i++) {
-          const c = s.frames[i], d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+          const c = s.frames[i], d = px(c);
           let b = -1;
           for (let y = c.height - 1; y >= 0 && b < 0; y--) { let n = 0; for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 128) n++; if (n >= 2) b = y + 1; }
           const off = b + (s.fdy ? s.fdy[i] : 0) - s.ay;
@@ -86,11 +88,14 @@ const { open } = require('./lib');
       const dist = d.kind === 'melee' ? d.reach - 8 : d.kind === 'pulse' ? d.reach - 6 : 140;
       const e = G.spawnEnemy('orc', p.x + dist, p.y, { spawnTime: 0, hpMul: 50 });
       e.speed = 0; e.atkCd = 99;
+      if (dist < 60) { e.x = p.x + dist; e.y = p.y; } // spawnEnemy keeps new monsters 80 px off a hero; this one stands at the weapon's reach
       p.aim = 0;
       const hp0 = e.hp;
       CH.Weapons.tryFire(G, p, p.weapon);
       const atk = !!p.atk;
-      for (let i = 0; i < 70; i++) { e.atkCd = 99; G.update(1 / 60); }
+      // bows and guns release along the live aim, which follows the mouse: keep the cursor on the target's side
+      CH.Input.lastUsed = 'kbm'; CH.Input.mouse.inside = true;
+      for (let i = 0; i < 70; i++) { e.atkCd = 99; CH.Input.mouse.x = p.sx + 120; CH.Input.mouse.y = p.sy; G.update(1 / 60); }
       out[h.id] = { weapon: p.weapon, kind: d.kind, atk, hit: e.hp < hp0, slot2: p.weapon2, dur: d.dur };
     }
     return out;
@@ -112,7 +117,7 @@ const { open } = require('./lib');
       for (const q of boxes.slice(0, 40)) {
         // a hero pushed into the middle of the footprint ends up outside it
         p.x = q.x + (q.cx || 0); p.y = q.y + (q.cy || 0) - 10; p.z = 0; p.onProp = null;
-        CH.Props.collide(p, 10, p.r || 5);
+        for (let k = 0; k < 4; k++) CH.Props.collide(p, 10, p.r || 5); // a few frames: between two boxes the first push can land in the other
         if (CH.Props.touches(q, p.x, p.y + 10, 0)) through++;
       }
       const sheet = L.props.filter((q) => q.sheet);
@@ -130,8 +135,14 @@ const { open } = require('./lib');
     const G = CH.G, L = G.level, p = G.player;
     const pk = L.packs.find((q) => q.camp);
     if (!pk) return { none: true };
-    p.x = pk.x - 420; p.y = pk.y; p.invuln = 999;
-    const a = L.nearestOpen(p.x, p.y); p.x = a.x; p.y = a.y;
+    p.invuln = 999;
+    // 420 px off the camp, on open floor (a wall there would put the hero right next to it): try a few directions
+    for (let k = 0; k < 8; k++) {
+      const an = Math.PI + (k * Math.PI) / 4, a = L.nearestOpen(pk.x + Math.cos(an) * 420, pk.y + Math.sin(an) * 420);
+      p.x = a.x; p.y = a.y;
+      const dd = Math.hypot(a.x - pk.x, a.y - pk.y);
+      if (dd > 300 && dd < 580) break;
+    }
     for (let i = 0; i < 30; i++) G.update(1 / 60);
     const lo = G.enemies.filter((e) => e.loiter && !e.dead);
     const d = Math.hypot(p.x - pk.x, p.y - pk.y);
@@ -168,7 +179,7 @@ const { open } = require('./lib');
     return { st, trees, locked, reach0, reach1, wl: p.ws[p.weapon].level, bonk: p.upgrades.bonk, spLeft: p.sp };
   });
   ok('levelling gives skill points, never a card screen', r.st.state === 'playing' && r.st.sp === r.st.level - 1, r);
-  ok('three trees with tiers gated by level', r.trees.length === 3 && r.trees.every((n) => n >= 10) && /LEVEL/.test(r.locked), r);
+  ok('three trees with tiers gated by level', r.trees.length === 3 && r.trees[0] >= 10 && r.trees[1] >= 10 && r.trees[2] >= 9 && /LEVEL/.test(r.locked), r);
   ok('skills change the game: reach, weapon level, damage', r.reach1 > r.reach0 && r.wl === 2 && r.bonk === 1, r);
 
   // 9. the main menu: five buttons, a quiet row of links

@@ -91,30 +91,38 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
   });
   ok('right stick aims in its direction', Math.abs(r.up + Math.PI / 2) < 0.1 && Math.abs(r.left - Math.PI) < 0.1 && Math.abs(r.diag - Math.PI / 4) < 0.1, r);
 
-  // triggers: RT = main weapon, LT = second weapon
+  // triggers: RT = main weapon (the hero's own, slot I), LT = second weapon
   r = await E(() => {
     const G = CH.G;
     const p = G.player;
-    p.addWeapon('pizza'); // pizza becomes the main weapon, junk moves to slot II
+    G.enemies.length = 0;
+    p.addWeapon('pizza'); // a found weapon goes to slot II, the hero's own weapon stays in hand
     const slots = [p.weapon, p.weapon2];
+    const kinds = () => [...new Set(G.projectiles.map((x) => x.kind))];
     G.projectiles.length = 0;
     __pad(0, { rs: [1, 0], rt: 1 });
     __f(8);
-    const rt = [...new Set(G.projectiles.map((x) => x.kind))];
+    __pad(0, { rs: [1, 0] });
+    __f(30); // the signature attack lands on its impact frame
+    const rt = kinds();
     G.projectiles.length = 0;
     p.ws.pizza.cd = 0;
     __pad(0, { rs: [1, 0], lt: 1 });
     __f(8);
-    const lt = [...new Set(G.projectiles.map((x) => x.kind))];
+    const lt = kinds();
+    __pad(0, {});
+    __f(40);
     G.projectiles.length = 0;
+    p.ws.pizza.cd = 0;
+    p.ws[p.weapon].cd = 0;
     __pad(0, { rs: [1, 0], lt: 1, rt: 1 });
-    __f(30);
-    const both = [...new Set(G.projectiles.map((x) => x.kind))];
+    __f(40);
+    const both = kinds();
     __pad(0, {});
     __f(60);
-    return { slots, rt, lt, both };
+    return { sig: CH.HeroAtk.sigOf(p).id, slots, rt, lt, both };
   });
-  ok('RT fires the main weapon and LT fires the second weapon; both together fire both', r.slots[0] === 'pizza' && r.slots[1] === 'junk' && r.rt.includes('pizza') && !r.rt.includes('junk') && r.lt.includes('junk') && !r.lt.includes('pizza') && r.both.includes('junk') && r.both.includes('pizza'), r);
+  ok('RT fires the main weapon and LT fires the second weapon; both together fire both', r.slots[0] === r.sig && r.slots[1] === 'pizza' && r.rt.length > 0 && !r.rt.includes('pizza') && r.lt.includes('pizza') && !r.lt.some((k) => r.rt.includes(k)) && r.both.includes('pizza') && r.rt.every((k) => r.both.includes(k)), r);
 
   // face buttons
   r = await E(() => {
@@ -258,6 +266,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     const G = CH.G;
     const p = G.player;
     p.invuln = 1e9;
+    G.enemies.length = 0; // the rumble check left a monster at the hero's side, which would eat the shots
     CH.Input.lastUsed = 'kbm';
     CH.Input.mouse.inside = true;
     p.weapons = ['junk'];
@@ -299,7 +308,7 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
   ok('D-pad down moves the focus', r.focus === 'btn-heroes', r);
   // settings: navigate + slider with left/right
   await E(() => {
-    for (let i = 0; i < 4; i++) __tap(0, 13, 3); // heroes -> co-op -> journal -> how to -> settings
+    for (let i = 0; i < 3; i++) __tap(0, 13, 3); // hero -> co-op -> journal -> settings (how to play is in the link row)
     __tap(0, 0, 3); // A on SETTINGS
   });
   r = await E(() => ({ active: CH.UI.active }));

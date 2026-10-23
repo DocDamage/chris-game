@@ -51,7 +51,7 @@
     // glow colour: the average of the brightest, most colourful pixels
     const c = document.createElement('canvas');
     c.width = im.width; c.height = im.height;
-    const g = c.getContext('2d');
+    const g = c.getContext('2d', { willReadFrequently: true });
     g.drawImage(im, 0, 0);
     const d = g.getImageData(0, 0, c.width, c.height).data;
     const px = [];
