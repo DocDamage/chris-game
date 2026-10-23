@@ -22,6 +22,12 @@
     intern: { chr: 'Slime', attack: 'Attack01' },
   };
 
+  /* Enemies were too small next to the heroes. The native-size pixel packs (Tiny RPG characters, spiders) are
+     up-scaled when baked (Sprites.sheet scale); the top-down packs and golems are packed bigger by the tools. Either
+     way foot, height, shadow and collision radius grow by the same factor (Art.applyEnemyScale). */
+  const ESCALE = { chicken: 1.45, potato: 1.4, trashcan: 1.35, office: 1.45, toaster: 1.4, influencer: 1.45, cart: 1.3, pigeon: 1.4, fridge: 1.3, intern: 1.45, spider: 1.3, plant: 46 / 32, slime: 40 / 28, orc: 46 / 32, goblin: 40 / 28, golem: 1.2 };
+  Art.ESCALE = ESCALE;
+
   /* sprite-sheet rectangles of the props in "stone and bush.png" (found by connected-component scan) */
   const OBJ = {
     tree1: [225, 2, 79, 90], tree2: [325, 3, 72, 91], tree3: [421, 8, 67, 86],
@@ -46,7 +52,7 @@
   function registerHero(id) {
     const m = CH.Assets.meta.heroes && CH.Assets.meta.heroes[id];
     if (!m) return false;
-    const fps = { idle: 10, walk: 13, run: 15, dash: 12, attack: 14, heavy: 14, skill: 12, hurt: 14, jump: 12, victory: 10 };
+    const fps = { idle: 8, walk: 16, run: 18, dash: 12, attack: 14, heavy: 14, skill: 12, hurt: 14, jump: 12, victory: 10 }; // walk / run match ground speed (attacks run on their own clock, heroatk.js)
     const loops = { idle: 1, walk: 1, run: 1, jump: 1, victory: 1 };
     const strips = {};
     for (const an of Object.keys(m.anims)) strips[an] = { key: 'hero.' + id + '.' + an, fps: fps[an] || 12, loop: !!loops[an], fw: m.fw, fh: m.fh };
@@ -55,7 +61,7 @@
         strips['rot_' + d] = { key: 'hero.' + id + '.rot_' + d, fps: 1, loop: true, fw: m.fw, fh: m.fh };
       }
     }
-    return S.sheet('hero.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips });
+    return S.sheet('hero.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips, snap: true });
   }
 
   /* sidekicks: one sheet per companion (strips from bundle 'sidekicks'; roles a pack lacks alias to another strip) */
@@ -72,15 +78,16 @@
       for (const role of Object.keys(m.anims)) strips[role] = mk(role, role);
       for (const role of Object.keys(m.alias || {})) if (!strips[role] && m.anims[m.alias[role]]) strips[role] = mk(role, m.alias[role]);
       if (CH.Assets.images['sk.' + id + '.rot_s']) strips.rot_s = { key: 'sk.' + id + '.rot_s', fps: 1, loop: true, fw: m.fw, fh: m.fh };
-      if (S.sheet('sk.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips })) n++;
+      if (S.sheet('sk.' + id, { fw: m.fw, fh: m.fh, feet: 'idle', crop: false, ax: m.ax, strips, snap: true })) n++;
     }
     return n;
   }
 
   function registerEnemy(type, a) {
     const X = 'chr.' + a.chr + '.';
+    const fly = a.idle === 'Flying';
     return S.sheet(type, {
-      fw: 100, fh: 100, feet: 'idle',
+      fw: 100, fh: 100, feet: 'idle', scale: ESCALE[type], snap: !fly,
       strips: {
         idle: { key: X + (a.idle || 'Idle'), fps: 7 },
         walk: { key: X + (a.walk || 'Walk'), fps: 11 },
@@ -213,6 +220,28 @@
     strip('fx.lavaSpike', 'proj.lavaSpike', 100, 14, false);
   }
 
+  /* the Valley Ruin giant tree (hideout) and villager (townspeople) */
+  function registerValley() {
+    const A = CH.Assets.images;
+    if (A['obj.giantTreeSheet']) {
+      const c = document.createElement('canvas');
+      c.width = 380;
+      c.height = 400;
+      c.getContext('2d').drawImage(A['obj.giantTreeSheet'], 24, 22, 380, 400, 0, 0, 380, 400);
+      S.fromFrames('obj.giantTree', [S.scaleFrame(c, 0.36)], { anchor: 'feet' });
+    }
+    if (A['chr.villager']) {
+      const fr = [0, 1, 2].map((i) => {
+        const c = document.createElement('canvas');
+        c.width = 24;
+        c.height = 28;
+        c.getContext('2d').drawImage(A['chr.villager'], 6 + i * 32, 33, 24, 28, 0, 0, 24, 28);
+        return S.scaleFrame(c, 1.4);
+      });
+      S.fromFrames('npc.body', fr, { anchor: 'feet' });
+    }
+  }
+
   function registerItems() {
     // 16px cells in Items.png
     const cell = (name, cx, cy) => S.crop(name, 'obj.items', cx * 16, cy * 16, 16, 16);
@@ -257,6 +286,26 @@
     }
   }
 
+  /* strips of a regular enemy: side view, plus the down / up rows of the 4-direction packs ('walk_d', 'walk_u' ...) */
+  function enemyStrips(prefix) {
+    const img = CH.Assets.images;
+    const FPS = { idle: [7, 1], walk: [10, 1], attack: [12, 0], hurt: [12, 0], death: [8, 0] };
+    const strips = {};
+    for (const an of Object.keys(FPS)) for (const d of ['', '_d', '_u']) {
+      const key = prefix + '.' + an + d;
+      if (img[key]) strips[an + d] = { key, fps: FPS[an][0], loop: !!FPS[an][1] };
+    }
+    return strips;
+  }
+  /* the forest spiders: 56px frames on every strip; the curled-up sleep strip is the idle of a sleeping pack */
+  function spiderSpec(k) {
+    const img = CH.Assets.images;
+    const st = (key, fps, loop) => ({ key: k + key, fps, loop, fw: 56, fh: 34 });
+    const strips = { idle: st('idle', 6, true), walk: st('walk', 10, true), attack: st('attack', 12, false), hurt: st('hurt', 12, false), death: st('death', 8, false) };
+    if (img[k + 'sleep']) strips.sleep = st('sleep', 6, false);
+    return { fw: 56, fh: 34, feet: 'idle', anchor: 'feet', scale: ESCALE.spider, snap: true, strips };
+  }
+
   function registerNewMonsters() {
     const m = (CH.Assets && CH.Assets.meta) || {};
     const img = (CH.Assets && CH.Assets.images) || {};
@@ -265,33 +314,13 @@
     const enMeta = m.enemies || {};
     const stdEnemy = (type, fw, fh) => {
       if (!img['chr.' + type + '.idle']) return;
-      S.sheet(type, {
-        fw, fh, feet: 'idle', anchor: 'feet',
-        strips: {
-          idle: { key: 'chr.' + type + '.idle', fps: 7, loop: true },
-          walk: { key: 'chr.' + type + '.walk', fps: 10, loop: true },
-          attack: { key: 'chr.' + type + '.attack', fps: 12, loop: false },
-          hurt: { key: 'chr.' + type + '.hurt', fps: 12, loop: false },
-          death: { key: 'chr.' + type + '.death', fps: 8, loop: false },
-        }
-      });
+      S.sheet(type, { fw, fh, feet: 'idle', anchor: 'feet', snap: true, strips: enemyStrips('chr.' + type) });
     };
     stdEnemy('plant', (enMeta.plant && enMeta.plant.fw) || 32, (enMeta.plant && enMeta.plant.fh) || 32);
     stdEnemy('slime', (enMeta.slime && enMeta.slime.fw) || 28, (enMeta.slime && enMeta.slime.fh) || 28);
     stdEnemy('orc', (enMeta.orc && enMeta.orc.fw) || 32, (enMeta.orc && enMeta.orc.fh) || 32);
     stdEnemy('goblin', (enMeta.goblin && enMeta.goblin.fw) || 28, (enMeta.goblin && enMeta.goblin.fh) || 28);
-    if (img['chr.spider.walk']) {
-      S.sheet('spider', {
-        fw: 32, fh: 34, feet: 'idle', anchor: 'feet',
-        strips: {
-          idle: { key: 'chr.spider.idle', fps: 6, loop: true, fw: 32, fh: 34 },
-          walk: { key: 'chr.spider.walk', fps: 12, loop: true, fw: 32, fh: 34 },
-          attack: { key: 'chr.spider.attack', fps: 12, loop: false, fw: 56, fh: 34 },
-          hurt: { key: 'chr.spider.hurt', fps: 12, loop: false, fw: 56, fh: 34 },
-          death: { key: 'chr.spider.death', fps: 8, loop: false, fw: 56, fh: 34 },
-        }
-      });
-    }
+    if (img['chr.spider.walk']) S.sheet('spider', spiderSpec('chr.spider.'));
 
     // 2. New Bosses
     // Dragon
@@ -423,30 +452,18 @@
     sheet('boss_voideye', 'boss.voideye', 128, 64, EYE, 'center');
 
     // enemy variants: sprite 'plant_v1', 'slime_v3' ...
-    const ENEMY = (t) => ({ idle: [t + '.idle', 7, 1], walk: [t + '.walk', 10, 1], attack: [t + '.attack', 12, 0], hurt: [t + '.hurt', 12, 0], death: [t + '.death', 8, 0] });
     const cells = { plant: 32, slime: 28, orc: 32, goblin: 28 };
     for (const t of Object.keys(cells)) {
       const n = (en[t] && en[t].variants) || 0;
-      for (let v = 1; v <= n; v++) sheet(t + '_v' + v, 'chr', cells[t], cells[t], ENEMY(t + '.v' + v));
+      const c = (en[t] && en[t].fw) || cells[t];
+      for (let v = 1; v <= n; v++) if (img['chr.' + t + '.v' + v + '.idle']) S.sheet(t + '_v' + v, { fw: c, fh: c, feet: 'idle', anchor: 'feet', snap: true, strips: enemyStrips('chr.' + t + '.v' + v) });
     }
     const nsp = (en.spider && en.spider.variants) || 0;
-    for (let v = 1; v <= nsp; v++) {
-      const k = 'chr.spider.v' + v + '.';
-      if (!img[k + 'walk']) continue;
-      S.sheet('spider_v' + v, {
-        fw: 32, fh: 34, feet: 'idle', anchor: 'feet',
-        strips: {
-          idle: { key: k + 'idle', fps: 6, loop: true, fw: 32, fh: 34 },
-          walk: { key: k + 'walk', fps: 12, loop: true, fw: 32, fh: 34 },
-          attack: { key: k + 'attack', fps: 12, loop: false, fw: 56, fh: 34 },
-          hurt: { key: k + 'hurt', fps: 12, loop: false, fw: 56, fh: 34 },
-          death: { key: k + 'death', fps: 8, loop: false, fw: 56, fh: 34 },
-        },
-      });
-    }
-    // golems (80px frames): the clay golem and two variants
-    sheet('golem', 'chr', 80, 80, ENEMY('golem'));
-    for (let v = 1; v <= 2; v++) sheet('golem_v' + v, 'chr', 80, 80, ENEMY('golem.v' + v));
+    for (let v = 1; v <= nsp; v++) if (img['chr.spider.v' + v + '.walk']) S.sheet('spider_v' + v, spiderSpec('chr.spider.v' + v + '.'));
+    // golems (96px frames): the clay golem and two variants
+    const gc = (en.golem && en.golem.fw) || 80;
+    if (img['chr.golem.idle']) S.sheet('golem', { fw: gc, fh: gc, feet: 'idle', anchor: 'feet', snap: true, strips: enemyStrips('chr.golem') });
+    for (let v = 1; v <= 2; v++) if (img['chr.golem.v' + v + '.idle']) S.sheet('golem_v' + v, { fw: gc, fh: gc, feet: 'idle', anchor: 'feet', snap: true, strips: enemyStrips('chr.golem.v' + v) });
 
     // loot and power-up icons
     for (let i = 1; i <= 367; i++) if (img['loot.' + i]) S.fromImage('loot.' + i, 'loot.' + i, 'center');
@@ -472,8 +489,27 @@
     registerStrips();
     registerItems();
     registerNewProps();
+    registerValley();
     Art.on = ok >= 10;
+    if (Art.on) Art.applyEnemyScale();
     return Art.on;
+  };
+
+  /* look values and collision radius follow the bigger art (once) */
+  Art.applyEnemyScale = function () {
+    if (Art.scaled) return;
+    Art.scaled = true;
+    const L = CH.Enemies.look;
+    for (const t of Object.keys(ESCALE)) {
+      const k = ESCALE[t];
+      if (!L[t] || !S.has(L[t].sprite)) continue;
+      L[t].foot = Math.round(L[t].foot * k);
+      L[t].h = Math.round(L[t].h * k);
+      L[t].shadow = Math.round(L[t].shadow * k);
+      if (L[t].fly) L[t].fly = Math.round(L[t].fly * k);
+      const b = CH.Balance.enemies[t];
+      if (b) b.r = Math.round(b.r * k * 10) / 10;
+    }
   };
 
   Art.enemyArt = ENEMY_ART;

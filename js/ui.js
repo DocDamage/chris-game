@@ -179,7 +179,8 @@
   };
 
   UI.refreshMenuMeta = function () {
-    setText($('menu-best'), 'BEST SCORE: ' + U.fmtNum(Storage.stats.highScore));
+    setText($('menu-best'), 'BEST ' + U.fmtNum(Storage.stats.highScore));
+    if (CH.Menus && CH.Menus.heroLabel) CH.Menus.heroLabel();
     setText($('menu-diff'), B.difficulty[Storage.settings.difficulty].name.toUpperCase());
     UI.renderControlsStrip();
   };
@@ -444,7 +445,7 @@
         return true;
       }
     }
-    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item, .vend-cell, .pz-btn, .ig-cell, .pd-slot, .skr-card')).filter((b) => b.offsetParent !== null && !b.disabled);
+    const items = Array.from(root.querySelectorAll('.card, .btn, .swatch, .codex-item, .vend-cell, .pz-btn, .ig-cell, .pd-slot, .skr-card, .sk-node')).filter((b) => b.offsetParent !== null && !b.disabled);
     if (!items.length) return false;
     // read-only screens (how to play, credits, stats) have nothing to focus but BACK: up / down scrolls them instead
     const sc = root.querySelector('.scroll');
@@ -999,6 +1000,14 @@
       box.textContent = '';
       box.classList.add('weaponslots');
       h.slots = [];
+      // the hero's own weapon (heroatk.js) leads the bar; its id is read from the player every frame
+      {
+        const d = document.createElement('div');
+        d.className = 'slot sig locked';
+        d.innerHTML = '<img alt=""><span class="key">I</span><span class="role"></span><span class="ammo"></span><div class="cd"></div>';
+        box.appendChild(d);
+        h.slots.push({ id: null, sig: true, el: d, img: d.querySelector('img'), key: d.querySelector('.key'), role: d.querySelector('.role'), ammo: d.querySelector('.ammo'), cd: d.querySelector('.cd') });
+      }
       B.weaponOrder.forEach((id, i) => {
         const d = document.createElement('div');
         d.className = 'slot locked';
@@ -1014,7 +1023,7 @@
   UI.refreshWeapons = function () {
     G.players.forEach((p, i) => {
       const h = UI.huds[i];
-      if (h) for (const s of h.slots) toggleCls(s.el, 'locked', !p.weapons.includes(s.id));
+      if (h) for (const s of h.slots) if (!s.sig) toggleCls(s.el, 'locked', !p.weapons.includes(s.id));
     });
   };
 
@@ -1093,6 +1102,15 @@
     // weapon slots: the main weapon (RT / left mouse) and the second weapon (LT / right mouse) are marked
     const roles = ROLE[pad ? 'pad' : 'kbm'];
     for (const s of h.slots) {
+      if (s.sig) { // follow the player's hero
+        const sd = CH.HeroAtk && CH.HeroAtk.sigOf(p);
+        const sid = sd ? sd.id : null;
+        if (s.id !== sid) {
+          s.id = sid;
+          if (sid) { s.img.src = CH.Sprites.icon(CH.Weapons.iconSprite(sid)); s.el.title = B.weapons[sid].name; }
+        }
+        if (!sid) { toggleCls(s.el, 'locked', true); continue; }
+      }
       const owned = p.weapons.includes(s.id);
       toggleCls(s.key, 'hidden', pad);
       toggleCls(s.el, 'locked', !owned);

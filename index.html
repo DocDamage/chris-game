@@ -74,20 +74,23 @@
         <h1 class="title" data-text="CHAOS.exe">CHAOS<span>.exe</span></h1>
         <div class="tagline">reality has stopped responding</div>
       </div>
+      <!-- five main choices; everything else lives in the Journal or the quiet link row -->
       <div class="menu-col">
         <button class="btn primary" id="btn-play">PLAY</button>
-        <button class="btn" id="btn-coop">CO-OP  (2 PLAYERS)</button>
-        <button class="btn" id="btn-howto">HOW TO PLAY</button>
+        <button class="btn" id="btn-coop">CO-OP</button>
         <button class="btn" id="btn-settings">SETTINGS</button>
-        <button class="btn" id="btn-shelter">SAFEHOUSE &amp; BASE</button>
-        <button class="btn" id="btn-codex">TROPHY CODEX</button>
-        <button class="btn" id="btn-extras">EXTRAS &amp; MODES</button>
-        <button class="btn" id="btn-stats">STATISTICS</button>
-        <button class="btn" id="btn-credits">CREDITS</button>
+        <button class="btn" id="btn-shelter" style="display:none">SAFEHOUSE &amp; BASE</button>
+      </div>
+      <div class="menu-more">
+        <button class="btn link" id="btn-howto">HOW TO PLAY</button>
+        <button class="btn link" id="btn-codex">CODEX</button>
+        <button class="btn link" id="btn-stats">STATS</button>
+        <button class="btn link" id="btn-extras">MODES</button>
+        <button class="btn link" id="btn-credits">CREDITS</button>
       </div>
       <div class="menu-meta">
-        <div id="menu-best">BEST SCORE: 0</div>
         <div id="menu-diff" class="chip">NORMAL</div>
+        <div id="menu-best">BEST SCORE: 0</div>
       </div>
       <div class="controls-strip" id="controls-strip"></div>
     </div>
@@ -389,6 +392,7 @@
 <script src="js/loot.js"></script>
 <script src="js/powerups.js"></script>
 <script src="js/events.js"></script>
+<script src="js/props.js"></script>
 <script src="js/arenas.js"></script>
 <script src="js/level.js"></script>
 <script src="js/levelgen.js"></script>
@@ -408,6 +412,8 @@
     <script src="js/foes.js"></script>
 <script src="js/meta.js"></script>
 <script src="js/kits.js"></script>
+<script src="js/heroatk.js"></script>
+<script src="js/skills.js"></script>
 <script src="js/sidekicks.js"></script>
 <script src="js/extras.js"></script>
 <script src="js/hudx.js"></script>
@@ -423,6 +429,8 @@
 <script src="js/postfx.js"></script>
 <script src="js/fires.js"></script>
 <script src="js/sheets.js"></script>
+<script src="js/setpieces.js"></script>
+<script src="js/hideout.js"></script>
 <script src="js/journal.js"></script>
 <script src="js/mapscroll.js"></script>
 <script src="js/menus.js"></script>

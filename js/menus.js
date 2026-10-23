@@ -68,15 +68,17 @@
     const b = document.createElement('button');
     b.className = 'btn';
     b.id = 'btn-heroes';
-    b.textContent = 'CHOOSE HERO';
+    b.textContent = 'HERO';
     b.onclick = () => Menus.heroes();
     col.insertBefore(b, $('btn-coop'));
+    Menus.heroLabel = () => { const h = B.heroes.find((q) => q.id === Storage.settings.hero) || B.heroes[0]; b.innerHTML = 'HERO <span class="mm-hero">' + esc(h.name.split(',')[0].toUpperCase()) + '</span>'; };
+    Menus.heroLabel();
     const j = document.createElement('button');
     j.className = 'btn';
     j.id = 'btn-journal';
     j.textContent = 'JOURNAL';
     j.onclick = () => CH.Journal && CH.Journal.show(0, 0, 'main', UIK.colorFor(0));
-    col.insertBefore(j, $('btn-howto'));
+    col.insertBefore(j, $('btn-settings'));
   }
 
   /* ---------------------------------------------------------------- Gold book: hero select */

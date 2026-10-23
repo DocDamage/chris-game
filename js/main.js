@@ -39,6 +39,7 @@
     G.init(canvas);
     if (CH.UIK && CH.UIK.install()) { CH.Journal.init(); if (CH.Menus) CH.Menus.init(); } // pack UI: nine-slice theme, the Journal book, pause row, hero select
     CH.UI.init();
+    if (CH.Skills) { CH.Skills.init(); CH.Skills.addPauseButton(); } // the skill tree screen and its pause menu button
     if (CH.PostFX) CH.PostFX.boot();
     CH.Audio.setMusic('menu');
     document.getElementById('loading').classList.add('done');

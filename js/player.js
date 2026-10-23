@@ -22,6 +22,7 @@
       if (prop.dead || !prop.jumpable) continue;
       const px = prop.x + (prop.cx || 0);
       const py = prop.y + (prop.cy || 0);
+      if (prop.box) { if (CH.Props.touches(prop, p.x, p.y + 10, p.r + 22)) return true; continue; }
       const dx = p.x - px;
       const dy = p.y - py;
       const jumpDist = (prop.cr || 10) + p.r + 22;
@@ -326,7 +327,8 @@
             const dy = this.y - py;
             const topElev = prop.elevation || 12;
             const surfR = (prop.cr || 10) + 7;
-            if (dx * dx + dy * dy <= surfR * surfR && this.z <= topElev + 6 && this.z >= topElev - 6) {
+            const over = prop.box ? CH.Props.touches(prop, this.x, this.y + 10, 5) : dx * dx + dy * dy <= surfR * surfR;
+            if (over && this.z <= topElev + 6 && this.z >= topElev - 6) {
               landed = prop;
               break;
             }
@@ -365,7 +367,7 @@
           const dx = this.x - px;
           const dy = this.y - py;
           const surfR = (prop.cr || 10) + 8;
-          if (dx * dx + dy * dy > surfR * surfR) {
+          if (prop.box ? !CH.Props.touches(prop, this.x, this.y + 10, 6) : dx * dx + dy * dy > surfR * surfR) {
             this.onProp = null;
             this.jumping = true;
             this.vz = 0;
@@ -375,6 +377,9 @@
 
       // ---- prop collisions & interactive foliage rustle ----
       if (g.arena && g.arena.props) {
+        const me = this;
+        // standing on a prop, or airborne above its top: no push
+        CH.Props.collide(this, 10, this.r, (prop) => me.onProp === prop || (me.z >= (prop.elevation || 10) - 1 && prop.jumpable));
         for (const prop of g.arena.props) {
           if (prop.dead) continue;
           const px = prop.x + (prop.cx || 0);
@@ -383,21 +388,7 @@
           const dy = this.y + 10 - py; // collide with the feet, not the middle of the body
           const d2 = dx * dx + dy * dy;
 
-          // Solid prop collision (trees, rocks, pillars, desks, etc.)
-          if (prop.solid) {
-            // If standing on THIS prop, or airborne above its top surface, don't push out!
-            if (this.onProp === prop || (this.z >= (prop.elevation || 10) - 1 && prop.jumpable)) {
-              // standing or passing over top surface
-            } else {
-              const minD = (prop.cr || 10) + this.r;
-              if (d2 < minD * minD && d2 > 0.0001) {
-                const d = Math.sqrt(d2);
-                const push = minD - d;
-                this.x += (dx / d) * push;
-                this.y += (dy / d) * push;
-              }
-            }
-          }
+          // (solid props push the feet out below, through CH.Props.collide: boxes and circles alike)
 
           // Foliage sway & rustle when player brushes through or walks past
           if (prop.swayable) {
@@ -834,48 +825,36 @@
     let name = 'player';
     if (art) {
       name = hero;
-      const heroSheet = S.get(hero);
-      const hasRot = heroSheet && heroSheet.anims && heroSheet.anims['rot_' + dir8];
+      // Every state plays its own strip at its own pace; the rotation stills are only for the hero select turntable.
+      const af = CH.HeroAtk && CH.HeroAtk.frame(p);
+      const hurtK = p.hurtAt !== undefined ? (g.time - p.hurtAt) / 0.32 : 9;
+      opts.flip = p.face < 0;
       if (p.cast) {
         opts.frame = S.frameAt(hero, 'skill', Math.min(0.99, p.cast.t / p.cast.dur));
         opts.flip = false; // the skill animation faces the camera
       } else if (p.rolling) {
-        opts.frame = S.frameAt(hero, 'dash', Math.min(0.99, 1 - p.rollT / P.dodgeDuration));
+        // the roll is short: the dash strip without its lead-in and settle frames
+        opts.frame = S.frameSpan(hero, 'dash', 1 - p.rollT / P.dodgeDuration, 1, -2);
         opts.flip = p.rollDx < 0;
-      } else if (p.flash > 0.45 && p.hp > 0) {
-        opts.frame = S.frameAt(hero, 'hurt', (1 - p.flash) / 0.55);
-        opts.flip = p.face < 0;
-      } else if (p.swing) {
-        opts.frame = S.frameAt(hero, 'heavy', Math.min(0.99, p.swing.t / p.swing.dur));
-        opts.flip = p.face < 0;
-      } else if (p.fireT > 0) {
-        opts.frame = S.frameAt(hero, 'attack', Math.min(0.99, 1 - p.fireT / 0.22));
-        opts.flip = p.face < 0;
+      } else if (af) {
+        opts.frame = af.frame;
+        opts.flip = af.flip;
+      } else if (hurtK < 1 && p.hp > 0) {
+        opts.frame = S.frameAt(hero, 'hurt', hurtK);
+      } else if (p.quick) {
+        // a junk weapon or the baguette: the impact part of the attack strip, not the whole swing squeezed into 0.2 s
+        const n = S.animFrames(hero, 'attack');
+        const hit = Math.round(n * ((CH.HeroAtk && CH.HeroAtk.sigOf(p) && CH.HeroAtk.sigOf(p).hit) || 0.5));
+        opts.frame = S.frameSpan(hero, 'attack', p.quick.t / p.quick.dur, Math.max(0, hit - 2), Math.min(n - 1, hit + 2));
       } else if (p.jumping || p.z > 2 || (g.mods.lowGrav && !p.moving)) {
-        opts.frame = S.frame(hero, 'jump', g.time);
-        opts.flip = p.face < 0;
+        // take-off, apex and landing follow the real vertical speed
+        const v0 = g.mods.lowGrav ? 230 : 185;
+        opts.frame = S.frameAt(hero, 'jump', U.clamp(0.5 - (p.vz || 0) / (2 * v0), 0.05, 0.95));
       } else if (p.moving) {
-        if (dir8 === 'e' || dir8 === 'w') {
-          opts.frame = S.frame(hero, p.sprinting ? 'run' : 'walk', p.walkT * (p.sprinting ? 0.9 : 0.85));
-          opts.flip = dir8 === 'w';
-        } else if (hasRot) {
-          opts.frame = S.frame(hero, 'rot_' + dir8, 0);
-          opts.flip = false;
-          bob = -Math.abs(Math.sin(p.walkT * 10)) * 2.2;
-          opts.rot = Math.sin(p.walkT * 10) * 0.06;
-        } else {
-          opts.frame = S.frame(hero, p.sprinting ? 'run' : 'walk', p.walkT * (p.sprinting ? 0.9 : 0.85));
-          opts.flip = p.face < 0;
-        }
+        // walkT runs 1.5x while sprinting; the strip rates (art.js) are set so a step covers about what the feet travel
+        opts.frame = S.frame(hero, p.sprinting ? 'run' : 'walk', p.walkT);
       } else {
-        if (hasRot) {
-          opts.frame = S.frame(hero, 'rot_' + dir8, 0);
-          opts.flip = false;
-          bob = Math.sin(g.wall * 3.5) * 0.6;
-        } else {
-          opts.frame = S.frame(hero, 'idle', g.time);
-          opts.flip = p.face < 0;
-        }
+        opts.frame = S.frame(hero, 'idle', g.time);
       }
       if (g.mods.bigHead) {
         opts.sx = 1.3;

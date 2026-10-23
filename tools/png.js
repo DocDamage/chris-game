@@ -204,4 +204,15 @@ function downscale(img, f, alphaCut) {
   return out;
 }
 
-module.exports = { decode, encode, blank, blit, bounds, crop, downscale };
+/* remove the soft ground shadow some packs bake under their characters (one flat colour, rgba 40,41,63,89):
+   the game draws its own contact shadow, and the baked one would push the feet anchor below the feet */
+function unshadow(img) {
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3];
+    if (a >= 70 && a <= 110 && Math.abs(d[i] - 40) <= 4 && Math.abs(d[i + 1] - 41) <= 4 && Math.abs(d[i + 2] - 63) <= 4) d[i + 3] = 0;
+  }
+  return img;
+}
+
+module.exports = { decode, encode, blank, blit, bounds, crop, downscale, unshadow };

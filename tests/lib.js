@@ -66,19 +66,21 @@ const BOT = () => {
       if (d < nd) { nd = d; near = e; }
     }
     if (bot.weaponPolicy) bot.weaponPolicy(p, near, nd);
-    else if (bot.stats.steps % 120 === 0 && !bot.fixedWeapon) {
+    else if (bot.stats.steps % 120 === 0 && !bot.fixedWeapon && !(CH.HeroAtk && CH.HeroAtk.isSig(p.weapon))) { // a hero's own weapon stays in hand
       const pref = ['pizza', 'chicken', 'problem', 'chair', 'junk'];
       for (const w of pref) if (p.weapons.includes(w)) { if (p.weapon !== w) p.selectWeapon(w); break; }
     }
     const tgt = near || { x: p.x, y: p.y };
     I.mouse.x = tgt.x - G.cam.x; I.mouse.y = tgt.y - G.cam.y; I.mouse.inside = true;
-    const range = p.weapon === 'baguette' ? 42 : 280;
+    const sig = CH.HeroAtk && CH.HeroAtk.byWeapon[p.weapon];
+    const melee = sig ? sig.kind === 'melee' || sig.kind === 'pulse' : p.weapon === 'baguette';
+    const range = sig && melee ? sig.reach + 8 : melee ? 42 : 280;
     I.mouse.down = !!near && nd < range;
     let vx = 0, vy = 0, danger = 0, crowd = 0;
     for (const e of G.enemies) {
       if (e.dead || e.state === 'spawn' || e.hidden) continue;
       const d = Math.max(1, dist(e, p));
-      const rng = e.isBoss ? 140 : p.weapon === 'baguette' ? 40 : 95;
+      const rng = e.isBoss ? (melee ? 70 : 140) : melee ? 26 : 95;
       if (d < rng) { const w = (rng - d) / rng * (e.isBoss ? 2 : 1); vx -= (e.x - p.x) / d * w; vy -= (e.y - p.y) / d * w; danger += w; crowd++; }
       if (e.tele && e.tele.t > 0 && d < 160) {
         const a = Math.atan2(p.y - e.y, p.x - e.x); vx += Math.cos(a) * 1.5; vy += Math.sin(a) * 1.5; danger += 1;
@@ -107,7 +109,7 @@ const BOT = () => {
     let pk = null, pd = 150;
     for (const k of G.pickups) { if (k.collected) continue; const d = dist(k, p); if (d < pd) { pd = d; pk = k; } }
     if (pk && danger < 1.2) { const a = Math.atan2(pk.y - p.y, pk.x - p.x); vx += Math.cos(a) * 0.9; vy += Math.sin(a) * 0.9; }
-    if (near && nd > 130 && danger < 0.3 && !pk) { const a = Math.atan2(near.y - p.y, near.x - p.x); vx += Math.cos(a) * 0.5; vy += Math.sin(a) * 0.5; }
+    if (near && nd > (melee ? range - 10 : 130) && danger < (melee ? 1.2 : 0.3) && !pk) { const a = Math.atan2(near.y - p.y, near.x - p.x); vx += Math.cos(a) * (melee ? 1 : 0.5); vy += Math.sin(a) * (melee ? 1 : 0.5); } // melee heroes close in
     if (near && nd < 140) { const a = Math.atan2(near.y - p.y, near.x - p.x) + Math.PI / 2; vx += Math.cos(a) * 0.35; vy += Math.sin(a) * 0.35; }
     const m = 60, W = G.arena.w, H = G.arena.h;
     if (p.x < m) vx += (m - p.x) / m * 2;

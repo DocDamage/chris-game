@@ -188,7 +188,8 @@
     // a wiped party is handled by the shared death logic; nothing else to do here
   };
 
-  function wake(pk) {
+  /* loiter: the monsters of a camp are spawned before a hero is close and wander about it (js/setpieces.js) */
+  function wake(pk, loiter) {
     pk.woke = true;
     const L = G.level;
     const room = Run.aliveCount();
@@ -199,6 +200,7 @@
       const type = i % 4 === 3 ? pk.mixed : pk.type;
       const e = G.spawnEnemy(type, p.x, p.y, { elite: pk.elite && i === 0, variant: CH.Enemies.rollVariant(type, G.wave, arenaId), spawnTime: 0.25 + Math.random() * 0.2 });
       e.pack = pk;
+      if (loiter && pk.camp) { e.loiter = { x: pk.camp.x, y: pk.camp.y, r: Math.max(40, pk.camp.r * 0.7) }; e.spawnSilent = true; }
       if (pk.leader && i === 0) { e.isElite = true; e.leader = true; }
       if (pk.unique && i === 0) { e.unique = pk.unique; e.isElite = true; e.maxHp = e.hp = Math.round(e.maxHp * 2.6); e.scale *= 1.25; }
     }
@@ -315,6 +317,8 @@
   });
 
   /* ------------------------------------------------------------------ finishing a stage */
+  Run.wake = wake;
+
   Run.complete = function () {
     if (G.waveState === 'clear') return;
     const L = G.level;

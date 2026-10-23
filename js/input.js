@@ -27,6 +27,7 @@
     KeyJ: 'journal', // opens the Journal book
     KeyN: 'map', // opens the map scroll
     KeyI: 'inventory', // Journal, Inventory tab
+    KeyK: 'skills', // the skill tree
     F11: 'fullscreen', // F belongs to fortify (build a barricade)
     Digit1: 'w1',
     Digit2: 'w2',
@@ -123,7 +124,7 @@
       const acts = Input.codeToActions[e.code] || [];
       // global hotkeys always work; gameplay actions only matter while playing
       for (const a of acts) {
-        if (a === 'pause' || a === 'mute' || a === 'fullscreen' || a === 'journal' || a === 'inventory' || a === 'map') {
+        if (a === 'pause' || a === 'mute' || a === 'fullscreen' || a === 'journal' || a === 'inventory' || a === 'map' || a === 'skills') {
           if (Input.onGlobal) Input.onGlobal(a, e);
         }
       }

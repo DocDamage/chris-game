@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const P = require('./png');
+const { dirStrips } = require('./pack-monsters');
 
 const ROOT = path.resolve(__dirname, '..');
 const A = path.join(ROOT, 'assets');
@@ -274,11 +275,6 @@ function packExtra() {
   }
 
   /* ---------------------------------------------------------------- enemy variants */
-  const rowStrip = (file, cell, scale) => {
-    const sheet = rd(file);
-    const frames = Math.max(1, Math.floor(sheet.w / cell));
-    return P.downscale(P.crop(sheet, 0, 0, frames * cell, cell), scale);
-  };
   const ENE = path.join(A, 'enemies');
   const variants = {}; // type -> [{an: file}]
   const AN = ['idle', 'walk', 'attack', 'hurt', 'death'];
@@ -291,7 +287,14 @@ function packExtra() {
   variants.orc = [2, 3].map((n) => Object.fromEntries(AN.map((a) => [a, path.join(ENE, 'orcs', 'Tiled_files', 'orc' + n + '_' + a + '_full.png')])));
   // goblins 2, 3
   variants.goblin = [2, 3].map((n) => Object.fromEntries(AN.map((a) => [a, path.join(ENE, 'goblins', 'PNG', 'Goblin' + n, cap(a), cap(a) + '_full.png')])));
-  const cellOf = { plant: [64, 0.5], slime: [64, 0.44], orc: [64, 0.5], goblin: [64, 0.44] };
+  const cellOf = { plant: [64, 46 / 64], slime: [64, 40 / 64], orc: [64, 46 / 64], goblin: [64, 40 / 64] }; // same cells as the base sets in pack-monsters.js
+  // 4-direction sheets: side row + down / up rows, baked shadows removed (see dirStrips in pack-monsters.js)
+  const putDirs = (key, file, cell, scale) => {
+    const d = dirStrips(file, cell, scale);
+    put(key, d.side);
+    put(key + '_d', d.d);
+    put(key + '_u', d.u);
+  };
   for (const type of Object.keys(variants)) {
     variants[type].forEach((set, i) => {
       for (const a of AN) {
@@ -299,12 +302,12 @@ function packExtra() {
           console.warn('  ! missing', set[a]);
           continue;
         }
-        put('chr.' + type + '.v' + (i + 1) + '.' + a, rowStrip(set[a], cellOf[type][0], cellOf[type][1]));
+        putDirs('chr.' + type + '.v' + (i + 1) + '.' + a, set[a], cellOf[type][0], cellOf[type][1]);
       }
     });
     meta.enemies[type] = { variants: variants[type].length };
   }
-  // spiders: aqua, brown, purple
+  // spiders: aqua, brown, purple (56px frames, like the black one)
   {
     const dir = path.join(ENE, 'giant-spiders', 'TheForest_GiantSpider_v2');
     ['Aqua', 'Brown', 'Purple'].forEach((col, i) => {
@@ -312,8 +315,8 @@ function packExtra() {
       const walk = fs.existsSync(path.join(dir, col + 'Spider_walk.png')) ? col + 'Spider_walk.png' : col + 'Spider-walk.png';
       const sheet = rd(path.join(dir, walk));
       put(k + 'walk', sheet);
-      put(k + 'idle', P.crop(sheet, 0, 0, 32, 34));
-      for (const a of ['attack', 'hurt', 'death']) put(k + a, rd(path.join(dir, col + 'Spider_' + a + '.png')));
+      put(k + 'idle', P.crop(sheet, 0, 0, 56, 34));
+      for (const a of ['attack', 'hurt', 'death', 'sleep']) if (fs.existsSync(path.join(dir, col + 'Spider_' + a + '.png'))) put(k + a, rd(path.join(dir, col + 'Spider_' + a + '.png')));
     });
     meta.enemies.spider = { variants: 3 };
   }
@@ -326,10 +329,10 @@ function packExtra() {
       for (const an of Object.keys(defs)) {
         const f = path.join(dir, 'Golem' + n + '_' + defs[an] + '_full.png');
         if (!fs.existsSync(f)) continue;
-        put('chr.golem' + (n > 1 ? '.v' + (n - 1) : '') + '.' + an, rowStrip(f, 128, 0.625));
+        putDirs('chr.golem' + (n > 1 ? '.v' + (n - 1) : '') + '.' + an, f, 128, 0.75);
       }
     }
-    meta.enemies.golem = { fw: 80, fh: 80, variants: 2 };
+    meta.enemies.golem = { fw: 96, fh: 96, variants: 2, dirs: true };
   }
 
   /* ---------------------------------------------------------------- mob drops and power ups: one small image per item */

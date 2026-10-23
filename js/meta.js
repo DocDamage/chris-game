@@ -659,7 +659,7 @@
       p.rr.banish = Math.max(0, p.rr.banish - tight);
     }
     if (run.mode === 'training') {
-      for (const id of Object.keys(B.weapons)) if (!p.weapons.includes(id)) p.addWeapon(id);
+      for (const id of Object.keys(B.weapons)) if (!p.weapons.includes(id) && !B.weapons[id].sig) p.addWeapon(id); // not the other heroes' own weapons
       for (const id of p.weapons) if (p.ws[id]) p.ws[id].level = B.weaponMaxLevel;
       Up.recalc(p);
       p.hp = p.maxHp;

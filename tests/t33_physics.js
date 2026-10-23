@@ -35,7 +35,13 @@ const { open } = require('./lib');
     // 4. prop hitboxes follow the sprite size
     X.startRun({}, null);
     const bad = []; let n = 0;
-    for (const pr of G.level.props) { if (!pr.solid || pr.kind === 'tree' || pr.fire) continue; const sp = CH.Sprites.get(pr.sprite); n++; if (sp && sp.w && pr.cr < Math.min(26, Math.round(sp.w * 0.36)) - 1) bad.push(pr.sprite + ':' + pr.cr + '<' + sp.w); }
+    for (const pr of G.level.props) {
+      if (!pr.solid || pr.kind === 'tree' || pr.fire) continue;
+      const sp = CH.Sprites.get(pr.sprite); n++;
+      // catalogue props block with a box at their base (js/props.js): it must be at least 3 px each way and inside the sprite
+      if (pr.box) { if (pr.box.hw < 3 || pr.box.hh < 3 || (sp && sp.w && pr.box.hw * 2 > sp.w + 2)) bad.push(pr.sprite + ':box ' + pr.box.hw + 'x' + pr.box.hh); continue; }
+      if (sp && sp.w && pr.cr < Math.min(26, Math.round(sp.w * 0.36)) - 1) bad.push(pr.sprite + ':' + pr.cr + '<' + sp.w);
+    }
     r.props = n; r.badProps = bad.slice(0, 4);
     // 5. walking into a prop: the feet stop at its hitbox
     const L2 = G.level; const p2 = G.player; const pr = L2.props.find((q) => q.solid && q.kind !== 'tree');

@@ -269,7 +269,7 @@
     const reserved = [L.entrance, L.exit].concat(L.waypoints, L.spawners, L.chests, L.shrines);
     const names = (DECOR[biome] || DECOR.dungeon).filter((n) => CH.Sprites.has(n) || n.indexOf('obj.') !== 0);
     const decor = names.filter((n) => CH.Sprites.has(n));
-    if (decor.length) {
+    if (decor.length && !(CH.SetPieces && CH.SetPieces.on)) { // set pieces dress the rooms instead (js/setpieces.js)
       for (const r of rooms) {
         const area = (r.w || 8) * (r.h || 8);
         const n = Math.floor(area / 38) + R.int(0, 2);

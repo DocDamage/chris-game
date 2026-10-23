@@ -598,36 +598,20 @@ const shot = (page, name) => page.screenshot({ path: path.join(__dirname, 'co_' 
     const [a, b] = G.players;
     CH.Upgrades.addXp(G, CH.Balance.xp.need(a.level) / CH.Balance.coop.xpMul, a); // exactly one level (co-op gems are worth less)
     __f(3);
-    const first = { state: G.state, who: G.luPlayer && G.luPlayer.name, cards: G.cards && G.cards.length, sub: document.getElementById('levelup-sub').textContent, hint: document.getElementById('levelup-hint').textContent, levels: [a.level, b.level] };
-    return first;
+    return { state: G.state, sp: [a.sp, b.sp], levels: [a.level, b.level] };
   });
-  ok('levelling up gives every player a pick, starting with player 1 (shown on screen)', r.state === 'levelup' && r.who === 'P1' && r.cards === 3 && /P1/.test(r.sub) && r.levels[0] === r.levels[1], r);
-  await page.waitForTimeout(400);
-  await shot(page, 'levelup_p1');
-  // P2's pad cannot answer P1's card choice
-  r = await E(() => {
-    __tap(1, 0, 3); // P2 presses A
-    return { state: CH.G.state, who: CH.G.luPlayer && CH.G.luPlayer.name };
-  });
-  ok("during player 1's pick, player 2's controller does nothing", r.state === 'levelup' && r.who === 'P1', r);
-  await page.waitForTimeout(120);
+  ok('levelling up gives every player their own skill point, play goes on', r.state === 'playing' && r.sp[0] === 1 && r.sp[1] === 1 && r.levels[0] === r.levels[1], r);
+  // each player spends their own points in their own tree
   r = await E(() => {
     const G = CH.G;
     const [a, b] = G.players;
-    const card = G.cards[0];
-    __tap(0, 0, 3); // P1 presses A on the focused card
-    const afterP1 = { who: G.luPlayer && G.luPlayer.name, state: G.state };
-    return { card: card.kind + ':' + card.id, afterP1 };
+    CH.Skills.show(b);
+    const who = CH.Skills.who === b && G.state === 'paused';
+    CH.Skills.learn(b, 'life');
+    CH.Skills.close();
+    return { who, a: [a.sp, CH.Skills.rank(a, 'life')], b: [b.sp, CH.Skills.rank(b, 'life')], hpB: b.maxHp, hpA: a.maxHp, state: G.state };
   });
-  ok('player 1 picks with A, then it is player 2\'s turn', r.afterP1.state === 'levelup' && r.afterP1.who === 'P2', r);
-  await page.waitForTimeout(120);
-  r = await E(() => {
-    const G = CH.G;
-    __tap(1, 13, 3); // P2 moves down
-    __tap(1, 0, 3); // and confirms
-    return { state: G.state, who: G.luPlayer && G.luPlayer.name };
-  });
-  ok("player 2 picks with their own controller and play resumes", r.state === 'playing', r);
+  ok("player 2's tree is their own: their point, their skill", r.who && r.b[0] === 0 && r.b[1] === 1 && r.a[0] === 1 && r.a[1] === 0 && r.hpB > r.hpA && r.state === 'playing', r);
   r = await E(() => {
     const G = CH.G;
     const [a, b] = G.players;

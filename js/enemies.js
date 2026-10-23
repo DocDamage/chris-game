@@ -86,9 +86,16 @@
   const INTERN_LINES = ['FOR EXPOSURE!', 'UNPAID!', 'I HAVE A DEGREE', 'IS THIS PAID?', 'COFFEE RUN!'];
 
   /* ---------------------------------------------------------------- */
+  let uidSeq = 0;
   class Enemy {
     constructor(g, type, x, y, o) {
       o = o || {};
+      this.uid = ++uidSeq;
+      this.svx = 0; // smoothed movement (facing and sprite row follow this, not the raw AI velocity)
+      this.svy = 0;
+      this.vdir = ''; // '' side view, '_d' / '_u' facing down / up (4-direction packs)
+      this.sepx = 0; // crowd steering (E.separate)
+      this.sepy = 0;
       const b = B.enemies[type];
       this.g = g;
       this.type = type;
@@ -251,8 +258,19 @@
     integrate(g, dt) {
       const m = g.mods;
       const sm = this.slowMul * this.zoneSlow * m.enemySpeed * (this.speedX || 1);
-      this.x += (this.dvx * sm + this.kx) * dt;
-      this.y += (this.dvy * sm + this.ky) * dt;
+      // crowd steering is a velocity, capped to the enemy's own pace, so a swarm flows around itself instead of vibrating
+      const sl = Math.hypot(this.sepx, this.sepy), cap = Math.max(30, (this.speed || 40) * 0.9);
+      if (sl > cap) { this.sepx *= cap / sl; this.sepy *= cap / sl; }
+      const mx = this.dvx * sm + this.sepx, my = this.dvy * sm + this.sepy;
+      this.x += (mx + this.kx) * dt;
+      this.y += (my + this.ky) * dt;
+      const sk = Math.min(1, dt * 7);
+      this.svx += (this.dvx * sm - this.svx) * sk;
+      this.svy += (this.dvy * sm - this.svy) * sk;
+      // the walk cycle follows how fast the body really moves (a slowed golem does not paddle in place)
+      this.walkT = (this.walkT || 0) + dt * U.clamp(Math.hypot(this.svx, this.svy) / Math.max(20, this.def ? this.def.speed : 50), 0.45, 1.6);
+      this.sepx = 0;
+      this.sepy = 0;
       const k = Math.max(0, 1 - 7 * dt * (m.lowGrav ? 0.35 : 1));
       this.kx *= k;
       this.ky *= k;
@@ -277,27 +295,20 @@
         this.wallHit = true;
         if (this.ky > 0) this.ky = -this.ky * 0.3;
       }
-      // Prop collisions
-      if (g.arena && g.arena.props) {
-        for (const prop of g.arena.props) {
-          if (!prop.solid || prop.dead) continue;
-          const px = prop.x + (prop.cx || 0);
-          const py = prop.y + (prop.cy || 0);
-          const minD = (prop.cr || 10) + Math.min(this.r, 9);
-          const dx = this.x - px;
-          const dy = this.y + Math.min(10, ((this.look && this.look.foot) || 8) * 0.8) - py; // feet, not the body centre
-          const d2 = dx * dx + dy * dy;
-          if (d2 < minD * minD && d2 > 0.0001) {
-            const d = Math.sqrt(d2);
-            const push = minD - d;
-            this.x += (dx / d) * push;
-            this.y += (dy / d) * push;
-          }
-        }
+      // Prop collisions (at the feet, not the body centre; flyers pass over)
+      if (g.arena && g.arena.props && !(this.look && this.look.fly)) CH.Props.collide(this, Math.min(14, ((this.look && this.look.foot) || 8) * 0.8), Math.min(this.r, 9));
+      // facing with hysteresis: a sideways nudge from the crowd does not flip the sprite back and forth
+      const ax = Math.abs(this.svx), ay = Math.abs(this.svy);
+      if (ax > 12 && Math.sign(this.svx) !== this.face) this.face = this.svx > 0 ? 1 : -1;
+      else if (ax < 6 && ay < 6 && this.tgt && Math.abs(this.tgt.x - this.x) > 8) this.face = this.tgt.x > this.x ? 1 : -1;
+      // 4-direction packs: the down / up row while moving mostly vertically (with a dead zone between)
+      if (ax + ay > 10) {
+        if (ay > ax * 1.5) this.vdir = this.svy > 0 ? '_d' : '_u';
+        else if (ax > ay * 0.9) this.vdir = '';
+      } else if (this.state === 'attack' && this.tgt) {
+        const dx = this.tgt.x - this.x, dy = this.tgt.y - this.y;
+        this.vdir = Math.abs(dy) > Math.abs(dx) * 1.5 ? (dy > 0 ? '_d' : '_u') : '';
       }
-      if (this.dvx > 6) this.face = 1;
-      else if (this.dvx < -6) this.face = -1;
-      else if (this.tgt && Math.abs(this.tgt.x - this.x) > 3) this.face = this.tgt.x > this.x ? 1 : -1;
     }
 
     touchDamage() {
@@ -330,44 +341,75 @@
     return new Enemy(g, type, x, y, o);
   };
 
-  /* push overlapping enemies apart so they do not stack on one pixel */
+  /* Crowds. Each enemy keeps a personal space about its sprite's body width (the collision radius is much smaller
+     than the art, which is what made swarms pile into one blob). Overlap turns into a steering velocity that
+     integrate() applies (capped to the enemy's pace); only a deep overlap is corrected in position, half each way.
+     Neighbours are found through a coarse grid, so big swarms stay cheap. */
+  const GRID = 40;
+  const grid = new Map();
+  E.space = function (e) {
+    if (e._space === undefined) {
+      const L = e.look, S = CH.Sprites;
+      const body = L && CH.Art.on && S.has(L.sprite) ? S.get(L.sprite).body : null;
+      e._space = body ? Math.max(e.baseR, Math.min(body.w * 0.38, 22)) : e.baseR;
+    }
+    const m = e.g.mods;
+    return e._space * e.scale * m.enemyScale;
+  };
   E.separate = function (g) {
     const list = g.enemies;
-    const n = list.length;
-    for (let i = 0; i < n; i++) {
-      const a = list[i];
-      if (a.dead) continue;
-      for (let j = i + 1; j < n; j++) {
-        const b = list[j];
-        if (b.dead) continue;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const min = (a.r + b.r) * 0.85;
+    grid.clear();
+    for (const e of list) {
+      if (e.dead) continue;
+      const k = Math.floor(e.x / GRID) + ',' + Math.floor(e.y / GRID);
+      let c = grid.get(k);
+      if (!c) grid.set(k, (c = []));
+      c.push(e);
+    }
+    for (const a of list) {
+      if (a.dead || a.isBoss) continue;
+      const gx = Math.floor(a.x / GRID), gy = Math.floor(a.y / GRID);
+      const ra = E.space(a);
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+        const c = grid.get(gx + ox + ',' + (gy + oy));
+        if (!c) continue;
+        for (const b of c) {
+          if (b === a || b.dead) continue;
+          const min = ra + E.space(b);
+          let dx = a.x - b.x, dy = (a.y - b.y) * 1.35; // a flatter ellipse: bodies overlap less side by side than in depth
+          let d2 = dx * dx + dy * dy;
+          if (d2 >= min * min) continue;
+          let d = Math.sqrt(d2);
+          if (d < 0.01) { // exactly stacked: split by id so both do not pick the same way
+            const ang = (a.uid * 2.39996) % U.TAU;
+            dx = Math.cos(ang); dy = Math.sin(ang); d = 1; d2 = 1;
+          }
+          const nx = dx / d, ny = dy / d;
+          const over = (min - d) / min; // 0..1
+          const heavy = b.isBoss ? 3 : b.mass / (a.mass + b.mass) * 2;
+          a.sepx += nx * over * 140 * heavy;
+          a.sepy += ny * over * 140 * heavy / 1.35;
+          if (over > 0.55) { // deep overlap: fix part of it right away
+            const fix = (min - d) * 0.25 * heavy;
+            a.x += nx * fix;
+            a.y += (ny * fix) / 1.35;
+          }
+        }
+      }
+      // heroes are solid too: a swarm rings the hero at arm's length instead of piling onto the sprite
+      for (const p of g.players) {
+        if (p.dead || (p.z || 0) > 6) continue;
+        const min = ra + 8;
+        const dx = a.x - p.x, dy = (a.y - p.y) * 1.35;
         const d2 = dx * dx + dy * dy;
         if (d2 >= min * min) continue;
-        let d = Math.sqrt(d2);
-        let nx;
-        let ny;
-        if (d < 0.01) {
-          const ang = Math.random() * U.TAU;
-          nx = Math.cos(ang);
-          ny = Math.sin(ang);
-          d = 0;
-        } else {
-          nx = dx / d;
-          ny = dy / d;
-        }
-        const push = (min - d) * 0.5;
-        const wa = b.mass / (a.mass + b.mass);
-        const wb = a.mass / (a.mass + b.mass);
-        if (!a.isBoss) {
-          a.x -= nx * push * 2 * wa;
-          a.y -= ny * push * 2 * wa;
-        }
-        if (!b.isBoss) {
-          b.x += nx * push * 2 * wb;
-          b.y += ny * push * 2 * wb;
-        }
+        const d = Math.sqrt(d2) || 0.01;
+        const nx = d > 0.01 ? dx / d : Math.cos(a.uid), ny = d > 0.01 ? dy / d : Math.sin(a.uid);
+        const push = min - d;
+        a.x += nx * push * 0.5;
+        a.y += (ny * push * 0.5) / 1.35;
+        a.sepx += nx * 60;
+        a.sepy += ny * 60;
       }
     }
   };
@@ -1087,18 +1129,23 @@
   E.frameFor = function (e) {
     const L = e.look;
     const S = CH.Sprites;
-    const moving = Math.abs(e.dvx) + Math.abs(e.dvy) > 8;
+    const moving = Math.abs(e.svx) + Math.abs(e.svy) > 8 || Math.abs(e.dvx) + Math.abs(e.dvy) > 8;
     if (CH.Art.on && S.has(L.sprite)) {
       const n = L.sprite;
-      if (e.state === 'stunned') return S.frameAt(n, 'hurt', 0.99);
-      if (e.hurtT > 0) return S.frameAt(n, 'hurt', 1 - e.hurtT / 0.28);
+      const an = S.get(n).anims;
+      const dir = (base) => (e.vdir && an[base + e.vdir] ? base + e.vdir : base);
+      e.drawRow = '';
+      const use = (base) => { const k = dir(base); if (k !== base) e.drawRow = e.vdir; return k; };
+      if (e.state === 'stunned') return S.frameAt(n, use('hurt'), 0.99);
+      if (e.hurtT > 0) return S.frameAt(n, use('hurt'), 1 - e.hurtT / 0.28);
       if (e.state === 'attack' || (e.state === 'recover' && e.atkClock < e.atkTotal)) {
         // anticipation frames play during the wind-up, the strike frames during the action
         const wind = e.atkWind || 0.3;
         const k = e.atkClock < wind ? 0.4 * (e.atkClock / wind) : 0.4 + 0.6 * Math.min(1, (e.atkClock - wind) / Math.max(0.05, e.atkTotal - wind));
-        return S.frameAt(n, 'attack', k);
+        return S.frameAt(n, use('attack'), k);
       }
-      return moving ? S.frame(n, 'walk', e.age) : S.frame(n, 'idle', e.age);
+      if (e.asleep && an.sleep) return S.frameAt(n, 'sleep', 0.99);
+      return moving ? S.frame(n, use('walk'), e.walkT || e.age) : S.frame(n, use('idle'), e.age);
     }
     switch (L.anim) {
       case 'walk3':
@@ -1159,11 +1206,12 @@
       dy = Math.round(U.rand(-1, 1));
     }
     const sq = Math.max(0, e.squash);
-    const flip = art ? e.face < 0 : L.faceRight ? e.face < 0 : false;
+    const frame = E.frameFor(e);
+    const flip = art ? (e.drawRow ? false : e.face < 0) : L.faceRight ? e.face < 0 : false;
     const flash = e.state === 'stunned' ? 0.35 + 0.35 * Math.sin(e.age * 30) : e.flash;
     const big = g.mods.bigHead;
     const opts = {
-      frame: E.frameFor(e),
+      frame,
       flip,
       sx: sc * (1 + sq * 0.2) * (art && big ? 1.3 : 1),
       sy: sc * (1 - sq * 0.2) * (art && big ? 1.3 : 1),

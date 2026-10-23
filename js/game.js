@@ -652,6 +652,7 @@
     p.hp = Math.max(0, p.hp - dmg);
     p.invuln = B.player.hitIframes;
     p.flash = 1;
+    p.hurtAt = G.time; // the hurt strip plays for a fixed 0.32 s (Player.draw)
     if (src && src.x !== undefined) {
       const a = U.ang(src.x, src.y, p.x, p.y);
       p.kx += Math.cos(a) * 150;

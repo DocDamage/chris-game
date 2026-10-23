@@ -4,6 +4,7 @@ const { open } = require('./lib');
   const out = await page.evaluate(() => {
     const G = CH.G, X = CH.X, Up = CH.Upgrades, B = CH.Balance;
     const res = {};
+    CH.Skills.on = false; // this test covers the old card level-ups (reroll / banish / skip), kept behind Skills.on
     G.newRun();
     const p = G.player;
     // rarity + cards

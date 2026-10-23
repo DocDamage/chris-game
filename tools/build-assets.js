@@ -217,15 +217,16 @@ const GOL = BO + '/MechaStoneGolemBoss/Mecha-stone Golem 0.1/';
 }
 
 /* ------------------------------------------------------------------ VFX frames */
-const V = "vfx/Beat 'em Up Combat Effects – 2D Pixel Art VFX Pack";
-const VP = { p1: V + '/PNG/', p5: V + ' 5/PNG/', p7: V + ' 7/PNG/' };
+const { vfxDir } = require('./vfxdirs');
+const VP = { p1: vfxDir(A, 1), p5: vfxDir(A, 5), p7: vfxDir(A, 7) }; // absolute PNG folders
 // every effect in the three packs (ids 1..40, frames numbered 1..n)
 for (const pk of Object.keys(VP)) {
   for (let n = 1; n <= 40; n++) {
     for (let i = 1; i < 40; i++) {
-      const rel = VP[pk] + 'Effect (' + n + ')' + i + '.png';
-      if (!exists(path.join(A, rel))) break;
-      img['vfx.' + pk + '.' + n + '.' + i] = b64png(path.join(A, rel));
+      if (!VP[pk]) break;
+      const f = path.join(VP[pk], 'Effect (' + n + ')' + i + '.png');
+      if (!fs.existsSync(f)) break;
+      img['vfx.' + pk + '.' + n + '.' + i] = b64png(f);
     }
   }
 }
@@ -246,6 +247,8 @@ for (const [key, rel] of [
   ['obj.stone', T + 'Objects/stone and bush.png'],
   ['obj.items', T + 'Objects/Items.png'],
   ['obj.chests', T + 'Objects/ChestSheet.png'],
+  ['obj.giantTreeSheet', T + 'Objects/Giant_Tree.png'],
+  ['chr.villager', T + 'Player & Npc/npc.png'],
 ]) addImg(key, rel);
 
 /* ------------------------------------------------------------------ 4 new stage packs + shelter props */

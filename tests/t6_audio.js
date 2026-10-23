@@ -39,13 +39,9 @@ const ENV = require('./env');
   // in game: arena music + ambience
   await page.click('#btn-play'); await page.waitForTimeout(1500);
   ok('backyard music + ambience', (await track()) === 'court' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_backyard', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });
-  // level-up swaps to the library theme and back
+  // levelling up is a skill point now: no card screen, the arena music keeps playing
   await page.evaluate(() => CH.Upgrades.addXp(CH.G, 30)); await page.waitForTimeout(600);
-  ok('level-up theme', (await track()) === 'library', await track());
-  await page.keyboard.press('Digit1'); await page.waitForTimeout(900);
-  let g = 0; while ((await page.evaluate(() => CH.G.state)) === 'levelup' && g++ < 20) { await page.keyboard.press('Digit1'); await page.waitForTimeout(150); }
-  await page.waitForTimeout(700);
-  ok('arena music returns after level-up', (await track()) === 'court', await track());
+  ok('level-up keeps the arena music (skill point, no card screen)', (await track()) === 'court' && (await page.evaluate(() => CH.G.state)) === 'playing', await track());
   // chaos event music + ambience
   await page.evaluate(() => CH.Events.start(CH.G, CH.Events.byId.chickenrain)); await page.waitForTimeout(800);
   ok('chicken rain theme + rain ambience', (await track()) === 'rain' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_rain', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });

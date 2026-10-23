@@ -212,6 +212,15 @@
       const pb = new Uint8Array(this.tw * this.th);
       for (const p of this.props) {
         if (!p.solid || p.dead || (p.cr || 10) < 9) continue;
+        if (p.box) { // a box footprint blocks the tiles it covers (plus a walker's half width)
+          const bx = p.x + (p.cx || 0), by = p.y + (p.cy || 0), hw = p.box.hw + 6, hh = p.box.hh + 6;
+          for (let ty = Math.floor((by - hh) / TS); ty <= Math.floor((by + hh) / TS); ty++) for (let tx = Math.floor((bx - hw) / TS); tx <= Math.floor((bx + hw) / TS); tx++) {
+            if (!this.inb(tx, ty)) continue;
+            const cx = (tx + 0.5) * TS, cy = (ty + 0.5) * TS;
+            if (Math.abs(cx - bx) < hw + TS * 0.25 && Math.abs(cy - by) < hh + TS * 0.25) pb[ty * this.tw + tx] = 1;
+          }
+          continue;
+        }
         const px = p.x + (p.cx || 0), py = p.y + (p.cy || 0), rr = (p.cr || 10) + 11; // a walker's body plus a little room
         for (let ty = Math.floor((py - rr) / TS); ty <= Math.floor((py + rr) / TS); ty++) for (let tx = Math.floor((px - rr) / TS); tx <= Math.floor((px + rr) / TS); tx++) {
           if (this.inb(tx, ty) && Math.hypot((tx + 0.5) * TS - px, (ty + 0.5) * TS - py) < rr) pb[ty * this.tw + tx] = 1;
@@ -340,8 +349,9 @@
       const st = this.style;
       const x0 = cx * size, y0 = cy * size;
       this.paintFloor(g, st, x0, y0, size);
+      if (this.trail) this.paintTrail(g, x0, y0, size);
       if (this.decals) for (const d of this.decals) { // floor decals from the sliced sheets
-        const im = CH.Assets.images[d.key];
+        const im = d.img || CH.Assets.images[d.key]; // set pieces bring the piece already at catalogue scale
         if (!im) continue;
         const dx = Math.round(d.x - im.width / 2 - x0), dy = Math.round(d.y - im.height / 2 - y0);
         if (dx > size || dy > size + 12 || dx + im.width < 0 || dy + im.height < 0) continue;
@@ -423,6 +433,54 @@
       // faint tile grid so the 32px structure reads
       g.fillStyle = 'rgba(0,0,0,0.05)';
       for (let i = 0; i < size; i += TS) { g.fillRect(i, 0, 1, size); g.fillRect(0, i, size, 1); }
+    }
+
+    /* the way from the entrance to the exit, worn into the floor (js/setpieces.js marks it): a dirt track through
+       grass, a road with a dashed line through the city, tyre tracks in the wasteland, a trodden strip indoors */
+    paintTrail(g, x0, y0, size) {
+      const IM = CH.Assets.images;
+      const h = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
+      const b = this.biome;
+      const dirtIm = (b === 'backyard' || b === 'frozen') && IM['tile.dirt'] ? tintOf(IM['tile.dirt'], 'tile.dirt', b === 'frozen' ? '#b8c6d8' : null) : null;
+      // a ribbon of overlapping discs, one per route tile, jittered by a tile hash so neighbouring chunks agree
+      const tx0 = Math.floor(x0 / TS) - 1, ty0 = Math.floor(y0 / TS) - 1, n = size / TS + 2;
+      const disc = [];
+      for (let ty = ty0; ty < ty0 + n; ty++) for (let tx = tx0; tx < tx0 + n; tx++) {
+        if (!this.inb(tx, ty) || this.trail[this.idx(tx, ty)] !== 2) continue;
+        const x = tx * TS + 16 + (h(tx, ty) - 0.5) * 10 - x0, y = ty * TS + 16 + (h(ty, tx) - 0.5) * 10 - y0, r = 17 + h(tx + 7, ty) * 8;
+        disc.push([x, y, r, tx, ty]);
+        // a disc halfway to each following route tile fills the scallops between them
+        for (const [ox, oy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
+          const nx = tx + ox, ny = ty + oy;
+          if (!this.inb(nx, ny) || this.trail[this.idx(nx, ny)] !== 2) continue;
+          const x2 = nx * TS + 16 + (h(nx, ny) - 0.5) * 10 - x0, y2 = ny * TS + 16 + (h(ny, nx) - 0.5) * 10 - y0;
+          disc.push([(x + x2) / 2, (y + y2) / 2, r * 0.92, -1, -1]);
+        }
+      }
+      if (!disc.length) return;
+      g.save();
+      g.beginPath();
+      for (const [x, y, r] of disc) { g.moveTo(x + r, y); g.arc(x, y, r, 0, Math.PI * 2); }
+      g.clip();
+      if (dirtIm) {
+        g.fillStyle = g.createPattern(dirtIm, 'repeat');
+        g.translate(-(x0 % 16), -(y0 % 16));
+        g.fillRect(-16, -16, size + 32, size + 44);
+        g.translate(x0 % 16, y0 % 16);
+      } else {
+        g.fillStyle = b === 'volcano' ? 'rgba(20,6,4,0.3)' : b === 'zombie' ? 'rgba(10,10,14,0.32)' : b === 'wasteland' ? 'rgba(40,26,14,0.22)' : 'rgba(0,0,0,0.16)';
+        g.fillRect(0, 0, size, size + 12);
+      }
+      g.restore();
+      // a soft rim, then the marks of use: pebbles, tyre tracks, the dashed line of a road
+      g.fillStyle = dirtIm ? 'rgba(70,50,25,0.18)' : 'rgba(0,0,0,0.08)';
+      for (const [x, y, r] of disc) for (let k = 0; k < 6; k++) { const a = h(x | 0, k) * 6.283; g.fillRect(Math.round(x + Math.cos(a) * r) - 1, Math.round(y + Math.sin(a) * r * 0.9), 3, 1); }
+      for (const [x, y, , tx, ty] of disc) {
+        if (tx < 0) continue;
+        if (b === 'zombie' && (tx + ty) % 2 === 0) { g.fillStyle = 'rgba(232,196,60,0.5)'; g.fillRect(Math.round(x) - 4, Math.round(y) - 1, 8, 3); }
+        else if (b === 'wasteland') { g.fillStyle = 'rgba(30,18,10,0.22)'; g.fillRect(Math.round(x) - 9, Math.round(y) - 16, 3, 32); g.fillRect(Math.round(x) + 6, Math.round(y) - 16, 3, 32); }
+        else if (dirtIm && h(tx, ty) < 0.5) { g.fillStyle = 'rgba(60,40,20,0.3)'; g.fillRect(Math.round(x + (h(ty, tx) - 0.5) * 24), Math.round(y + (h(tx + 3, ty) - 0.5) * 20), 3, 2); }
+      }
     }
 
     drawFloor(ctx, cam, W, H) {

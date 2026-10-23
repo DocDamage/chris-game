@@ -191,11 +191,15 @@
       hp = 50;
     }
 
-    // hitbox from the picture: a crate or a pillar blocks about a third of its sprite's width (trees keep the trunk)
-    const sp = solid && kind !== 'tree' && kind !== 'fire' ? S.get(name) : null;
+    // hitbox from the picture: a crate or a pillar blocks about a third of its sprite's width (trees keep the trunk);
+    // catalogued pieces bring a box footprint instead (opt.box, js/props.js)
+    const sp = solid && kind !== 'tree' && kind !== 'fire' && !opt.box ? S.get(name) : null;
     if (sp && sp.w) cr = Math.max(cr, Math.min(26, Math.round(sp.w * 0.36)));
+    if (opt.box) cr = Math.max(opt.box.hw, opt.box.hh);
     props.push({
       id: 'prop_' + props.length,
+      box: opt.box || null,
+      cat: opt.cat || null,
       kind,
       sprite: name,
       x: Math.round(x),

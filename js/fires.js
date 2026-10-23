@@ -53,6 +53,7 @@
   const LG = CH.LevelGen;
   wrap(LG, 'generate', function (orig, biome, ...rest) {
     const L = orig.call(LG, biome, ...rest);
+    if (CH.SetPieces && CH.SetPieces.on) return L; // the set pieces put fires where they make sense (camps, the start)
     const color = BIOME[biome] || 'amber';
     const seed = Math.round(L.entrance.x * 7 + L.entrance.y * 13) + L.tw;
     let n = 0;

@@ -64,7 +64,7 @@ Keyboard keys can be rebound in **Settings**. Menus work with the keyboard (arro
 Pick **CO-OP** in the main menu. In the lobby each device joins by pressing its confirm button (**A** on a controller, **Enter** or the button for keyboard + mouse), picks a hero with the D-pad / **A** **D** and readies up. Any devices work: up to four controllers, or controllers plus one keyboard + mouse.
 
 - **One screen or two, depending on distance.** While the heroes are close the whole party shares one screen. Walk far enough apart and a divider slides in, splitting the view into a left and a right half that each follow one hero (the one further left gets the left half); come back together and the halves merge again. Edge arrows point to a partner or a boss that is out of view.
-- **Shared progress, personal builds.** XP, coins, score and combo are shared. Every level-up gives **each** player their own pick of 3 cards (they choose one after the other, each with their own controller), and boss tokens reward the whole party. Health, stamina, weapons, grenades and specials are per hero.
+- **Shared progress, personal builds.** XP, coins, score and combo are shared. Every level-up gives **each** player their own skill point to spend in their own skill tree, and boss tokens reward the whole party. Health, stamina, weapons, grenades and specials are per hero.
 - **Down, not out.** A hero at zero health is downed; their partner revives them by standing next to them for about 2 seconds (they come back at half health). Downed heroes also get back up when the next wave starts. The run ends when both heroes are down.
 - **Tougher enemies.** Co-op adds more enemies, and enemies and bosses with more health and harder hits (numbers in `B.coop` in [`js/balance.js`](js/balance.js)).
 - Pull a controller out and the game pauses until you reconnect it.
@@ -100,7 +100,7 @@ Pick **CO-OP** in the main menu. In the lobby each device joins by pressing its 
 - **Two weapons at once:** your main weapon sits on the right trigger / left mouse button and a second one on the left trigger / right mouse button; a found weapon becomes the main one and pushes the old one to slot II. Grenades (Junk, Cheese, Frost) are a separate gadget on the left bumper / `G`.
 - **Weapons (6):** Junk Launcher, Rubber Chicken Cannon (bounces), Explosive Pizza (AoE + cheese slow),
   Baguette of Doom (melee arc, bats shots back), Office Chair Artillery, Problem Generator (random outcomes).
-- **Progression:** XP gems -> level-up -> pick 1 of 3 cards (16 upgrades with max levels + weapon unlocks and
+- **Progression:** XP gems -> level-up -> a skill point for the skill tree (see *Skill tree* below; the old level-up cards are gone) (16 upgrades with max levels + weapon unlocks and
   weapon levels), coins, vending machines, temporary power-ups, boss tokens with special rewards.
 - **Chaos events** every 60-90 s: Low Gravity, Chicken Rain, Big Head Mode, Reverse Controls (with warning),
   Disco Inferno, Free Money, Tiny Enemies, The Floor Is Lava, Everything Is Explosive, Corporate Restructuring.
@@ -269,6 +269,7 @@ fog of war and a minimap); boss stages stay arena fights.
 | Key | Action |
 |---|---|
 | `J` | Journal (Journal, Inventory, Equipment, Codex, Save & Quit, Settings) |
+| `K` | Skill tree (pad: **Start**, then the Skills icon in the pause menu) |
 | `I` | Journal, Inventory tab |
 | `N` | Map scroll (stage automap and the four-act map) |
 | `Q` / `E` | Journal and map: previous / next tab or page |
@@ -278,10 +279,51 @@ fog of war and a minimap); boss stages stay arena fights.
 
 ### Tests
 
-`tests/` now holds `t1` to `t34` (`t34_fires_walls`: real tile walls, campfires, wind, shadows). New ones: `t20_storage` (save versions and migrations), `t21_assets` (every asset of the
+`tests/` now holds `t1` to `t35` (`t35_playtest3`: everything in *Third playtest* below) (`t34_fires_walls`: real tile walls, campfires, wind, shadows). New ones: `t20_storage` (save versions and migrations), `t21_assets` (every asset of the
 UI pack, heroes and sidekicks is packed), `t22_newheroes`, `t23_shop`, `t24_sidekicks`, `t25_levelgen`, `t26_levels`,
 `t27_items` (gear, quests, tiers, sidekick unlocks), `t28_town`, `t29_postfx`, `t30_menus`. The older tests run in wave mode
 without sidekicks and with the shader off; `open({ levels, sidekicks, fx })` in `tests/lib.js` turns those on.
 Balance: `node tests/batch_levels.js <casual|normal|chaotic> <runs> <perfect|human|sloppy> [classic|short|marathon]` runs a
 bot that navigates the levels (`tests/navbot.js`). Rebuild the art bundles with `node tools/build-assets.js` (needs
 Aseprite and 7-Zip for the UI and sidekick packs).
+
+---
+
+## Third playtest (2026-10-23)
+
+- **The heroes fight with their own weapons.** Each hero's main weapon is the one in their art: Dreadbloom's
+  **Thornblade** (greatsword, 72 px reach, wide cleaves), Vexaria's **Blood Moon Saber** (fast cuts, a three-cut flurry),
+  the Stranger's **Grinning Shiv** (quick lunges, +60% on feared enemies), the Mercenary's **Pulse Gauntlet** (punches
+  that throw a short pulse wave, a point-blank blast), the Enchantress's **Moonwood Bow** (piercing charged shots) and
+  the Specter's **Neon Repeater** (draws once, then fires fast). Holding the button chains a three-hit combo whose last
+  hit is the heavy animation. An attack lasts as long as its animation and lands on the impact frame; swings slow you,
+  step you forward, snap onto the enemy in front, flinch and knock back, and the finisher bats shots back. The junk
+  weapons sit in slot II (right mouse / LT). Every weapon has its own swing and hit sounds (flesh or armour).
+- **Skill tree instead of level-up cards.** A level is a skill point; spend it with `K` (or Skills in the pause menu,
+  the game waits). Three trees per hero, COMBAT, SURVIVAL and the hero's own (reach, swing width or piercing, heavy
+  finisher, attack speed, the special, a capstone), five tiers opening at levels 1 / 4 / 8 / 12 / 18, some skills need
+  another first. Weapon evolutions happen by themselves when a weapon tops out with the matching skill.
+- **Animations.** Heroes play their walk / run strips in every direction (the static turn-around frames are only
+  for hero select), the walk cycle follows ground speed, attacks and the dash play at their own pace, hurt lasts a
+  fixed moment, the jump follows the real jump arc.
+- **Enemies.** About 1.4x bigger (pixel-art up-scale), feet on the ground (baked shadows removed, frames that drifted
+  1-2 px up are snapped down), the giant spider's frames are whole (they were cut in half) and it curls up asleep,
+  the goblin attack has its real five frames, and the top-down packs (orcs, goblins, plants, slimes, golems) use their
+  down / up rows when walking vertically. Swarms keep a body width apart, steer around each other and ring the hero
+  instead of piling into one sprite; facing no longer flickers.
+- **Props have collision.** Every sliced piece of the tileset packs was looked at and catalogued
+  (`js/props.js`: crate, barrel, wall, fence, car, lamp, corpse ...). The kind sets its drawn size, whether it blocks
+  and with what footprint (a box at its base: a fence blocks its length, a lamp only its post), whether it glows.
+  Flat things (decals, litter, bones, rugs) stay walkable. Sixteen more sheets are sliced, and the three VFX packs whose
+  folders had moved are found again.
+- **Stages with direction** (`js/setpieces.js`). A worn trail runs from the entrance to the exit with lights along it
+  and braziers at the exit. Breaches sit inside enemy camps (palisade ring with two gaps, a fire, supply piles, banners,
+  cages, bones) whose monsters loiter until you come close. Other rooms are scenes built from matching pieces: ruined
+  houses, storage yards, graveyards, groves, streets of wrecks, toxic dumps, shrines, crypts, wards, torture rooms,
+  forges, lava fields. A last pass keeps everything you need reachable.
+- **The hideout** (`js/hideout.js`) is a walled camp: a north street of ruined houses with the vendor's stall, the
+  stash keeper's store room and the smithy, a plaza with the first hero's statue, the well and a campfire, the elder
+  under the notice board, the trainer's fenced yard, the waypoint keeper's stone circle, the gate with the portal, a
+  giant tree with a garden, a store yard and a small graveyard. The townspeople are the Valley Ruin villager and block.
+- **Main menu.** Five buttons (PLAY, HERO, CO-OP, JOURNAL, SETTINGS) and a quiet row of links (How to play, Codex,
+  Stats, Modes, Credits); the key strip is gone (keys are in How to play and Settings).

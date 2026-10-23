@@ -105,7 +105,8 @@
     const P = (role) => pools[biome][role] || [];
     const corner = P('corner');
     const solid = P('solid').concat(P('hazard')), deco = P('deco'), light = P('light'), decal = P('decal'), gate = P('gate');
-    for (const rm of L.rooms) {
+    const scenes = CH.SetPieces && CH.SetPieces.on; // js/setpieces.js dresses the rooms; only the gates are chosen here
+    if (!scenes) for (const rm of L.rooms) {
       if (rm.tag === 'town') continue;
       const area = (rm.w || 8) * (rm.h || 8);
       const reach = Math.max(50, Math.min((rm.w || 10) * TS * 0.45, 200));

@@ -466,3 +466,38 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 - Idylwild's Chromatic Campfires are packed (`tools/pack-props.js`: `prop.camp.<colour>`, `prop.campsmoke.<colour>`) and placed by `js/fires.js` in every level (entrance, waypoints, ~1/3 of rooms), the town and the four corners of every boss/wave arena. Solid, jumpable, never destructible.
 - Fires sway in the wind (flame and smoke drawn in 1px slices sheared by height; wind strength follows the weather; trees share the same wind), shed embers downwind, and are flickering lights that glow even by day. The shader marches rays from each pixel toward the six nearest fires through an occluder map of walls and solid props, so walls and rocks cast real shadows. `t34_fires_walls.js`.
 - Still procedural (no matching asset in the packs): the exit pad ring, waypoint ring, puddles themselves (the shader makes them), and the wall tops of the dark biomes are one shared rock sheet tinted per biome rather than a dedicated art set per biome.
+
+---
+
+## 15. Third playtest (2026-10-23): twelve requests
+
+| # | Request | What was found | Plan |
+| --- | --- | --- | --- |
+| 1 | Many assets have no collision | Sheet pieces with the `deco` role and several `obj.*` props are walk-through; the rest use one circle whatever their shape | Every upright piece is solid with a footprint box (its bottom band), only flat pieces (decals, rugs, small litter) stay walkable; NPCs, chests, shrines, hives and waypoints block too |
+| 2 | Hero animations missing / too fast | Walking up or down shows a single static rotation frame with a bob; idle uses that frame too; the attack strip (11-15 frames) is squeezed into 0.22 s (50-70 fps), the dash into 0.24 s | Heroes always play walk / run / idle strips; every state plays at its own frame rate; attacks last as long as their animation and land on the impact frame |
+| 3 | Some enemy animations broken | Giant spider: the walk strip is cut at 32 px but its frames are 56 px wide (half a spider every other frame), idle is one frame. Goblin: the attack is cut into 7 frames but has 5 (blank frames) | Fix the cuts; the spider's sleep strip becomes the sleeping-pack idle; the 4-direction packs (goblin, orc, plant, slime) use their side rows |
+| 4 | Heroes and enemies float | Walk / run frames sit 1-2 px above the feet line, the rotation frames add a 2 px bob, and the four top-down packs have a grey shadow baked under the feet that the anchor stands on | Per-frame ground snap for small offsets (deliberate lifts such as jumps stay), no rotation bob, baked shadows removed in the packer |
+| 5 | The hideout makes no sense | The town is four grey wall blocks, random bushes / rocks and props on a street texture | A walled camp with a plaza, a stall per NPC furnished with matching props, paths, fences, a gate with the portal |
+| 6 | Enemies a little small | Tiny RPG enemies are drawn 1:1 (orc ~16 px next to a 33 px hero on 32 px tiles) | Baked up-scale (EPX 2x, then area down to ~1.45x) with radius, foot, shadow and height scaled to match |
+| 7 | No more random upgrade cards: XP and a Diablo skill tree | Level-ups pause the game for 3 cards (upgrades, perks, weapons, evolutions) | Each level gives a skill point; `K` (pad: Back/View long press, or the HUD button) opens a three-branch tree per hero; the old card effects become nodes with ranks and tier gates; no pause on level-up |
+| 8 | Main menu too busy | 11 stacked buttons, best score, difficulty chip and two rows of key hints | Five main buttons, a small icon row for the rest, inline hero switch, no key strip |
+| 9 | Stages have no direction or cohesion | Props, decals and lights are scattered at random per room | Rooms get a role on the route from entrance to exit; hives sit in enemy camps / nests built from matching props; ruined buildings, graveyards, storage yards; a marked main path |
+| 10 | Hero attacks do not feel right; swords need length | Every hero fires the Junk Launcher while its own sword animation plays | Each hero gets a signature attack that matches its art (Dreadbloom greatsword, Vexaria blood blade, Stranger knife, Mercenary pulse fist, Enchantress bow, Specter pistol); melee reach 56-72 px, wind-up / impact / recovery from the animation, a 3-hit combo with a heavy finisher, hit-stop and knockback |
+| 11 | Swarms overlap into a mess | Separation uses the tiny collision radius (5-11 px) against 15-30 px wide sprites and pushes positions every frame | Separation by body width, soft steering instead of position shoving, surround slots around the target, facing hysteresis |
+| 12 | Use more of the props, SFX and VFX, cohesively | Three of seven VFX packs no longer load (the folders were renamed to `Pack N`), several tileset sheets are never sliced | Fix the VFX paths, slice the unused sheets, label every piece by kind so set pieces can pick matching props, more SFX variety on hits, steps and camps |
+
+Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), collision and the prop catalogue (1, 12), stages and the hideout (9, 5), skill tree (7), main menu (8), tests and docs.
+
+### 15.1 Progress
+
+| Step | State | Notes |
+| --- | --- | --- |
+| Art fixes (2, 3, 4, 6) | done | `tools/pack-monsters.js`, `tools/pack-extra.js`: baked shadows removed (`png.unshadow`), 4-direction rows (`walk_d` / `walk_u`), spider 56px frames + sleep strip, goblin attack 5 frames, top-down packs and golems packed bigger; `Sprites.sheet` bakes an EPX up-scale (`scale`) and a per-frame ground snap (`snap`, `fdy`); `Art.ESCALE` scales look / radius; heroes play their strips in every direction, attack / dash / hurt / jump on their own clocks |
+| Crowds (11) | done | `E.separate`: grid, body-width personal space, steering velocity capped to the enemy's pace, heroes solid; smoothed facing with hysteresis; depth sort by feet with a stable tie-break |
+| Hero weapons (10) | done | `js/heroatk.js`: six signature weapons (registered as real weapons, slot I), animation-timed attacks, three-hit combos, melee snap, slow-while-swinging, hit-stop, reach arc drawn at the blade's end; own SFX per weapon (`tools/sounds.js`: 104 names / 469 clips) |
+| Collision + catalogue (1, 12) | done | `js/props.js`: every sliced piece labelled (kind, draw scale, box footprint, light, flags), grid collision for heroes / enemies / sidekicks / projectiles / jumps / flow field; 16 more sheets sliced (`tools/pack-sheets.js`), VFX packs found again (`tools/vfxdirs.js`) |
+| Stages (9) | done | `js/setpieces.js`: route trail painted into the floor (`Level.paintTrail`), hero camp, enemy camps / nests around breaches with loitering packs, a scene per room by biome, open-ground clumps, wall-foot clutter, reachability pass |
+| Hideout (5) | done | `js/hideout.js`: fixed layout (houses + stalls, plaza, yards, gate), solid NPC stand-ins drawn depth-sorted, Valley Ruin villager + giant tree packed |
+| Skill tree (7) | done | `js/skills.js`: points per level, three trees x five tiers, `K` / pause menu / HUD chip, grid navigation, co-op per player; cards kept behind `CH.Skills.on = false` for `t13_perks` |
+| Main menu (8) | done | five buttons + link row, hero name on the HERO button, no key strip |
+| Tests + docs | done | `t35_playtest3.js`; `t5_ui`, `t6_audio`, `t10_coop`, `t13_perks`, `t33_physics` updated; README "Third playtest" |

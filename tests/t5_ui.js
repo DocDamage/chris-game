@@ -109,21 +109,28 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   const afterRestart = await state();
   ok('restart gives a fresh run (wave 1, no leftovers)', afterRestart.s === 'playing' && afterRestart.wave === 1 && afterRestart.proj === 0 && afterRestart.pk === 0 && afterRestart.kills === 0, afterRestart);
 
-  // level-up flow with real keyboard
+  // levelling: skill points, no card screen; the tree opens with K and pauses the game (PLAN.md 15, request 7)
   await page.evaluate(() => { CH.Upgrades.addXp(CH.G, 500); });
   await page.waitForTimeout(400);
-  ok('level-up screen opens', (await state()).s === 'levelup');
-  ok('three cards shown', (await page.evaluate(() => document.querySelectorAll('#cards .card').length)) === 3);
+  const lv = await page.evaluate(() => ({ s: CH.G.state, level: CH.G.player.level, sp: CH.G.player.sp, chip: !!document.getElementById('sk-chip') && document.getElementById('sk-chip').style.display !== 'none' }));
+  ok('levelling up keeps playing and gives one skill point per level', lv.s === 'playing' && lv.sp === lv.level - 1 && lv.chip, lv);
+  await page.keyboard.press('KeyK');
+  await page.waitForTimeout(300);
+  ok('K opens the skill tree and pauses', (await page.evaluate(() => CH.UI.active === 'skills' && CH.G.state === 'paused')));
   await page.screenshot({ path: 'u_levelup.png' });
-  const lvBefore = await page.evaluate(() => CH.G.player.level);
-  await page.keyboard.press('Digit2');
+  const before = await page.evaluate(() => ({ sp: CH.G.player.sp, focus: document.activeElement && document.activeElement.dataset.id }));
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+  const after = await page.evaluate((id) => ({ sp: CH.G.player.sp, rank: CH.Skills.rank(CH.G.player, id) }), before.focus);
+  ok('Enter learns the focused skill (one point, one rank)', !!before.focus && after.sp === before.sp - 1 && after.rank === 1, { before, after });
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
-  // several levels were queued: keep picking until playing again
-  let guard = 0;
-  while ((await state()).s === 'levelup' && guard++ < 30) { await page.keyboard.press('Digit1'); await page.waitForTimeout(80); }
-  ok('level-ups all resolve, game resumes', (await state()).s === 'playing', { lvBefore, now: await page.evaluate(() => CH.G.player.level) });
-  const lastStats = await page.evaluate(() => CH.G.player.upgrades);
-  ok('upgrades applied exactly once per pick', Object.values(lastStats).reduce((a, b) => a + b, 0) + (await page.evaluate(() => CH.G.player.weapons.length - 1)) <= (await page.evaluate(() => CH.G.player.level - 1)) + 2, lastStats);
+  ok('Escape closes the tree, game resumes', (await state()).s === 'playing');
+  const lastStats = await page.evaluate(() => ({ spent: CH.Skills.spent(CH.G.player), sp: CH.G.player.sp, level: CH.G.player.level }));
+  ok('every point is spent once: spent + left = levels gained', lastStats.spent + lastStats.sp === lastStats.level - 1, lastStats);
 
   // mute toggle
   await page.keyboard.press('KeyM');

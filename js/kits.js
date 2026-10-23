@@ -13,7 +13,7 @@
   const Kits = (CH.Kits = {});
 
   const md = () => CH.Meta.data();
-  const altOn = (p) => CH.Meta.masteryLevel(p.hero.id) >= 2 && md().alt[p.hero.id];
+  const altOn = (p) => (p.perks && p.perks.kitplus > 0) || (CH.Meta.masteryLevel(p.hero.id) >= 2 && md().alt[p.hero.id]); // the Empowered Special skill, or the mastery alt
 
   /* ------------------------------------------------------------------ fear status (any enemy, not bosses)
      A feared enemy runs away from the nearest hero, cannot attack and takes +25% damage. */

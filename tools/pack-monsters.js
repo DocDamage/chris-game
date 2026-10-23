@@ -6,8 +6,33 @@ const P = require('./png');
 const ROOT = path.resolve(__dirname, '..');
 const A = path.join(ROOT, 'assets');
 
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+const { vfxDir } = require('./vfxdirs');
+
 function b64(pngBuf) {
   return 'data:image/png;base64,' + pngBuf.toString('base64');
+}
+
+/* The CraftPix top-down packs (plants, slimes, orcs, goblins, golems) are 4-direction sheets: one row per facing,
+   0 = down, 1 = up, 2 = left, 3 = right. The game's side view is the right-facing row (flipped for left); the down
+   and up rows are packed as '<anim>_d' / '<anim>_u' for vertical movement. Baked shadows are removed. */
+const ROW = { side: 3, d: 0, u: 1 };
+function dirStrips(file, cell, scale) {
+  const sheet = P.unshadow(P.decode(fs.readFileSync(file)));
+  const frames = Math.max(1, Math.floor(sheet.w / cell));
+  const rows = Math.max(1, Math.floor(sheet.h / cell));
+  const out = {};
+  for (const [k, r] of Object.entries(ROW)) {
+    const row = rows > r ? r : 0;
+    out[k] = P.downscale(P.crop(sheet, 0, row * cell, frames * cell, cell), scale);
+  }
+  return out;
+}
+function putDirs(img, key, file, cell, scale) {
+  const s = dirStrips(file, cell, scale);
+  img[key] = b64(P.encode(s.side));
+  img[key + '_d'] = b64(P.encode(s.d));
+  img[key + '_u'] = b64(P.encode(s.u));
 }
 
 function packMonsters() {
@@ -15,117 +40,32 @@ function packMonsters() {
   const meta = { enemies: {}, bosses: {} };
 
   console.log('Packaging New Regular Enemies...');
-  // 1. Plant (Predator Plant)
-  {
-    const dir = path.join(A, 'enemies', 'predator-plants', 'Tiled_files');
-    const anims = {
-      idle: { file: 'Plant1_Idle_full.png', frames: 4 },
-      walk: { file: 'Plant1_Walk_full.png', frames: 6 },
-      attack: { file: 'Plant1_Attack_full.png', frames: 7 },
-      hurt: { file: 'Plant1_Hurt_full.png', frames: 5 },
-      death: { file: 'Plant1_Death_full.png', frames: 10 }
-    };
-    for (const [an, info] of Object.entries(anims)) {
-      const fullPath = path.join(dir, info.file);
-      if (fs.existsSync(fullPath)) {
-        const sheet = P.decode(fs.readFileSync(fullPath));
-        // Crop row 0 (y=0, h=64, w=info.frames * 64)
-        const row0 = P.crop(sheet, 0, 0, info.frames * 64, 64);
-        // Downscale 0.5x to 32px height
-        const scaled = P.downscale(row0, 0.5);
-        img['chr.plant.' + an] = b64(P.encode(scaled));
-      }
+  // cell scales are whole pixels per frame (46 / 64, 40 / 64): about 1.4x the old size, enemies were too small next to the heroes
+  const TOPDOWN = {
+    plant: { dir: ['predator-plants', 'Tiled_files'], file: (a) => 'Plant1_' + cap(a) + '_full.png', scale: 46 / 64, fw: 46 },
+    slime: { dir: ['slime-mobs', 'Tiled_files'], file: (a) => 'Slime1_' + cap(a) + '_full.png', scale: 40 / 64, fw: 40 },
+    orc: { dir: ['orcs', 'Tiled_files'], file: (a) => 'orc1_' + a + '_full.png', scale: 46 / 64, fw: 46 },
+    goblin: { dir: ['goblins', 'PNG', 'Goblin1'], file: (a) => cap(a) + '/' + cap(a) + '0_full.png', scale: 40 / 64, fw: 40 },
+  };
+  for (const [type, t] of Object.entries(TOPDOWN)) {
+    for (const an of ['idle', 'walk', 'attack', 'hurt', 'death']) {
+      const f = path.join(A, 'enemies', ...t.dir, t.file(an));
+      if (fs.existsSync(f)) putDirs(img, 'chr.' + type + '.' + an, f, 64, t.scale);
+      else console.warn('  ! missing', f);
     }
-    meta.enemies.plant = { fw: 32, fh: 32 };
+    meta.enemies[type] = { fw: t.fw, fh: t.fw, dirs: true };
   }
 
-  // 2. Slime (Acid Slime)
-  {
-    const dir = path.join(A, 'enemies', 'slime-mobs', 'Tiled_files');
-    const anims = {
-      idle: { file: 'Slime1_Idle_full.png', frames: 6 },
-      walk: { file: 'Slime1_Walk_full.png', frames: 6 },
-      attack: { file: 'Slime1_Attack_full.png', frames: 6 },
-      hurt: { file: 'Slime1_Hurt_full.png', frames: 5 },
-      death: { file: 'Slime1_Death_full.png', frames: 6 }
-    };
-    for (const [an, info] of Object.entries(anims)) {
-      const fullPath = path.join(dir, info.file);
-      if (fs.existsSync(fullPath)) {
-        const sheet = P.decode(fs.readFileSync(fullPath));
-        const row0 = P.crop(sheet, 0, 0, info.frames * 64, 64);
-        const scaled = P.downscale(row0, 0.44); // ~28px
-        img['chr.slime.' + an] = b64(P.encode(scaled));
-      }
-    }
-    meta.enemies.slime = { fw: 28, fh: 28 };
-  }
-
-  // 3. Orc (Orc Marauder)
-  {
-    const dir = path.join(A, 'enemies', 'orcs', 'Tiled_files');
-    const anims = {
-      idle: { file: 'orc1_idle_full.png', frames: 4 },
-      walk: { file: 'orc1_walk_full.png', frames: 6 },
-      attack: { file: 'orc1_attack_full.png', frames: 6 },
-      hurt: { file: 'orc1_hurt_full.png', frames: 5 },
-      death: { file: 'orc1_death_full.png', frames: 8 }
-    };
-    for (const [an, info] of Object.entries(anims)) {
-      const fullPath = path.join(dir, info.file);
-      if (fs.existsSync(fullPath)) {
-        const sheet = P.decode(fs.readFileSync(fullPath));
-        const row0 = P.crop(sheet, 0, 0, info.frames * 64, 64);
-        const scaled = P.downscale(row0, 0.5);
-        img['chr.orc.' + an] = b64(P.encode(scaled));
-      }
-    }
-    meta.enemies.orc = { fw: 32, fh: 32 };
-  }
-
-  // 4. Goblin (Goblin Skirmisher)
-  {
-    const dir = path.join(A, 'enemies', 'goblins', 'PNG', 'Goblin1');
-    const anims = {
-      idle: { dir: 'Idle', file: 'Idle0_full.png', frames: 4 },
-      walk: { dir: 'Walk', file: 'Walk0_full.png', frames: 6 },
-      attack: { dir: 'Attack', file: 'Attack0_full.png', frames: 7 },
-      hurt: { dir: 'Hurt', file: 'Hurt0_full.png', frames: 4 },
-      death: { dir: 'Death', file: 'Death0_full.png', frames: 8 }
-    };
-    for (const [an, info] of Object.entries(anims)) {
-      const fullPath = path.join(dir, info.dir, info.file);
-      if (fs.existsSync(fullPath)) {
-        const sheet = P.decode(fs.readFileSync(fullPath));
-        const row0 = P.crop(sheet, 0, 0, info.frames * 64, 64);
-        const scaled = P.downscale(row0, 0.44); // ~28px
-        img['chr.goblin.' + an] = b64(P.encode(scaled));
-      }
-    }
-    meta.enemies.goblin = { fw: 28, fh: 28 };
-  }
-
-  // 5. Spider (Giant Forest Spider)
+  // 5. Spider (Giant Forest Spider): every strip has 56px frames; the sleep strip is the idle of a sleeping pack
   {
     const dir = path.join(A, 'enemies', 'giant-spiders', 'TheForest_GiantSpider_v2');
-    const anims = {
-      walk: { file: 'BlackSpider_walk.png', fw: 32 },
-      attack: { file: 'BlackSpider_attack.png', fw: 56 },
-      hurt: { file: 'BlackSpider_hurt.png', fw: 56 },
-      death: { file: 'BlackSpider_death.png', fw: 56 }
-    };
-    for (const [an, info] of Object.entries(anims)) {
-      const fullPath = path.join(dir, info.file);
-      if (fs.existsSync(fullPath)) {
-        const sheet = P.decode(fs.readFileSync(fullPath));
-        img['chr.spider.' + an] = b64(P.encode(sheet));
-      }
+    for (const an of ['walk', 'attack', 'hurt', 'death', 'sleep']) {
+      const fullPath = path.join(dir, 'BlackSpider_' + an + '.png');
+      if (fs.existsSync(fullPath)) img['chr.spider.' + an] = b64(fs.readFileSync(fullPath));
     }
-    // Idle uses frame 0 of walk
     const walkSheet = P.decode(fs.readFileSync(path.join(dir, 'BlackSpider_walk.png')));
-    const idleFrame = P.crop(walkSheet, 0, 0, 32, 34);
-    img['chr.spider.idle'] = b64(P.encode(idleFrame));
-    meta.enemies.spider = { fw: 32, fh: 34 };
+    img['chr.spider.idle'] = b64(P.encode(P.crop(walkSheet, 0, 0, 56, 34)));
+    meta.enemies.spider = { fw: 56, fh: 34 };
   }
 
   console.log('Packaging New Bosses...');
@@ -224,13 +164,7 @@ function packMonsters() {
   }
 
   console.log('Packaging VFX Packs 2, 3, 4, 6...');
-  const vfxDir = path.join(A, 'vfx');
-  const packs = [
-    { name: 'p2', dir: path.join(vfxDir, 'Pack2', 'Beat \'em Up Combat Effects – 2D Pixel Art VFX Pack 2', 'PNG') },
-    { name: 'p3', dir: path.join(vfxDir, 'Pack3', 'Beat \'em Up Combat Effects – 2D Pixel Art VFX Pack 3', 'PNG') },
-    { name: 'p4', dir: path.join(vfxDir, 'Pack4', 'Beat _em Up Combat Effects – 2D Pixel Art VFX Pack 4', 'PNG') },
-    { name: 'p6', dir: path.join(vfxDir, 'Pack6', 'Beat \'em Up Combat Effects – 2D Pixel Art VFX Pack 6', 'PNG') },
-  ];
+  const packs = [2, 3, 4, 6].map((n) => ({ name: 'p' + n, dir: vfxDir(A, n) || path.join(A, 'vfx', 'Pack ' + n, 'PNG') }));
 
   for (const pk of packs) {
     if (!fs.existsSync(pk.dir)) {
@@ -251,7 +185,7 @@ function packMonsters() {
   return { img, meta };
 }
 
-module.exports = { packMonsters };
+module.exports = { packMonsters, dirStrips };
 
 if (require.main === module) {
   const res = packMonsters();

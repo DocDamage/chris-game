@@ -534,7 +534,7 @@
             const minD = (prop.cr || 11) + pr.r;
             const dx = (prop.x + (prop.cx || 0)) - pr.x;
             const dy = (prop.y + (prop.cy || -4)) - pr.y;
-            if (dx * dx + dy * dy < minD * minD) {
+            if (prop.box ? CH.Props.touches(prop, pr.x, pr.y + 6, pr.r) : dx * dx + dy * dy < minD * minD) {
               W.damageProp(g, prop, pr.dmg * 1.2, pr.shooter || g.player);
               let res = 'die';
               if (pr.onHit) res = pr.onHit(g, pr, { x: prop.x, y: prop.y - 4, r: prop.cr });

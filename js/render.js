@@ -223,9 +223,10 @@
   /* ----------------------------------------------------------- entity pass */
   function collectDrawables() {
     drawList.length = 0;
-    for (const e of G.enemies) if (!e.dead) drawList.push({ y: e.y + (e.isBoss ? 4 : 0), kind: 0, o: e });
-    for (const p of G.players) drawList.push({ y: p.y, kind: 1, o: p });
-    if (CH.SK) for (const s of CH.SK.list) drawList.push({ y: s.y, kind: 5, o: s });
+    // sorted by where each body touches the ground (props sort by their base too), ties by a stable id
+    for (const e of G.enemies) if (!e.dead) drawList.push({ y: e.y + (e.isBoss ? 4 : (e.look && !e.look.fly ? e.look.foot * e.scale : 4)) + (e.uid || 0) * 1e-5, kind: 0, o: e });
+    for (const p of G.players) drawList.push({ y: p.y + 13, kind: 1, o: p });
+    if (CH.SK) for (const s of CH.SK.list) drawList.push({ y: s.y + 12, kind: 5, o: s });
     if (G.machine) drawList.push({ y: G.machine.y, kind: 2, o: G.machine });
     for (const d of G.decoys) drawList.push({ y: d.y, kind: 3, o: d });
     if (G.arena && G.arena.props) {
@@ -240,6 +241,10 @@
     const x = prop.x - cam.x;
     const y = prop.y - cam.y;
     if (x < -100 || x > W + 100 || y < -120 || y > H + 80) return;
+    if (prop.invisible) { // a solid stand-in: townspeople are drawn here so they sort with the scenery
+      if (prop.npc && CH.Town && CH.Town.drawNpc && G.level && G.level.npcs) { const n = G.level.npcs.find((q) => q.id === prop.npc); if (n) CH.Town.drawNpc(ctx, n, Math.round(n.px - cam.x), Math.round(n.py - cam.y)); }
+      return;
+    }
 
     ctx.save();
     if (prop.kind === 'tree' || prop.kind === 'rock' || prop.kind === 'furniture') {
@@ -277,7 +282,8 @@
       ctx.transform(1, 0, totalBend, 1, 0, 0);
     }
 
-    CH.Sprites.draw(ctx, prop.sprite, 0, 0);
+    if (prop.additive) ctx.globalCompositeOperation = 'lighter';
+    CH.Sprites.draw(ctx, prop.sprite, 0, 0, prop.flip ? { flip: true } : undefined);
     ctx.restore();
   }
 

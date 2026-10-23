@@ -186,11 +186,12 @@
       const sx = (o.sx || 1) * (o.flip ? -1 : 1);
       const sy = o.sy || 1;
       const simple = !o.rot && sx === 1 && sy === 1 && !o.bigHead;
+      const fy = s.fdy ? s.fdy[fi] : 0; // ground snap (see groundSnap)
       if (o.alpha !== undefined && o.alpha < 1) ctx.globalAlpha = Math.max(0, o.alpha);
       if (o.gold) {
         const gs = Sprites.sil(s, fi, o.gold);
         const ox = Math.round(x - s.ax * Math.abs(sx));
-        const oy = Math.round(y - s.ay * sy);
+        const oy = Math.round(y + (fy - s.ay) * sy);
         const w = img.width * Math.abs(sx);
         const h = img.height * sy;
         ctx.drawImage(gs, ox - 1, oy, w, h);
@@ -200,7 +201,7 @@
       }
       if (simple) {
         const dx = Math.round(x - s.ax);
-        const dy = Math.round(y - s.ay);
+        const dy = Math.round(y - s.ay + fy);
         ctx.drawImage(img, dx, dy);
         if (o.flash > 0) {
           ctx.globalAlpha = (o.alpha === undefined ? 1 : o.alpha) * Math.min(1, o.flash);
@@ -219,7 +220,7 @@
         if (o.bigHead && s.head > 2) {
           const k = o.bigHead;
           const hh = s.head;
-          const bodyTop = -s.ay + hh;
+          const bodyTop = -s.ay + fy + hh;
           ctx.drawImage(img, 0, hh, img.width, img.height - hh, -s.ax, bodyTop, img.width, img.height - hh);
           ctx.drawImage(img, 0, 0, img.width, hh, -s.ax * k, bodyTop - hh * k + 1, img.width * k, hh * k);
           if (o.flash > 0) {
@@ -229,14 +230,14 @@
             ctx.drawImage(f, 0, 0, img.width, hh, -s.ax * k, bodyTop - hh * k + 1, img.width * k, hh * k);
           }
         } else {
-          ctx.drawImage(img, -s.ax, -s.ay + pv);
+          ctx.drawImage(img, -s.ax, -s.ay + pv + fy);
           if (o.flash > 0) {
             ctx.globalAlpha = (o.alpha === undefined ? 1 : o.alpha) * Math.min(1, o.flash);
-            ctx.drawImage(Sprites.sil(s, fi, '#ffffff'), -s.ax, -s.ay + pv);
+            ctx.drawImage(Sprites.sil(s, fi, '#ffffff'), -s.ax, -s.ay + pv + fy);
           }
           if (o.tint) {
             ctx.globalAlpha = (o.alpha === undefined ? 1 : o.alpha) * (o.tintA === undefined ? 0.4 : o.tintA);
-            ctx.drawImage(Sprites.sil(s, fi, o.tint), -s.ax, -s.ay + pv);
+            ctx.drawImage(Sprites.sil(s, fi, o.tint), -s.ax, -s.ay + pv + fy);
           }
         }
         ctx.restore();
@@ -359,11 +360,116 @@
       return c;
     });
     const fb = feet || { x0: 0, y0: 0, x1: FW - 1, y1: FH - 1 };
-    const ay = spec.anchor === 'center' ? (fb.y0 + fb.y1) / 2 - uy0 : fb.y1 - uy0 + 1;
-    baked[name] = { name, frames, w, h, ax: spec.ax !== undefined ? spec.ax - ux0 : FW / 2 - ux0, ay, head: 0, sil: {}, anims, sheet: true, body: { w: fb.x1 - fb.x0 + 1, h: fb.y1 - fb.y0 + 1 } };
+    let ay = spec.anchor === 'center' ? (fb.y0 + fb.y1) / 2 - uy0 : fb.y1 - uy0 + 1;
+    let ax = spec.ax !== undefined ? spec.ax - ux0 : FW / 2 - ux0;
+    let body = { w: fb.x1 - fb.x0 + 1, h: fb.y1 - fb.y0 + 1 };
+    let out = frames, ow = w, oh = h;
+    const k = spec.scale || 1;
+    if (k !== 1) { // baked up-scale: pixel-art aware (EPX 2x, then an area average down to k) so pixels stay even
+      out = frames.map((c) => scaleFrame(c, k));
+      ow = out[0].width;
+      oh = out[0].height;
+      ax *= ow / w;
+      ay *= oh / h;
+      body = { w: Math.round(body.w * k), h: Math.round(body.h * k) };
+    }
+    const s = { name, frames: out, w: ow, h: oh, ax, ay, head: 0, sil: {}, anims, sheet: true, body, scale: k };
+    if (spec.snap && spec.anchor !== 'center') s.fdy = groundSnap(s);
+    baked[name] = s;
     defs[name] = { kind: 'sheet' };
     return true;
   };
+
+  /* lowest row of a frame with at least two solid pixels (soft edges, dust and baked shadows do not count) */
+  function solidBottom(c) {
+    const w = c.width, h = c.height;
+    const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+    for (let y = h - 1; y >= 0; y--) {
+      let n = 0;
+      for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 128 && ++n >= 2) return y + 1;
+    }
+    return -1;
+  }
+  /* Ground snap: walk / run / idle frames of the packs drift 1-2 px above the feet line, which reads as floating.
+     Per animation, the lowest solid row is its ground; it is aligned to the anchor when it is within 3 px of it,
+     and single frames that sit 1-2 px above that ground are pulled down. Bigger lifts (jumps, leaps) are deliberate
+     and stay. Returns the per-frame y offset in pixels (added when drawing). */
+  function groundSnap(s) {
+    const fdy = new Array(s.frames.length).fill(0);
+    const bottoms = s.frames.map(solidBottom);
+    for (const a of Object.values(s.anims)) {
+      let g = -1;
+      for (let i = a.s; i < a.s + a.n; i++) g = Math.max(g, bottoms[i]);
+      if (g < 0) continue;
+      const shift = Math.abs(s.ay - g) <= 3 ? s.ay - g : 0;
+      for (let i = a.s; i < a.s + a.n; i++) {
+        if (bottoms[i] < 0) continue;
+        const lift = g - bottoms[i];
+        fdy[i] = shift + (lift > 0 && lift <= 2 ? lift : 0);
+      }
+    }
+    return fdy.some((v) => v) ? fdy : null;
+  }
+
+  /* EPX (Scale2x) then an area-average down to factor k (k < 2), alpha cut at 50%: chunkier enemies without the
+     uneven pixel widths of a plain nearest-neighbour 1.4x */
+  function scaleFrame(c, k) {
+    const w = c.width, h = c.height;
+    const src = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+    const W2 = w * 2, H2 = h * 2;
+    const big = new Uint8ClampedArray(W2 * H2 * 4);
+    const px = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? -1 : (y * w + x) * 4);
+    const same = (i, j) => (i < 0 || j < 0 ? i === j : src[i + 3] === src[j + 3] && (src[i + 3] === 0 || (src[i] === src[j] && src[i + 1] === src[j + 1] && src[i + 2] === src[j + 2])));
+    const put = (x, y, i) => {
+      const o = (y * W2 + x) * 4;
+      if (i < 0) return;
+      big[o] = src[i]; big[o + 1] = src[i + 1]; big[o + 2] = src[i + 2]; big[o + 3] = src[i + 3];
+    };
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const P = px(x, y), A = px(x, y - 1), B = px(x + 1, y), C = px(x - 1, y), D = px(x, y + 1);
+        let e0 = P, e1 = P, e2 = P, e3 = P;
+        if (!same(C, B) && !same(A, D)) {
+          if (same(C, A) && A >= 0) e0 = A;
+          if (same(A, B) && B >= 0) e1 = B;
+          if (same(D, C) && C >= 0) e2 = C;
+          if (same(B, D) && D >= 0) e3 = D;
+        }
+        put(2 * x, 2 * y, e0); put(2 * x + 1, 2 * y, e1); put(2 * x, 2 * y + 1, e2); put(2 * x + 1, 2 * y + 1, e3);
+      }
+    }
+    const f = k / 2;
+    const ow = Math.max(1, Math.round(W2 * f)), oh = Math.max(1, Math.round(H2 * f));
+    const out = document.createElement('canvas');
+    out.width = ow;
+    out.height = oh;
+    const og = out.getContext('2d');
+    const od = og.createImageData(ow, oh);
+    const sx = W2 / ow, sy = H2 / oh;
+    for (let y = 0; y < oh; y++) {
+      const y0 = y * sy, y1 = (y + 1) * sy;
+      for (let x = 0; x < ow; x++) {
+        const x0 = x * sx, x1 = (x + 1) * sx;
+        let r = 0, g = 0, b = 0, a = 0, ws = 0;
+        for (let yy = Math.floor(y0); yy < Math.min(H2, Math.ceil(y1)); yy++) {
+          const wy = Math.min(yy + 1, y1) - Math.max(yy, y0);
+          for (let xx = Math.floor(x0); xx < Math.min(W2, Math.ceil(x1)); xx++) {
+            const wt = (Math.min(xx + 1, x1) - Math.max(xx, x0)) * wy;
+            const i = (yy * W2 + xx) * 4;
+            const al = big[i + 3] / 255;
+            r += big[i] * al * wt; g += big[i + 1] * al * wt; b += big[i + 2] * al * wt; a += al * wt; ws += wt;
+          }
+        }
+        if (ws && a / ws >= 0.5) {
+          const o = (y * ow + x) * 4;
+          od.data[o] = r / a; od.data[o + 1] = g / a; od.data[o + 2] = b / a; od.data[o + 3] = 255;
+        }
+      }
+    }
+    og.putImageData(od, 0, 0);
+    return out;
+  }
+  Sprites.scaleFrame = scaleFrame;
 
   /* every frame of an animation as its own image (the VFX packs) */
   Sprites.fromFrames = function (name, imgs, o) {
@@ -440,6 +546,20 @@
     const a = s && s.anims[anim];
     if (!a) return 0;
     return a.s + Math.max(0, Math.min(a.n - 1, Math.floor(k * a.n)));
+  };
+  /* progress 0..1 over a slice of an animation: frames from..to (to < 0 counts back from the last frame) */
+  Sprites.frameSpan = function (name, anim, k, from, to) {
+    const s = baked[name];
+    const a = s && s.anims[anim];
+    if (!a) return 0;
+    const f0 = Math.max(0, Math.min(a.n - 1, from || 0));
+    const f1 = Math.max(f0, Math.min(a.n - 1, to === undefined ? a.n - 1 : to < 0 ? a.n - 1 + to : to));
+    return a.s + Math.min(f1, f0 + Math.floor(Math.max(0, Math.min(0.999, k)) * (f1 - f0 + 1)));
+  };
+  Sprites.animFrames = function (name, anim) {
+    const s = baked[name];
+    const a = s && s.anims[anim];
+    return a ? a.n : 1;
   };
   Sprites.animLen = function (name, anim) {
     const s = baked[name];

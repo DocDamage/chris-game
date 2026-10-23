@@ -73,6 +73,23 @@ const SHEETS = [
   ['z_trash', Z, '7. Trash and debris.png', 'deco', ['zombie']],
   ['z_cars', Z, '9. Abandoned cards.png', 'solid', ['zombie']],
   ['z_walls', Z, '2. Broken building walls.png', 'solid', ['zombie']],
+  // sheets that only had a piece or two hand-cropped (pack-stages.js): now every piece is available
+  ['h_barrels', H, 'Barrels, crates and objects.png', 'solid', CRYPT],
+  ['h_occult', H, 'Occult and horror elements.png', 'solid', CRYPT],
+  ['h_struct', H, 'Structures and columns.png', 'solid', CRYPT],
+  ['v_rocks', V, '7. Rock Formations.png', 'solid', ['volcano']],
+  ['v_pillars', V, '8. Volcanic pillars.png', 'solid', ['volcano']],
+  ['v_spikes', V, '10. Spikes and harzards.png', 'hazard', ['volcano']],
+  ['w_scrap', W, '4. Scrap wall and panels.png', 'solid', ['wasteland']],
+  ['w_barricades', W, '5. Barricades and defenses.png', 'solid', ['wasteland']],
+  ['w_fences', W, '6. Chain link fences.png', 'solid', ['wasteland']],
+  ['w_toxic', W, '8. Toxic waste and barrels.png', 'solid', ['wasteland']],
+  ['w_rubble', W, '9. Rubble and debris.png', 'deco', ['wasteland']],
+  ['w_cars', W, '10. Abandoned cars.png', 'solid', ['wasteland']],
+  ['z_barricades', Z, '3. Barricades and blockades.png', 'solid', ['zombie']],
+  ['z_burned', Z, '8. Burned Ground and fire marks.png', 'decal', ['zombie']],
+  ['z_street', Z, '15. Street props.png', 'solid', ['zombie']],
+  ['z_furniture', Z, '17. Safehouse furniture.png', 'solid', ['zombie']],
 ];
 
 function packSheets() {

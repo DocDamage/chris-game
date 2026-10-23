@@ -323,19 +323,7 @@
     const mg = B.arena.margin + s.r;
     s.x = U.clamp(s.x, mg, G.arena.w - mg);
     s.y = U.clamp(s.y, mg, G.arena.h - mg);
-    if (G.arena && G.arena.props) {
-      for (const prop of G.arena.props) {
-        if (!prop.solid || prop.dead) continue;
-        const dx = s.x - (prop.x + (prop.cx || 0)), dy = s.y + 10 - (prop.y + (prop.cy || 0));
-        const minD = (prop.cr || 10) + s.r;
-        const d2 = dx * dx + dy * dy;
-        if (d2 < minD * minD && d2 > 0.0001) {
-          const d = Math.sqrt(d2);
-          s.x += (dx / d) * (minD - d);
-          s.y += (dy / d) * (minD - d);
-        }
-      }
-    }
+    if (G.arena && G.arena.props) CH.Props.collide(s, 10, s.r);
   }
 
   function tryAttack(s, t, dist) {

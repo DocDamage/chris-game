@@ -28,6 +28,8 @@
     { id: 'waypoint', name: 'WAYPOINT KEEPER', x: 42, y: 20, hue: 150, face: 1, sign: 2 },
   ];
 
+  Town.NPCS = NPCS;
+
   /* ------------------------------------------------------------------ the map */
   Town.build = function () {
     const L = new Level(56, 40, 'backyard');
@@ -281,9 +283,25 @@
     // return pad
     drawPortal(ctx, { x: L.exit.x, y: L.exit.y, t }, cam);
     CH.Font.draw(ctx, 'PORTAL', Math.round(L.exit.x - cam.x), Math.round(L.exit.y - cam.y) + 8, '#9fd8ef', 1, true);
-    for (const n of L.npcs) {
-      const x = Math.round(n.px - cam.x), y = Math.round(n.py - cam.y);
-      if (x < -40 || y < -60 || x > B.view.w + 40 || y > B.view.h + 40) continue;
+    if (!L.hideout) for (const n of L.npcs) Town.drawNpc(ctx, n, Math.round(n.px - cam.x), Math.round(n.py - cam.y), t);
+  }
+  /* a townsperson: the Valley Ruin villager (tinted per trade) with the pack's road sign over the head;
+     in the hideout they are depth sorted with the props (js/hideout.js puts a solid stand-in prop under each) */
+  Town.drawNpc = function (ctx, n, x, y, t) {
+    t = t === undefined ? (G.level && G.level.fx) || 0 : t;
+    {
+      if (x < -40 || y < -60 || x > B.view.w + 40 || y > B.view.h + 40) return;
+      if (CH.Sprites.has('npc.body')) {
+        CH.Enemies.shadow(ctx, x, y + 12, 14);
+        ctx.save();
+        if (n.hue) ctx.filter = 'hue-rotate(' + n.hue + 'deg)';
+        const talkTo = G.players.some((q) => !q.dead && U.dist(q.x, q.y, n.px, n.py) < 60);
+        CH.Sprites.draw(ctx, 'npc.body', x, y + 13, { frame: Math.floor(t * (talkTo ? 6 : 3) + n.x) % 3, flip: G.player && G.player.x < n.px });
+        ctx.restore();
+        if (UIK.on) UIK.draw(ctx, '0 - Sprites/Signs/' + n.sign + '.png', x - 8, y - 44 + Math.sin(t * 3 + n.y) * 1.2, { w: 16, h: 16 });
+        CH.Font.draw(ctx, n.name.split(',')[0], x, y + 20, '#fee761', 1, true);
+        return;
+      }
       CH.Enemies.shadow(ctx, x, y + 12, 18);
       if (UIK.on) {
         const im = UIK.c('brown', 'Content/icons/' + (n.face % 2 ? 2 : 1) + '.png');
@@ -297,7 +315,7 @@
       } else { ctx.fillStyle = '#d1c29a'; ctx.fillRect(x - 6, y - 20, 12, 28); }
       CH.Font.draw(ctx, n.name.split(',')[0], x, y + 20, '#fee761', 1, true);
     }
-  }
+  };
   /* the vending machine sprite is replaced by the vendor NPC in town */
   const origRender = G.render;
 })(window.CH);
