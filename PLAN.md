@@ -515,7 +515,7 @@ Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), colli
 | Step | State | Notes |
 | --- | --- | --- |
 | 1. Test harness | done | `tests/run.js` (parallel, ~3 min, `--retry`, `--seed`), seeded `Math.random` in `open()` (`CHAOS_SEED`), `__clear()` |
-| 2a. Events instead of wrappers: `killEnemy`, `step` | done, verifying | `G.on` / `G.emit` / `G.hooks()` in `game.js`; the 21 observer wrappers (11 kill, 10 step) are listeners now, same order (script order). Suite: seed 2 38/38; seed 1 36/38 (t5_ui, t7_fallback failed with no failed check while two extra Chromes ran; re-run them alone); seed 3 not finished |
+| 2a. Events instead of wrappers: `killEnemy`, `step` | done | `G.on` / `G.emit` / `G.hooks()` in `game.js`; the 21 observer wrappers (11 kill, 10 step) are listeners now, same order (script order). Suite 38/38 with seeds 2 and 3; seed 1 had t5_ui / t7_fallback time out while two extra Chromes ran, both pass alone. The replay comparison (2b) is the stronger check still to do |
 | 2b. Replay check | started | `tests/replay.js`: seeded bot run fingerprinted every game second; `--root <checkout>` runs another copy, `--compare a b`. Level mode replays identically; wave mode drifts because `js/audio.js` draws sound variants from `Math.random` while sound files decode asynchronously. Next: give audio its own RNG, then compare the pre-refactor commit `08a7449` (a git worktree with `data/` and `assets/` linked in) against this one |
 | 2c. More events | todo | `newRun` (12 wrappers) and `startWave` (6) mix before / after / skip-the-original: needs before and after events with the order kept; `Player.update` (9), `damageEnemy` (7), `hurtPlayer` (5) change arguments or results |
 | 3. One movement / collision function | todo | |
