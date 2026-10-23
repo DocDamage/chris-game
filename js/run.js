@@ -369,8 +369,7 @@
 
   /* ------------------------------------------------------------------ integration with the old world code */
   /* walls: push everything that moves back out of rock after every simulation step */
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     const L = G.level;
     if (!L || G.state === 'menu') return;
     // everybody collides with the walls at the feet, so nobody sinks into rock or hovers in front of it
@@ -433,10 +432,8 @@
     return orig.call(G, type, x, y, value, o);
   });
   /* unique monsters: a name tag, and the garage key in the Outbreak City */
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (!was && e.unique && G.level && G.level.biome === 'zombie' && !G.garageKey) { G.garageKey = true; G.ui.toast('GARAGE KEY FOUND'); Audio.sfx('levelup'); }
+  G.on('kill', function (e) {
+    if (e.unique && G.level && G.level.biome === 'zombie' && !G.garageKey) { G.garageKey = true; G.ui.toast('GARAGE KEY FOUND'); Audio.sfx('levelup'); }
   });
   CH.Hooks.world.push((ctx, cam) => {
     if (!G.level) return;

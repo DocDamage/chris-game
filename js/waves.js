@@ -311,8 +311,7 @@
   });
 
   /* free cards owed (shrines, rush) are opened as soon as the game is running again */
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (W.cardOwed > 0 && G.state === 'playing' && !W.shop && G.waveState !== 'branch') {
       W.cardOwed--;
       G.pendingLevels++;
@@ -492,8 +491,7 @@
     }
     return orig.call(Ev, g, chooseEvent(g));
   });
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     const o = W.orbs;
     if (!o || G.state !== 'playing') return;
     o.t += dt;
@@ -515,10 +513,8 @@
   });
 
   /* gold rush + chicken event drops */
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was || e.isBoss) return;
+  G.on('kill', function (e) {
+    if (e.isBoss) return;
     if (G.mods.coinRush) for (let i = 0; i < 2; i++) G.dropPickup('coin', e.x + U.rand(-6, 6), e.y + U.rand(-6, 6), 1);
     if (e.chickenEvent) G.dropPickup('coin', e.x, e.y, 1);
   });

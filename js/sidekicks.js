@@ -524,8 +524,7 @@
     return best ? { x: best.x, y: best.y, isPlayer: false, sk: best } : base;
   };
 
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (SK.list.length && G.state === 'playing') SK.update(dt);
   });
 

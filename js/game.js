@@ -115,6 +115,22 @@
     rewardsLog: [],
   });
 
+  /* ------------------------------------------------------------------ events
+     Systems react to the core through named events instead of wrapping its functions: G.on('kill', fn) runs fn(e)
+     after an enemy dies, G.on('step', fn) runs fn(dt) after every simulation step (playing or not). Listeners run in
+     the order they were added, which is the script order in index.html. G.hooks() lists who listens where. */
+  const listeners = {};
+  G.on = function (name, fn) {
+    const at = ((new Error().stack || '').split('\n')[2] || '').replace(/^.*\/js\/([^:]+:\d+).*$/, '$1').trim();
+    (listeners[name] = listeners[name] || []).push({ fn, at });
+    return fn;
+  };
+  G.emit = function (name, a, b, c) {
+    const l = listeners[name];
+    if (l) for (let i = 0; i < l.length; i++) l[i].fn(a, b, c);
+  };
+  G.hooks = () => Object.fromEntries(Object.entries(listeners).map(([k, l]) => [k, l.map((x) => x.at)]));
+
   /* ------------------------------------------------------------------ setup */
   G.surfaceStep = () => SURFACE[(G.arena && G.arena.id) || 'backyard'] || 'step';
 
@@ -845,8 +861,13 @@
   };
 
   /* ------------------------------------------------------------ kill + drops */
+  /* an enemy dies once: the core effects, then the 'kill' listeners (blood, quests, perks, loot affixes ...) */
   G.killEnemy = function (e) {
     if (e.dead) return;
+    killCore(e);
+    G.emit('kill', e);
+  };
+  function killCore(e) {
     e.dead = true;
     e.state = 'dead';
     const p = e.lastHitBy && !e.lastHitBy.dead ? e.lastHitBy : G.alivePlayers()[0] || G.player; // the killer gets the perks
@@ -887,7 +908,7 @@
       G.after(0.07, () => G.explode(x, y, 28, 22, { owner: 'p', hitEnemies: true, hurtPlayer: true, pdmg: G.edmg(8), colors: 'fire', knock: 130, noShake: true }));
     }
     if (e.isBoss) G.onBossDefeated(e);
-  };
+  }
 
   G.dropLoot = function (e, who) {
     const d = e.def;
@@ -1485,7 +1506,12 @@
     for (let i = 0; i < n && G.state === 'playing'; i++) G.step(h);
   };
 
+  /* one simulation step: the core, then the 'step' listeners (every system that ticks with the game) */
   G.step = function (dt) {
+    stepCore(dt);
+    G.emit('step', dt);
+  };
+  function stepCore(dt) {
     G.time += dt;
 
     for (let i = G.timers.length - 1; i >= 0; i--) {
@@ -1591,7 +1617,7 @@
     } else if (G.pendingLevels > 0 && !G.bossDying) {
       G.openLevelUp();
     }
-  };
+  }
 
   /* ---------------------------------------------------------- menu backdrop */
   G.initDemo = function () {

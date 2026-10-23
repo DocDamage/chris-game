@@ -187,10 +187,8 @@
     }
     return r;
   });
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was || e.training) return;
+  G.on('kill', function (e) {
+    if (e.training) return;
     const p = e.lastHitBy;
     if (p && p.hero) {
       pst(p).kills++;
@@ -244,8 +242,7 @@
   });
 
   /* one-second sampler: DPS graph, ghost, achievement ticks, maxed weapon / upgrade records */
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (G.state !== 'playing' || !G.run) return;
     const rs = X.rs;
     rs.sampleT += dt;

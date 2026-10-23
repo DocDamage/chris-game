@@ -339,10 +339,7 @@
     const n = boss ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1;
     for (let i = 0; i < n; i++) Items.drop(e.x + U.rand(-14, 14), e.y + U.rand(-10, 10), Items.roll(Math.max(1, G.wave), { luck, boss }));
   };
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was) return;
+  G.on('kill', function (e) {
     const p = e.lastHitBy && e.lastHitBy.hero ? e.lastHitBy : G.player;
     Items.dropFrom(e, p);
     for (const q of G.players) {
@@ -391,8 +388,7 @@
       }
     }
   };
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (G.state === 'playing') Items.update(dt);
   });
   const clear = () => { Items.ground.length = 0; };

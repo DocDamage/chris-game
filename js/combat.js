@@ -235,10 +235,8 @@
     return orig.call(G, e, dmg, o);
   });
   X.envKills = 0;
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was || !e.dead || e.isBoss) return;
+  G.on('kill', function (e) {
+    if (e.isBoss) return;
     if (e._env || G.time < X.envUntil) {
       X.envKills++;
       G.addScore(Math.round(50 * G.scoreMult()));
@@ -346,8 +344,7 @@
   });
 
   /* ---------- per-step driver ---------- */
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (G.state !== 'playing') return;
     updateCombo(G);
     stepBurn(G, dt);

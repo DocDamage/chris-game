@@ -76,10 +76,8 @@
   };
 
   /* ------------------------------------------------------------------ events from the game */
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was || e.training || e.isSpawner) return;
+  G.on('kill', function (e) {
+    if (e.training || e.isSpawner) return;
     Q.event('kill');
     if (e.isElite || e.affix) {
       Q.event('elite');

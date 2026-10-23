@@ -271,12 +271,10 @@
     return orig.call(G, dmg, src, o);
   });
 
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
+  G.on('kill', function (e) {
     const x = e.x;
     const y = e.y;
-    orig.call(G, e);
-    if (was || e.isBoss) return;
+    if (e.isBoss) return;
     if (e.affix === 'splitting' && !G.allDead()) {
       for (let i = 0; i < 2; i++) G.spawnEnemy(e.type, x + (i ? 8 : -8), y, { summoned: true, hpMul: 0.4 });
     }

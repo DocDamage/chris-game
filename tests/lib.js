@@ -33,7 +33,7 @@ async function open(opts = {}) {
   }
   await page.addInitScript(() => { window.__uikInstant = true; }); // book animations are instant under test
   if (opts.init) await page.addInitScript(opts.init);
-  await page.goto(ENV.URL);
+  await page.goto(opts.url || ENV.URL);
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui, null, { timeout: 60000 });
   await page.waitForTimeout(200);
   await page.evaluate((fx) => { CH.Storage.settings.fx = fx; CH.PostFX.apply(); }, opts.fx || 'off'); // the shader pass is off unless the test is about it

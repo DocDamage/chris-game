@@ -509,3 +509,14 @@ Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), colli
 - Stale or flaky tests fixed: `t10_coop` (the hero's own weapon holds slot I and lands on its impact frame; a monster from the rumble check ate the mouse shots; the main menu has one button fewer above SETTINGS), `test_features` (rustle is measured from the feet), `test_new_features` (the car's scrap scatters past the 16 px base pickup range; level props under the test car).
 - `t35_playtest3` (never in a suite run before) found real issues: boot read pixels back from about 5,400 GPU canvases (the sheet bake now reads the source images through one CPU scratch canvas, and `scaleFrame` records each frame's bottom row); walk frames floated because each animation's ground was its *lowest* frame (now the most common bottom row, snapping up to 2 source pixels both ways); two solid set pieces could leave a gap narrower than a hero's feet, trapping them (`D.free` now wants 12 px or no gap); goblin (13 px) and intern (16 px) were still small (goblin gets a 1.45x baked up-scale, intern 1.65x; the slime stays a blob). Test-side: spawn rule moves targets 80 px off a hero, ranged weapons release along the live mouse aim, the loiter check could start next to the camp, the hero trees have 9 skills by design.
 - Screenshots of `t4` / `t5` / `t7` / `t8` are written next to the tests (they landed in the current directory and got committed from the repo root).
+
+## 16. Refactor (2026-10-23, in progress)
+
+| Step | State | Notes |
+| --- | --- | --- |
+| 1. Test harness | done | `tests/run.js` (parallel, ~3 min, `--retry`, `--seed`), seeded `Math.random` in `open()` (`CHAOS_SEED`), `__clear()` |
+| 2a. Events instead of wrappers: `killEnemy`, `step` | done, verifying | `G.on` / `G.emit` / `G.hooks()` in `game.js`; the 21 observer wrappers (11 kill, 10 step) are listeners now, same order (script order). Suite: seed 2 38/38; seed 1 36/38 (t5_ui, t7_fallback failed with no failed check while two extra Chromes ran; re-run them alone); seed 3 not finished |
+| 2b. Replay check | started | `tests/replay.js`: seeded bot run fingerprinted every game second; `--root <checkout>` runs another copy, `--compare a b`. Level mode replays identically; wave mode drifts because `js/audio.js` draws sound variants from `Math.random` while sound files decode asynchronously. Next: give audio its own RNG, then compare the pre-refactor commit `08a7449` (a git worktree with `data/` and `assets/` linked in) against this one |
+| 2c. More events | todo | `newRun` (12 wrappers) and `startWave` (6) mix before / after / skip-the-original: needs before and after events with the order kept; `Player.update` (9), `damageEnemy` (7), `hurtPlayer` (5) change arguments or results |
+| 3. One movement / collision function | todo | |
+| 4. Shared actor base | todo | |

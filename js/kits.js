@@ -47,10 +47,9 @@
     if (e && e.fearT > 0) dmg *= 1.25;
     return orig.call(G, e, dmg, o);
   });
-  wrap(G, 'killEnemy', function (orig, e) {
-    const wasFeared = e && !e.dead && e.fearT > 0;
-    const killer = e && e.lastHitBy;
-    orig.call(G, e);
+  G.on('kill', function (e) {
+    const wasFeared = e.fearT > 0; // the core does not change fear or the killer
+    const killer = e.lastHitBy;
     if (wasFeared && killer && X.heroIs(killer, 'Stranger')) {
       // the Stranger's passive: a feared kill leaves a brief shadow that fights for him
       X.addTurret(e.x, e.y, { owner: killer, life: 4, rate: 0.3, dmg: 7 });

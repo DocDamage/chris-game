@@ -107,10 +107,8 @@
   };
 
   /* a closed breach: loot burst, XP, the exit gets closer */
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (was || !e.isSpawner) return;
+  G.on('kill', function (e) {
+    if (!e.isSpawner) return;
     e.hive.dead = true;
     const k = KIND[e.kind];
     FX.burst(e.x, e.y, { n: 36, colors: [k.glow, k.c2, '#ffffff'], speed: 160, life: 0.8 });

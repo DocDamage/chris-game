@@ -40,8 +40,7 @@
 
   /* ---- DPS meter + low-HP heartbeat (sampled every frame) */
   const hx = (X.hx = { log: [], dps: 0, beat: 0, tut: null, tutDone: false });
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (!playing()) return;
     const log = hx.log;
     log.push([G.wall || 0, X.rs.dmg]);

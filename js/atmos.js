@@ -123,10 +123,8 @@
     if (A.dyn.length >= 40) A.dyn.shift();
     A.dyn.push({ x, y, rx: 6 + size * 0.6, ry: 4 + size * 0.4, kind: 'blood', born: G.wall });
   };
-  wrap(G, 'killEnemy', function (orig, e) {
-    const was = e.dead;
-    orig.call(G, e);
-    if (!was && !e.training && !e.isSpawner) A.addBlood(e.x, e.y + 4, e.isBoss ? 18 : e.r || 6);
+  G.on('kill', function (e) {
+    if (!e.training && !e.isSpawner) A.addBlood(e.x, e.y + 4, e.isBoss ? 18 : e.r || 6);
   });
   const inside = (p, x, y, r) => { const dx = (x - p.x) / (p.rx + r * 0.6), dy = (y - p.y) / (p.ry + r * 0.4); return dx * dx + dy * dy < 1; };
   function puddlesTick(dt) {
@@ -317,8 +315,7 @@
     return orig.call(G, e, who);
   });
 
-  wrap(G, 'step', function (orig, dt) {
-    orig.call(G, dt);
+  G.on('step', function (dt) {
     if (G.state === 'playing') A.update(dt);
   });
   /* every stage (and boss arena) gets its own weather and hour */
