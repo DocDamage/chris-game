@@ -89,9 +89,9 @@
         }
       }
       // blink to the end of the line (stop before the arena wall)
-      const m = B.arena.margin + p.r;
-      p.x = U.clamp(x0 + ax * len, m, g.arena.w - m);
-      p.y = U.clamp(y0 + ay * len, m, g.arena.h - m);
+      p.x = x0 + ax * len;
+      p.y = y0 + ay * len;
+      CH.World.keepIn(p, p.r, g.arena);
       for (let i = 0; i <= 10; i++) FX.burst(x0 + ax * len * (i / 10), y0 + ay * len * (i / 10), { n: 3, colors: ['#29adff', '#ff77a8', '#ffffff'], speed: 40, life: 0.4 });
       FX.text(p.x, p.y - 30, hits ? 'SLASH x' + hits : 'ENERGY SLASH', '#ff77a8', 1);
       return;

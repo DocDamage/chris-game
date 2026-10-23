@@ -372,20 +372,10 @@
 
   /* ------------------------------------------------------------------ integration with the old world code */
   /* walls: push everything that moves back out of rock after every simulation step */
-  G.on('step', function (dt) {
+  G.on('step', function () {
     const L = G.level;
     if (!L || G.state === 'menu') return;
-    // everybody collides with the walls at the feet, so nobody sinks into rock or hovers in front of it
-    for (const p of G.players) L.pushOutFeet(p, p.r || 8, 10);
-    for (const e of G.enemies) if (!e.dead) L.pushOutFeet(e, e.isBoss ? Math.min(e.r || 20, 20) : e.r || 8, e.isBoss ? 14 : Math.min(10, ((e.look && e.look.foot) || 8) * 0.8));
-    if (CH.SK) for (const s of CH.SK.list) L.pushOutFeet(s, s.r || 8, 10);
-    for (const pr of G.projectiles) {
-      if (pr.dead) continue;
-      if (L.solidAt(pr.x, pr.y)) {
-        pr.dead = true;
-        FX.burst(pr.x, pr.y, { n: 3, colors: ['#c2c3c7', '#6a6a7a'], speed: 40, life: 0.2 });
-      }
-    }
+    CH.World.settleWalls(L); // everybody at the feet, so nobody sinks into rock or hovers in front of it
   });
 
   /* walking monsters go around walls: when they cannot see the hero they follow the flow field */

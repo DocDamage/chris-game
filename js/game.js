@@ -991,8 +991,7 @@
       item: o.item,
       sprite: type === 'coin' ? 'coin' : type === 'xp' ? (value >= 4 ? 'gem_big' : 'gem') : type === 'hp' ? 'hp' : type === 'power' ? 'power' : (type === 'wood' || type === 'scrap' || type === 'stone') ? type : 'token',
     };
-    pk.x = U.clamp(pk.x, B.arena.margin + 4, G.arena.w - B.arena.margin - 4);
-    pk.y = U.clamp(pk.y, B.arena.margin + 4, G.arena.h - B.arena.margin - 4);
+    CH.World.keepIn(pk, 4, G.arena);
     G.pickups.push(pk);
     return pk;
   };

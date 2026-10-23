@@ -38,9 +38,9 @@
     const inp = p.inp;
     p.updateAim(g, dt);
     p.crawling = inp.mx !== 0 || inp.my !== 0;
-    const m = B.arena.margin + p.r;
-    p.x = U.clamp(p.x + inp.mx * CRAWL_SPEED * dt, m, g.arena.w - m);
-    p.y = U.clamp(p.y + inp.my * CRAWL_SPEED * dt, m, g.arena.h - m);
+    p.x += inp.mx * CRAWL_SPEED * dt;
+    p.y += inp.my * CRAWL_SPEED * dt;
+    CH.World.keepIn(p, p.r, g.arena);
     p.face = Math.cos(p.aim) >= 0 ? 1 : -1;
     p._crawlT = (p._crawlT || 0) - dt;
     if ((inp.fire1 || inp.fire2) && p._crawlT <= 0) {

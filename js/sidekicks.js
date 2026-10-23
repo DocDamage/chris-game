@@ -320,10 +320,8 @@
     bounds(s);
   }
   function bounds(s) {
-    const mg = B.arena.margin + s.r;
-    s.x = U.clamp(s.x, mg, G.arena.w - mg);
-    s.y = U.clamp(s.y, mg, G.arena.h - mg);
-    if (G.arena && G.arena.props) CH.Props.collide(s, 10, s.r);
+    CH.World.keepIn(s, s.r, G.arena);
+    if (G.arena && G.arena.props) CH.World.collideProps(s, 'sidekick');
   }
 
   function tryAttack(s, t, dist) {

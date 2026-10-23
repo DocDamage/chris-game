@@ -127,7 +127,7 @@
       }
     }
 
-    /* ---- collision: push a circle out of walls (called after every mover) ---- */
+    /* ---- collision: push a circle out of the wall tiles it overlaps (World.settleWalls, once per step) ---- */
     pushOut(e, r) {
       r = r || e.r || 8;
       let moved = false;
@@ -138,24 +138,7 @@
           for (let tx = x0; tx <= x1; tx++) {
             if (!this.solid(tx, ty)) continue;
             const rx0 = tx * TS, ry0 = ty * TS;
-            const cx = U.clamp(e.x, rx0, rx0 + TS), cy = U.clamp(e.y, ry0, ry0 + TS);
-            let dx = e.x - cx, dy = e.y - cy;
-            const d2 = dx * dx + dy * dy;
-            if (d2 >= r * r) continue;
-            if (d2 < 0.0001) {
-              // centre inside the tile: leave through the nearest open side
-              const l = e.x - rx0, rr = rx0 + TS - e.x, t = e.y - ry0, b = ry0 + TS - e.y;
-              const m = Math.min(l, rr, t, b);
-              if (m === l) e.x = rx0 - r;
-              else if (m === rr) e.x = rx0 + TS + r;
-              else if (m === t) e.y = ry0 - r;
-              else e.y = ry0 + TS + r;
-            } else {
-              const d = Math.sqrt(d2);
-              e.x += (dx / d) * (r - d);
-              e.y += (dy / d) * (r - d);
-            }
-            moved = true;
+            if (CH.World.pushBox(e, 0, r, rx0, ry0, rx0 + TS, ry0 + TS)) moved = true;
           }
         }
         if (!moved) break;

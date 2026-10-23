@@ -302,35 +302,10 @@
     for (const p of PR.near(props, e.x, fy, tmp)) {
       if (!p.solid || p.dead || (skip && skip(p))) continue;
       const px = p.x + (p.cx || 0), py = p.y + (p.cy || 0);
-      if (p.box) {
-        const hw = p.box.hw, hh = p.box.hh;
-        const qx = U.clamp(e.x, px - hw, px + hw), qy = U.clamp(e.y + foot, py - hh, py + hh);
-        let dx = e.x - qx, dy = e.y + foot - qy;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= r * r) continue;
-        if (d2 < 0.0001) { // feet inside the box: out through the nearest side
-          const l = e.x - (px - hw), rr = px + hw - e.x, t = e.y + foot - (py - hh), b = py + hh - (e.y + foot);
-          const m = Math.min(l, rr, t, b);
-          if (m === l) e.x = px - hw - r;
-          else if (m === rr) e.x = px + hw + r;
-          else if (m === t) e.y = py - hh - r - foot;
-          else e.y = py + hh + r - foot;
-        } else {
-          const d = Math.sqrt(d2);
-          e.x += (dx / d) * (r - d);
-          e.y += (dy / d) * (r - d);
-        }
-        hit = p;
-      } else {
-        const minD = (p.cr || 10) + r;
-        const dx = e.x - px, dy = e.y + foot - py;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= minD * minD || d2 < 0.0001) continue;
-        const d = Math.sqrt(d2);
-        e.x += (dx / d) * (minD - d);
-        e.y += (dy / d) * (minD - d);
-        hit = p;
-      }
+      const moved = p.box
+        ? CH.World.pushBox(e, foot, r, px - p.box.hw, py - p.box.hh, px + p.box.hw, py + p.box.hh)
+        : CH.World.pushCircle(e, foot, r, px, py, p.cr || 10);
+      if (moved) hit = p;
     }
     return hit;
   };

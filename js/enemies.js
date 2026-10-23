@@ -275,28 +275,9 @@
       this.kx *= k;
       this.ky *= k;
       this.zoneSlow = 1;
-      const mg = B.arena.margin + this.r;
-      this.wallHit = false;
-      if (this.x < mg) {
-        this.x = mg;
-        this.wallHit = true;
-        if (this.kx < 0) this.kx = -this.kx * 0.3;
-      } else if (this.x > g.arena.w - mg) {
-        this.x = g.arena.w - mg;
-        this.wallHit = true;
-        if (this.kx > 0) this.kx = -this.kx * 0.3;
-      }
-      if (this.y < mg) {
-        this.y = mg;
-        this.wallHit = true;
-        if (this.ky < 0) this.ky = -this.ky * 0.3;
-      } else if (this.y > g.arena.h - mg) {
-        this.y = g.arena.h - mg;
-        this.wallHit = true;
-        if (this.ky > 0) this.ky = -this.ky * 0.3;
-      }
+      CH.World.bounceIn(this, g.arena);
       // Prop collisions (at the feet, not the body centre; flyers pass over)
-      if (g.arena && g.arena.props && !(this.look && this.look.fly)) CH.Props.collide(this, Math.min(14, ((this.look && this.look.foot) || 8) * 0.8), Math.min(this.r, 9));
+      if (g.arena && g.arena.props && !(this.look && this.look.fly)) CH.World.collideProps(this, 'enemy');
       // facing with hysteresis: a sideways nudge from the crowd does not flip the sprite back and forth
       const ax = Math.abs(this.svx), ay = Math.abs(this.svy);
       if (ax > 12 && Math.sign(this.svx) !== this.face) this.face = this.svx > 0 ? 1 : -1;

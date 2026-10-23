@@ -20,13 +20,7 @@
     if (!g || !g.arena || !g.arena.props) return false;
     for (const prop of g.arena.props) {
       if (prop.dead || !prop.jumpable) continue;
-      const px = prop.x + (prop.cx || 0);
-      const py = prop.y + (prop.cy || 0);
-      if (prop.box) { if (CH.Props.touches(prop, p.x, p.y + 10, p.r + 22)) return true; continue; }
-      const dx = p.x - px;
-      const dy = p.y - py;
-      const jumpDist = (prop.cr || 10) + p.r + 22;
-      if (dx * dx + dy * dy <= jumpDist * jumpDist) return true;
+      if (CH.World.reach(prop, p.x, p.y, 10, p.r + 22, p.r + 22)) return true;
     }
     return false;
   }
@@ -188,8 +182,9 @@
         this.vx = this.vy = 0;
         this.moving = false;
         this.sprinting = false;
-        this.x = U.clamp(this.x + this.kx * dt, B.arena.margin + this.r, g.arena.w - B.arena.margin - this.r);
-        this.y = U.clamp(this.y + this.ky * dt, B.arena.margin + this.r, g.arena.h - B.arena.margin - this.r);
+        this.x += this.kx * dt;
+        this.y += this.ky * dt;
+        CH.World.keepIn(this, this.r, g.arena);
         this.kx *= Math.max(0, 1 - 9 * dt);
         this.ky *= Math.max(0, 1 - 9 * dt);
         CH.Weapons.updateStates(this, dt);
@@ -315,9 +310,7 @@
       const k = Math.max(0, 1 - 9 * dt);
       this.kx *= k;
       this.ky *= k;
-      const m = B.arena.margin + this.r;
-      this.x = U.clamp(this.x, m, g.arena.w - m);
-      this.y = U.clamp(this.y, m, g.arena.h - m);
+      CH.World.keepIn(this, this.r, g.arena);
 
       // ---- vertical elevation & jump simulation ----
       if (this.jumping || this.z > 0) {
@@ -329,13 +322,8 @@
         if (this.vz <= 0 && g.arena && g.arena.props) {
           for (const prop of g.arena.props) {
             if (prop.dead || !prop.jumpable) continue;
-            const px = prop.x + (prop.cx || 0);
-            const py = prop.y + (prop.cy || 0);
-            const dx = this.x - px;
-            const dy = this.y - py;
             const topElev = prop.elevation || 12;
-            const surfR = (prop.cr || 10) + 7;
-            const over = prop.box ? CH.Props.touches(prop, this.x, this.y + 10, 5) : dx * dx + dy * dy <= surfR * surfR;
+            const over = CH.World.reach(prop, this.x, this.y, 10, 5, 7);
             if (over && this.z <= topElev + 6 && this.z >= topElev - 6) {
               landed = prop;
               break;
@@ -370,12 +358,7 @@
           this.jumping = true;
           this.vz = 0;
         } else {
-          const px = prop.x + (prop.cx || 0);
-          const py = prop.y + (prop.cy || 0);
-          const dx = this.x - px;
-          const dy = this.y - py;
-          const surfR = (prop.cr || 10) + 8;
-          if (prop.box ? !CH.Props.touches(prop, this.x, this.y + 10, 6) : dx * dx + dy * dy > surfR * surfR) {
+          if (!CH.World.reach(prop, this.x, this.y, 10, 6, 8)) {
             this.onProp = null;
             this.jumping = true;
             this.vz = 0;
@@ -387,7 +370,7 @@
       if (g.arena && g.arena.props) {
         const me = this;
         // standing on a prop, or airborne above its top: no push
-        CH.Props.collide(this, 10, this.r, (prop) => me.onProp === prop || (me.z >= (prop.elevation || 10) - 1 && prop.jumpable));
+        CH.World.collideProps(this, 'hero', (prop) => me.onProp === prop || (me.z >= (prop.elevation || 10) - 1 && prop.jumpable));
         for (const prop of g.arena.props) {
           if (prop.dead) continue;
           const px = prop.x + (prop.cx || 0);
