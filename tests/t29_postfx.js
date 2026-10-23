@@ -61,16 +61,21 @@ const { open } = require('./lib');
     orc.dead = bird.dead = true; G.enemies.length = 0;
     L.puddles.pop();
     // the shader still shades a puddle under the rain's tint and the screen vignette (they once switched it off):
-    // water lifts the blue channel more than the rain's grade does on the grass beside it (skipped, they were equal)
+    // at the same spot, the shader lifts the blue channel more with the puddle there than the rain's grade does without
+    // it (when it was switched off the two were equal)
     A.setMode('rain');
     const wp = { x: p.x - 70, y: p.y - 50, rx: 26, ry: 16, kind: 'water' };
+    // the mean blue of a 14 x 8 patch in the middle of the puddle (single pixels jump with the raindrops)
+    const blue = (src, x, y) => { const t = document.createElement('canvas'); t.width = 14; t.height = 8; const k = t.getContext('2d', { willReadFrequently: true }); k.drawImage(src, x - 7, y - 4, 14, 8, 0, 0, 14, 8); const d = k.getImageData(0, 0, 14, 8).data; let n = 0; for (let i = 2; i < d.length; i += 4) n += d[i]; return n / (d.length / 4); };
+    const fxc = document.getElementById('fx');
+    const lift = () => { const x = Math.round(wp.x - G.cam.x), y = Math.round(wp.y - G.cam.y); return Math.round(blue(fxc, x, y) - blue(G.canvas, x, y)); };
     L.puddles.push(wp);
     step(4);
-    const read = (src, x, y) => { const t = document.createElement('canvas'); t.width = t.height = 1; const k = t.getContext('2d', { willReadFrequently: true }); k.drawImage(src, x, y, 1, 1, 0, 0, 1, 1); return k.getImageData(0, 0, 1, 1).data; };
-    const fxc = document.getElementById('fx'), sx = Math.round(wp.x - G.cam.x), sy = Math.round(wp.y - G.cam.y);
-    const lift = (x, y) => read(fxc, x, y)[2] - read(G.canvas, x, y)[2];
-    r.rainShade = { puddle: lift(sx, sy), grass: lift(sx, sy + 40) };
-    L.puddles.pop(); A.setMode('clear');
+    const withPuddle = lift();
+    L.puddles.pop();
+    step(4);
+    r.rainShade = { puddle: withPuddle, grass: lift() };
+    A.setMode('clear');
     // effects off falls back to the plain frame
     S.settings.fx = 'off'; P.apply(); r.off = !P.on && document.getElementById('game').style.visibility === '';
     S.settings.fx = 'high'; P.apply(); step(2); r.back = P.on;
