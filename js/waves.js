@@ -61,14 +61,13 @@
     return (CH.Storage.stats && CH.Storage.stats.totalRuns) || 0;
   }
 
-  wrap(G, 'newRun', function (orig, config) {
+  G.on('newRun:before', function (ev) {
     let setup = X.pending;
     X.pending = null;
-    if (!setup) setup = config === undefined && (G.state === 'gameover' || G.state === 'victory') ? Object.assign({}, X.run) : {};
+    if (!setup) setup = ev.config === undefined && (G.state === 'gameover' || G.state === 'victory') ? Object.assign({}, X.run) : {};
     X.run = Object.assign({ mode: 'classic', seed: null, challenge: null, heat: [] }, setup);
     W.reset();
     if (X.onRunSetup) X.onRunSetup(X.run);
-    return orig.call(G, config);
   });
   X.recalc = () => G.players.forEach((p) => CH.Upgrades.recalc(p));
 
@@ -158,8 +157,11 @@
   };
   const extraSet = () => (X.run.mode === 'marathon' ? [2, 6, 9, 12] : X.run.mode === 'classic' ? [2, 6, 9] : X.run.mode === 'short' ? [2] : []);
 
-  wrap(G, 'startWave', function (orig, n) {
+  /* a wave with a path choice waits for it: the choice takes the call over and starts the wave once it is made */
+  G.on('startWave:before', function (ev) {
+    const n = ev.n;
     if (n > 1 && extraSet().includes(n) && canPrompt() && !G.isBossWave(n)) {
+      ev.stop = true;
       const opts = [EXTRA_OPTIONS.hard, EXTRA_OPTIONS.safe];
       if (W.rng() < 0.4) opts.push(EXTRA_OPTIONS.secret);
       G.waveState = 'branch';
@@ -170,14 +172,17 @@
         W.pathMod[n] = id;
         G.state = 'playing';
         CH.Input.clear();
-        begin(orig, n);
+        ev.core(ev);
+        begin(n);
       });
-      return;
     }
-    begin(orig, n);
   });
-  function begin(orig, n) {
-    orig.call(G, n);
+  G.on('startWave', function (ev) {
+    if (ev.stop) return; // waiting for the path choice above, which begins the wave itself
+    begin(ev.n);
+  });
+  /* the path's effects, once the core has started the wave */
+  function begin(n) {
     W.bossHit = false;
     const pm = W.pathMod[n];
     W.hard = pm === 'hard' && n > 1;

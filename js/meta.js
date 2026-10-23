@@ -633,13 +633,11 @@
       Storage.settings.hero = run.hero;
     }
   };
-  wrap(G, 'newRun', function (orig, config) {
-    const r = orig.call(G, config);
+  G.on('newRun', function () {
     if (swapped) Storage.settings.hero = swapped;
     swapped = null;
     M.petsReset();
     M.train = { dealt: 0, hist: [], dps: 0, t: 0, dummy: null };
-    return r;
   });
   X.ownerHooks.push((g, p) => {
     const m = md();
@@ -684,8 +682,7 @@
     p.hp = p.maxHp;
   });
   /* consumables are spent once per run, after every player received them */
-  wrap(G, 'newRun', function (orig, config) {
-    const r = orig.call(G, config);
+  G.on('newRun', function () {
     const m = md();
     if (X.run.mode !== 'training' && X.run.mode !== 'tutorial') {
       let used = false;
@@ -698,7 +695,6 @@
       }
       if (used) Storage.save();
     }
-    return r;
   });
 
   /* challenges */

@@ -483,11 +483,10 @@
     if (G.state === 'playing') A.update(dt);
   });
   /* every stage (and boss arena) gets its own weather and hour */
-  wrap(G, 'startWave', function (orig, n) {
-    const r = orig.call(G, n);
+  G.on('startWave', function (ev) {
+    const n = ev.n;
     const biome = G.level ? G.level.biome : G.arena ? G.arena.id : 'backyard';
     if (!(G.level && G.level.isTown)) A.forStage(biome, n, U.seeded(((G.runSeed || 0) + n * 131) >>> 0));
-    return r;
   });
-  wrap(G, 'newRun', function (orig, c) { A.dyn.length = 0; A.prints.length = 0; A.strikes.length = 0; A.flash = 0; return orig.call(G, c); });
+  G.on('newRun:before', function () { A.dyn.length = 0; A.prints.length = 0; A.strikes.length = 0; A.flash = 0; });
 })(window.CH);

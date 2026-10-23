@@ -118,16 +118,36 @@
   /* ------------------------------------------------------------------ events
      Systems react to the core through named events instead of wrapping its functions: G.on('kill', fn) runs fn(e)
      after an enemy dies, G.on('step', fn) runs fn(dt) after every simulation step (playing or not). Listeners run in
-     the order they were added, which is the script order in index.html. G.hooks() lists who listens where. */
+     the order they were added, which is the script order in index.html. G.hooks() lists who listens where.
+     Core calls that systems also step in front of (newRun, startWave) go through G.call with one event object:
+       G.on('startWave:before', fn(ev))  runs newest first, before the core. Setting ev.stop takes the call over: the
+                                         older ':before' listeners, the core and the older 'startWave' listeners are
+                                         skipped (a town stage, a level instead of a wave, a choice to make first);
+                                         ev.core(...) runs the core itself later if it needs to.
+       G.on('startWave', fn(ev))         runs after the core, oldest first; ev.result is what the core returned.
+     That is exactly how the wrappers these replaced nested: the newest wrapper was the outermost. */
   const listeners = {};
+  let seq = 0;
   G.on = function (name, fn) {
     const at = ((new Error().stack || '').split('\n')[2] || '').replace(/^.*\/js\/([^:]+:\d+).*$/, '$1').trim();
-    (listeners[name] = listeners[name] || []).push({ fn, at });
+    (listeners[name] = listeners[name] || []).push({ fn, at, seq: seq++ });
     return fn;
   };
   G.emit = function (name, a, b, c) {
     const l = listeners[name];
     if (l) for (let i = 0; i < l.length; i++) l[i].fn(a, b, c);
+  };
+  G.call = function (name, ev, core) {
+    const pre = listeners[name + ':before'] || [], post = listeners[name] || [];
+    ev.core = core;
+    let cut = -1;
+    for (let i = pre.length - 1; i >= 0; i--) {
+      pre[i].fn(ev);
+      if (ev.stop) { cut = pre[i].seq; break; }
+    }
+    if (!ev.stop) ev.result = core(ev);
+    for (let i = 0; i < post.length; i++) if (post[i].seq > cut) post[i].fn(ev);
+    return ev.result;
   };
   G.hooks = () => Object.fromEntries(Object.entries(listeners).map(([k, l]) => [k, l.map((x) => x.at)]));
 
@@ -147,7 +167,8 @@
   G.edmg = (base) => base * G.diff.enemyDmg * (G.coop ? B.coop.enemyDmg : 1) * (1 + B.waves.dmgScale * Math.max(0, Math.min(G.wave, 10) - 1));
 
   /* config: undefined = repeat the last setup, null = single player, {players:[{hero, src}, {hero, src}]} = co-op */
-  G.newRun = function (config) {
+  G.newRun = (config) => G.call('newRun', { config }, (ev) => newRunCore(ev.config));
+  function newRunCore(config) {
     if (config === undefined) config = G.lastConfig;
     G.lastConfig = config || null;
     G.diff = B.difficulty[Storage.settings.difficulty] || B.difficulty.normal;
@@ -215,7 +236,7 @@
     G.startWave(1);
     G.playMusic();
     G.ui.onRunStart();
-  };
+  }
 
   /* line the party up in the middle of the arena */
   G.placePlayers = function () {
@@ -445,7 +466,8 @@
     });
   };
 
-  G.startWave = function (n) {
+  G.startWave = (n) => G.call('startWave', { n }, (ev) => startWaveCore(ev.n));
+  function startWaveCore(n) {
     G.wave = n;
     const changed = G.setArena(G.pathArena(n) || B.waves.arenaForWave(n));
     if (changed) {
@@ -481,7 +503,7 @@
       const d = U.rand(90, 200);
       G.machine = { x: U.clamp(G.arena.w / 2 + Math.cos(a) * d * 1.4, 50, G.arena.w - 50), y: U.clamp(G.arena.h / 2 + Math.sin(a) * d * 0.9, 60, G.arena.h - 50), uses: 1, t: 0 };
     }
-  };
+  }
 
   /* wave tips adapt to how you are playing: controller, keyboard, or co-op */
   G.tipFor = function (n) {

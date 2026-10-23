@@ -396,8 +396,8 @@
     return k;
   }
 
-  wrap(G, 'startWave', function (orig, n) {
-    orig.call(G, n);
+  G.on('startWave', function (ev) {
+    const n = ev.n;
     F.combatT = 0;
     F.dir.ease = 0;
     startMod(n);

@@ -122,8 +122,7 @@
     if (before > G.projectiles.filter((p) => p.owner === 'e' && !p.dead).length) Q.event('parry');
     return res;
   });
-  const origNew = G.newRun;
-  G.newRun = function (c) { const r = origNew.call(G, c); if (G.run) G.run.parries = 0; return r; };
+  G.on('newRun', function () { if (G.run) G.run.parries = 0; });
 
   /* ------------------------------------------------------------------ difficulty tiers */
   Q.TIERS = [
@@ -134,12 +133,10 @@
   Q.tier = () => Math.min(2, D().tier || 0);
   Q.unlockedTier = () => Math.min(2, D().tierUnlocked || 0);
   Q.setTier = (t) => { if (t <= Q.unlockedTier()) { D().tier = t; Storage.save(); return true; } return false; };
-  wrap(G, 'newRun', function (orig, config) {
-    const r = orig.call(G, config);
+  G.on('newRun', function () {
     const t = Q.TIERS[Q.tier()];
     if (t.hp !== 1 || t.dmg !== 1) G.diff = Object.assign({}, G.diff, { enemyHp: G.diff.enemyHp * t.hp, enemyDmg: G.diff.enemyDmg * t.dmg });
     G.tierName = t.name;
-    return r;
   });
   wrap(G, 'victory', function (orig) {
     const t = Q.tier();

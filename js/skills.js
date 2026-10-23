@@ -186,10 +186,8 @@
     if (G.ui && G.ui.toast) G.ui.toast('LEVEL UP: +1 SKILL POINT  (' + (CH.Input.lastUsed === 'pad' ? 'START > SKILLS' : 'K') + ')');
     return undefined;
   });
-  wrap(G, 'newRun', function (orig, c) {
-    const r = orig.call(G, c);
+  G.on('newRun', function () {
     for (const p of G.players) { p.skills = {}; p.sp = 0; }
-    return r;
   });
 
   /* ------------------------------------------------------------------ the screen */

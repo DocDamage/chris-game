@@ -148,22 +148,22 @@
     return orig.call(R, dt);
   });
   /* the exit pad of the stage after a boss: boss stages are arenas, the next level starts from the town */
-  wrap(G, 'startWave', function (orig, n) {
-    if (Town.inTown) { Town.pendingStage = n; return; } // already in town: leaving will start it
+  G.on('startWave:before', function (ev) {
+    const n = ev.n;
+    if (Town.inTown) { Town.pendingStage = n; ev.stop = true; return; } // already in town: leaving will start it
     if (Town.wantTown && R.usesLevels(n) && n > 1) {
       Town.wantTown = false;
       Town.pendingStage = n;
+      ev.stop = true;
       Town.enter('act');
-      return;
     }
-    return orig.call(G, n);
   });
   wrap(G, 'onBossDefeated', function (orig, b) {
     const r = orig.call(G, b);
     if (!G.endless && !(['bug', 'skull', 'daddy'].includes(b.kind) && b.tier === 0)) Town.wantTown = true; // an act is done: the next stage begins in town
     return r;
   });
-  wrap(G, 'newRun', function (orig, c) { Town.inTown = false; Town.saved = null; Town.pendingStage = 0; Town.wantTown = false; return orig.call(G, c); });
+  G.on('newRun:before', function () { Town.inTown = false; Town.saved = null; Town.pendingStage = 0; Town.wantTown = false; });
   const origToMenu = G.toMenu;
   G.toMenu = function () { Town.inTown = false; Town.saved = null; return origToMenu.apply(G, arguments); };
 

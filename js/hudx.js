@@ -264,12 +264,10 @@
     const t = Object.keys(B.enemies)[0];
     return Array.from({ length: 6 }, () => ({ type: t }));
   });
-  wrap(G, 'newRun', function (orig, config) {
-    const r = orig.call(G, config);
+  G.on('newRun', function () {
     hx.log.length = 0;
     hx.tut = X.run.mode === 'tutorial' ? { i: 0, did: {}, done: false, t: 0 } : null;
     if (hx.tut && !G.machine) G.machine = { x: G.arena.w / 2 + 70, y: G.arena.h / 2 + 40, uses: 1, t: 0 };
-    return r;
   });
   function tutorialStep(dt) {
     const T = hx.tut;

@@ -39,7 +39,9 @@
   };
 
   /* ------------------------------------------------------------------ starting a stage */
-  wrap(G, 'startWave', function (orig, n) {
+  /* a stage with a level is built here instead of the wave arena (and none of the wave code runs) */
+  G.on('startWave:before', function (ev) {
+    const n = ev.n;
     if (!Run.usesLevels(n)) {
       if (G.level) { // leaving a level for a boss arena: the arena builder must not think it is already built
         G.level = null;
@@ -48,8 +50,9 @@
         G.enemies.length = 0;
         G.pickups.length = 0;
       }
-      return orig.call(G, n);
+      return;
     }
+    ev.stop = true;
     Run.startLevel(n);
   });
 
@@ -439,11 +442,10 @@
     if (!G.level) return;
     for (const e of G.enemies) if (e.unique && !e.dead) CH.Font.draw(ctx, e.unique.toUpperCase(), Math.round(e.x - cam.x), Math.round(e.y - cam.y) - 34, '#ff8a1e', 1, true, 'center');
   });
-  wrap(G, 'newRun', function (orig, config) {
+  G.on('newRun:before', function () {
     G.runSeed = null;
     G.garageKey = false;
     G.level = null;
-    return orig.call(G, config);
   });
   const origToMenu = G.toMenu;
   G.toMenu = function () {

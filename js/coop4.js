@@ -22,10 +22,9 @@
     B.coop.xpMul = BASE.xpMul / f;
   };
 
-  wrap(G, 'newRun', function (orig, config) {
-    const cfg = config === undefined ? G.lastConfig : config;
+  G.on('newRun:before', function (ev) {
+    const cfg = ev.config === undefined ? G.lastConfig : ev.config;
     X.applyCoopScale(cfg && cfg.players ? Math.min(4, cfg.players.length) : 1);
-    return orig.call(G, config);
   });
 
   /* ---- crawling ---- */

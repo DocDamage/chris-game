@@ -453,9 +453,8 @@
     return orig.call(G, p);
   });
   /* once per stage / wave */
-  wrap(G, 'startWave', function (orig, n) {
+  G.on('startWave:before', function () {
     for (const s of SK.list) s.reviveReady = true;
-    return orig.call(G, n);
   });
 
   /* ---- taking damage: enemy touch and enemy shots ---- */

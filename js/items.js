@@ -392,9 +392,8 @@
     if (G.state === 'playing') Items.update(dt);
   });
   const clear = () => { Items.ground.length = 0; };
-  wrap(G, 'newRun', function (orig, c) { clear(); return orig.call(G, c); });
-  const origStart = G.startWave;
-  G.startWave = function (n) { clear(); return origStart.call(G, n); };
+  G.on('newRun:before', clear);
+  G.on('startWave:before', clear);
 
   /* beams and labels, drawn with the world */
   CH.Hooks.world.push((ctx, cam) => {

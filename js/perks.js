@@ -689,17 +689,17 @@
   });
 
   /* ---------- run init ---------- */
-  wrap(G, 'newRun', function (orig, config) {
+  G.on('newRun:before', function () {
     X.reset();
     X.extraEnemySpeed = 1;
     X.enemyDmgMul = 1;
-    const r = orig.call(G, config);
+  });
+  G.on('newRun', function () {
     for (const p of G.players) {
       ensure(p);
       for (const h of X.ownerHooks) h(G, p);
       Up.recalc(p);
     }
-    return r;
   });
   wrap(G, 'toMenu', function (orig) {
     X.reset();
