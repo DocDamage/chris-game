@@ -534,3 +534,152 @@ Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), colli
 | The overlay bug | done | The shader told floor from characters by comparing the *final* frame with a floor copy, so the rain tint, god rays, wind tint and the screen vignette counted as characters and switched most puddle pixels off. `js/render.js` now has `Atmos.snap` take the floor (after animated tiles and the rain sheen) and the characters (before the full-screen overlays), per view |
 | Tracks | done | Feet that leave blood, water or goo print it: 18 blood prints, 9 water (evaporate in 8 s), 12 goo; each print fainter than the last; shoes for heroes and sidekicks, paws for monsters, nothing for flyers or a hero in the air; fresh blood prints shine for 8 s and turn brown after 20. No randomness, so replays don't change |
 | Tests | done | `t29_postfx`: 18 fading blood prints, none inside the puddle; monster paws, no flyer prints; water prints evaporate; the shader still shades a puddle under rain and the vignette |
+
+## 18. The haunted world: no more runs, new packs, going back, height, secrets, the hideout's people, omens (2026-10-23, accepted)
+
+The owner's requests of 2026-10-23, and the design they lead to. The three new tile packs and the NPCs are catalogued
+sheet by sheet in `docs/ASSET_PACKS.md` (contents, slicer results, cut method, role, scale, special uses).
+
+### 18.1 The requests
+
+1. Rework the random chaos events into something meaningful.
+2. Go back to earlier stages, because later stages give secrets and abilities that open things there (as in
+   *Symphony of the Night*).
+3. Replace the first stage's Valley Ruin art with **Creepy Forest**, using every sheet of the pack, properly cut.
+4. Use **Haunted Victorian City** where it makes sense throughout the game.
+5. Deeper level design: height (hills, stairs) and light platforming.
+6. Secret areas with rare items, weapons and other secrets.
+7. Roles for the new hideout NPCs: a **Nurse**, a **Doctor** and **Jesus Christ**.
+8. Portals as a full-circle effect instead of the sideways ring.
+9. A new building with the **cult NPCs** inside, who give something special for a task or quest; a Victorian house.
+10. Kit-bash all the packs where it makes sense.
+11. **Frozen Kingdom** for the snow stages.
+
+Also in the NPC folder, not mentioned: **Lucifer** (160 px frames: hellfire, dark magic, flight).
+
+**Decided with the owner (2026-10-23):**
+- **No more runs: a game like Diablo.** One persistent character per save slot and a persistent world (18.3, K0).
+- **Death**: wake in the hideout and drop some gold where you died; walk back to the corpse to get it back. An optional
+  **hardcore** character is gone for good when it dies.
+- **Returning to a cleared area** repopulates it with fewer monsters; closed breaches and killed bosses stay gone.
+- **Characters**: Diablo-style save slots, each one hero.
+- **Modes**: endless, boss rush, training and the tutorial are removed; the first area teaches the basics with hints.
+- **Hideout roles** as proposed below; **Lucifer is a hideout figure**, not an enemy; **light platforming**.
+
+### 18.2 What the packs give and lack (summary of `docs/ASSET_PACKS.md`)
+
+- All 60 sheets are transparent, AI-made imitation pixel art with baked title banners, frames and stray letter
+  fragments; ground swatches are not seamless; walls, doors, fences and cliffs face south only; nothing is animated;
+  each sheet wants its own scale. One cutting tool with per-sheet rules handles all of it (K1).
+- **Creepy Forest**: ~70 ground variants, paths, rotten fences, cabin walls / roofs / doors, dead trees, twisted roots,
+  graveyards and crypts, ritual circles, lanterns, signs, bones, cages, wells, altars, two glowing portals, a skull gate.
+  No cliffs or walls to bound rooms, no stairs or bridges.
+- **Frozen Kingdom**: snow ground, icy paths, frozen water, **glacier cliffs**, ice castle walls and gatehouse, Nordic
+  houses, **bridges (one with stairs)**, crystals, pines, rune plates, statues and two portals, a market and a camp,
+  **snow footprints and flakes**. No cliff sides or ramps, no open water.
+- **Haunted Victorian City**: cobbles and sidewalks, wall / roof / door / window modules for facades, lamps, iron fences,
+  carriages, cemetery and mausoleums, statues, a market, furniture, sewer pipes with ladders, occult candles and a
+  pentagram, ruined district debris, thrones, a skull portal arch. No complete houses (facades are assembled), no
+  interiors, no stairs.
+- **NPCs**: Nurse and Doctor (48 px, heal animations), Jesus (bless), four cult members (idle, walk, pray, attack),
+  Lucifer (boss-sized).
+
+### 18.3 Design
+
+**No more runs (the owner's decision).** The game becomes one persistent adventure per character, like Diablo:
+- **Save slots** (character select): the hero, level, experience, skill tree, gear, inventory, belt, stash, gold, the
+  abilities found, quests, and the world's state. Saves go through Storage v2's migrations; the old run-based save data
+  (unlocks, mastery, trophies) carries over where it has a meaning (heroes unlocked, codex).
+- **The world**: acts made of areas. Each area is generated once per save from the save's seed and is the same on
+  every visit. What you change there is kept (chests, broken walls, secrets, closed breaches, killed bosses); monsters
+  come back thinner when you leave and return. Waypoints are discovered and travelled between, as now, but persist.
+- **Acts**: Act I The Dead Wood (forest areas, its crypt, the boss), Act II the Gaslight District (streets, cemetery,
+  sewers, the cathedral), Act III the Frozen Kingdom (glacier, frozen town, the ice castle), Act IV below (volcano,
+  the hell breaches). Finishing the game opens Nightmare, then Hell, as the difficulty tiers do now.
+- **Death**: you wake in the hideout; some gold lies where you died, as a corpse marker you can walk back to. Hardcore
+  characters are deleted on death (a choice at character creation).
+- **Gone**: run setup and scoring, heat, challenges, run modes (classic / short / marathon), endless, boss rush,
+  training, the tutorial, the wave loop as the main game (boss arenas stay as boss areas). The first area teaches.
+
+**Stages and biomes (requests 3, 4, 10, 11).**
+- `backyard` becomes **The Dead Wood** (Creepy Forest): stage 1. Floors from sheets 1-3; rooms bounded by the existing
+  rock-cliff wall autotile, darkened, behind rows of dead trees and twisted roots; cabins, a graveyard and a well per
+  stage; the giant twisted tree as a landmark. Valley Ruin stays only for the walls it lends.
+- A new biome **Gaslight District** (Haunted Victorian City): cobbled streets bounded by assembled house facades and iron
+  fences, a cemetery quarter with mausoleums (crypt entrances), sewer grates and ladders, ruined blocks.
+- `frozen` uses **Frozen Kingdom** throughout: glacier-cliff plateaus, frozen lakes, the ice castle as the boss approach.
+- `dungeon` (the crypt) borrows the graveyard and mausoleum sets from both new packs.
+- Kit-bashing: Volcanic Ruins stairs and bridges recoloured for forest and city height; Frozen glacier cliffs re-tinted
+  as rock for the forest; Victorian furniture for cabin and cult interiors; candles and occult props shared by every
+  dark biome. Every sheet of the three packs is used somewhere (a test checks that each sheet has placed pieces).
+
+**Going back (request 2).** The run's map becomes a small world of linked stages. A stage is rebuilt from the run seed,
+so it is the same stage when you return; what you changed there is kept (closed breaches, opened chests, broken walls,
+found secrets). Waypoints and the hideout's portal take you to any stage you have visited. Abilities found later open
+blocks placed in earlier stages, and the Journal's map marks each block with the ability it wants:
+
+| Ability (found in) | Opens |
+| --- | --- |
+| **Grave Hook** / glide (Dead Wood depths) | ledges and gaps too wide to jump |
+| **Bone Breaker** (Gaslight crypt) | boarded doors, cracked walls, rubble |
+| **Frost Step** (Frozen Kingdom) | swamp and dark water freeze into paths; ice floes |
+| **Lantern of Truth** (Jesus) | false walls and hidden doors show themselves |
+| **Cult Sigil** (cult house task) | sealed sigil doors and ritual circles |
+
+**Height and platforming (request 5).** Levels get a height per cell (0, 1, 2): plateaus with cliff faces (glacier
+cliffs, rock cliffs, house walls), stairs and ramps to climb them, ledges you can drop from, and gaps of one or two tiles
+you jump over (the jump exists). Falling into a pit costs a little health and puts you back at the edge. Monsters path
+by height (stairs only); fights stay on one level per area so twin-stick play stays readable. Bridges (Frozen 8,
+Volcanic 17) span gaps.
+
+**Secrets (request 6).** Every stage has one to three: behind cracked walls (exists), false walls, boarded doors, under
+open graves, sewer grates, wells and mausoleums (a small cellar), across frozen lakes, up ledges. They hold rare weapons,
+relics, sidekick unlocks and lore pages for the Codex. Warning signs, skull stakes and cracked floor tiles hint at them;
+the map shows a "?" once you have seen a hint.
+
+**The hideout's people (request 7).**
+- **Nurse**: potions and the consumable belt; a revive charge she refills (used, you get up where you fell instead of waking in the hideout).
+- **Doctor**: permanent body upgrades from rare materials found in secrets (more health, a bigger belt, faster revive)
+  and a "surgery" that resets the skill tree for a price.
+- **Jesus**: blessings. Give up something (gold, a relic, a cult reward you no longer want) for a boon on the next
+  stages; he lifts the curses the cult's gifts carry, and gives the **Lantern of Truth** for a pilgrimage quest.
+- The six existing villagers keep their trades (vendor, stash, smith, sidekick trainer, elder, waypoint keeper).
+
+**The cult house and Lucifer (request 9).** A Victorian house at the edge of the hideout (a sheet 3-6 facade, the purple
+eye door), entered as a small interior room: cultists praying around the pentagram, candles, grimoires, and **Lucifer on
+the throne**. The cultists give dark tasks ("clear an area without healing", "carry this idol through an area", "kill an
+elite in the dark") for the cult's favour; **Lucifer trades**: bargains for power with a price (strong relics carrying a
+curse, the **Cult Sigil**, a reroll of an item's affixes for a lasting drawback). Jesus, across the square, lifts the
+curses: the two are a deliberate pair. Lucifer is not fought.
+
+**Portals (request 8).** One front-facing circular vortex for every portal (town, stage exits, breaches, waypoints): a
+glowing ring, spiral arms turning inward, sparks drawn into the centre, light and a little shader distortion, coloured
+per use (cult purple, frost blue, hell red).
+
+**Chaos events become omens (request 1).** No more random timer. A stage may carry one omen with a cause you can see and
+end: a **blood moon** (night, stronger monsters, more loot) ended by breaking the moon altar; a **cult ritual** (a circle
+summoning waves) ended by killing the chanting cultists; a **breach surge**; a **frost wind** (blizzard, slowing) ended at
+the rune pillar; a **haunting** (ghosts through walls). Left alone an omen grows; ending it pays out. Some omens appear
+only after cult tasks. The old events' best effects (low gravity, the floor is lava, explosive) become omen effects.
+
+**Also.** Snow footprints (Frozen 18, using the puddle tracks system); slippery ice (frozen water, dark ice paths, ice
+bridges); a stage card on entry (biome, omen, known secrets); boss arenas dressed from the new kits (a cathedral of
+thrones, the ice castle's throne room); a balance pass after all this (bots win 2-3 of 8 arena runs but 5-6 of 6 level
+runs today).
+
+### 18.4 Milestones (each one or a few PRs, with tests and a bot comparison)
+
+| # | What | Needs |
+| --- | --- | --- |
+| K0 | **No more runs**: save slots, character creation (hero, hardcore), persistent world state per area, acts and areas, death and the corpse, monster repopulation, removal of run modes and scoring; Storage migration | |
+| K1 | Cutting tool for the three packs and the NPCs (`tools/pack-kits.js`): per-sheet rules from `docs/ASSET_PACKS.md`, a contact sheet per pack for review, `t41_kits` (every sheet yields its pieces, no banner or frame pieces) | |
+| K2 | The Dead Wood (Act I) | K0, K1 |
+| K3 | Frozen Kingdom stages, snow footprints, slippery ice | K1 |
+| K4 | Gaslight District biome | K1 |
+| K5 | Portal vortex | |
+| K6 | Hideout: Nurse, Doctor, Jesus with art and roles; Victorian dressing | K1 |
+| K7 | Height: plateaus, cliffs, stairs, ledges, gaps, bridges | K2-K4 |
+| K8 | Secrets, abilities, going back, the map | K0, K7 |
+| K9 | Cult house, tasks, cursed gifts, Lucifer | K6, K8 |
+| K10 | Omens replace chaos events | K9 |
+| K11 | Balance pass | all |
