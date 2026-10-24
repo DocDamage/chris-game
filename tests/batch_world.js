@@ -20,6 +20,7 @@ const { NAV } = require('./navbot');
       window.__bot.hits = { total: 0, byWave: {}, bySrc: {}, minHp: 1e9 };
       window.__deaths = {};
       window.__stageT = {};
+      window.__lvl = {};
       const prev = CH.Areas.onDeath;
       if (!prev.__wrapped) {
         CH.Areas.onDeath = function () { const w = CH.G.wave; window.__deaths[w] = (window.__deaths[w] || 0) + 1; return prev.apply(this, arguments); };
@@ -36,14 +37,15 @@ const { NAV } = require('./navbot');
         window.__bot.step(600);
         const s = window.__bot.snapshot();
         window.__stageT[G.wave] = (window.__stageT[G.wave] || 0) + 10;
+        if (!window.__lvl[G.wave]) window.__lvl[G.wave] = G.player.level; // the hero's level on reaching each area
         return { s, deepest: CH.Storage.slot() ? CH.Storage.slot().world.deepest : 0 };
       });
       snap = info.s;
       steps += 600;
       if (snap.state === 'victory' || snap.state === 'gameover') break;
     }
-    const extra = await page.evaluate(() => ({ deaths: window.__deaths, stageT: window.__stageT, level: CH.G.player.level, abilities: CH.Storage.slot() ? CH.Storage.slot().world.abilities : [] }));
-    res.push({ end: snap.state, deepest: info.deepest, stage: snap.wave, minutes: Math.round(steps / 3600), lvl: extra.level, deaths: extra.deaths, abilities: extra.abilities, stageSecs: extra.stageT });
+    const extra = await page.evaluate(() => ({ deaths: window.__deaths, stageT: window.__stageT, lvlAt: window.__lvl, level: CH.G.player.level, abilities: CH.Storage.slot() ? CH.Storage.slot().world.abilities : [] }));
+    res.push({ end: snap.state, deepest: info.deepest, stage: snap.wave, minutes: Math.round(steps / 3600), lvl: extra.level, deaths: extra.deaths, abilities: extra.abilities, stageSecs: extra.stageT, lvlAt: [1, 6, 11, 12, 22, 27, 28, 38, 39, 44, 49].map((n) => n + ':' + (extra.lvlAt[n] || '-')).join(' ') });
   }
   console.log(diff, prof);
   for (const x of res) console.log(JSON.stringify(x));

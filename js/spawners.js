@@ -120,7 +120,8 @@
     G.addCoins(Math.round(18 + 4 * G.tier()), e.x, e.y);
     for (let i = 0; i < 5; i++) G.dropPickup('coin', e.x + U.rand(-24, 24), e.y + U.rand(-24, 24), 3, {});
     if (CH.PowerUps && CH.PowerUps.roll) G.dropPickup('curio', e.x, e.y, 2, { icon: 'pu.' + U.pick([259, 46, 170, 171]), life: 25 });
-    CH.Upgrades.addXp(G, Math.round(B.xp.need(G.player.level) * 0.35), G.player);
+    // a share of a level; a world has five times the breaches of the old ten stages, so each is worth a fifth (PLAN.md 19, W6)
+    CH.Upgrades.addXp(G, Math.round(B.xp.need(G.player.level) * (CH.WorldMap && CH.WorldMap.on() ? 0.08 : 0.35)), G.player);
     if (CH.Run) CH.Run.onBreachClosed(e.hive);
   });
 

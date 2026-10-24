@@ -61,7 +61,7 @@ window.CH = window.CH || {};
       arenaForWave: (w) => (w <= 3 ? 'backyard' : w <= 6 ? 'office' : w <= 10 ? 'glitch' : ['backyard', 'office', 'glitch'][(w - 11) % 3]),
     },
 
-    xp: { need: (lvl) => 12 + lvl * 8 + Math.floor(lvl * lvl * 0.35), orbMul: 1 },
+    xp: { need: (lvl) => 12 + lvl * 8 + Math.floor(lvl * lvl * 0.35) + (lvl > 20 ? Math.floor(0.5 * Math.pow(lvl - 20, 3)) : 0), orbMul: 1 }, // steeper past 20: the 49-area world ends near level 50, not 90+ (PLAN.md 19, W6)
 
     drops: {
       hpChance: 0.05,

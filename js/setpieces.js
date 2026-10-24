@@ -1043,10 +1043,26 @@
       const f = L.flowFor(L.entrance.x, L.entrance.y);
       const bad = targets.find((t) => f.dist[L.idx(Math.floor(t.x / TS), Math.floor(t.y / TS))] < 0);
       if (!bad) break;
+      // where the way is cut: walk from it toward the entrance by the walls alone; the props round the first tiles the
+      // heroes can reach from the entrance are the ones in the way (the nearest to it may be far from the cut)
+      const props = L.props;
+      L.props = [];
+      L.flows.clear();
+      const fc = L.flowFor(L.entrance.x, L.entrance.y);
+      L.props = props;
+      let tx = Math.floor(bad.x / TS), ty = Math.floor(bad.y / TS), cut = { x: bad.x, y: bad.y };
+      for (let i = 0; i < 3000 && fc.dist[L.idx(tx, ty)] > 0; i++) {
+        if (f.dist[L.idx(tx, ty)] >= 0) break;
+        cut = { x: (tx + 0.5) * TS, y: (ty + 0.5) * TS };
+        let nb = null, nd = fc.dist[L.idx(tx, ty)];
+        for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) { const d = L.inb(tx + ox, ty + oy) ? fc.dist[L.idx(tx + ox, ty + oy)] : -1; if (d >= 0 && d < nd) { nd = d; nb = [tx + ox, ty + oy]; } }
+        if (!nb) break;
+        [tx, ty] = nb;
+      }
       let best = null, bd = 1e9;
       for (const p of L.props) {
         if (!p.sp || !p.solid || p.dead) continue;
-        const d = U.dist(p.x, p.y, bad.x, bad.y) + (p.kits ? 400 : 0); // a built cabin or townhouse goes last
+        const d = Math.min(U.dist(p.x, p.y, bad.x, bad.y), U.dist(p.x, p.y, cut.x, cut.y) - (p.box ? p.box.hw : 0)) + (p.kits ? 400 : 0); // a built cabin or townhouse goes last
         if (d < bd) { bd = d; best = p; }
       }
       if (!best) break;
