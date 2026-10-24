@@ -592,6 +592,11 @@ body.uik .vend-cell.sel, body.uik .vend-cell:focus-visible, body.uik .ig-cell.se
 /* hero select (Gold book) */
 .hs-turn { width: calc(var(--p) * 96); image-rendering: pixelated; align-self: center; margin-top: calc(var(--p) * 6); }
 .hs-turn.locked { filter: brightness(0) opacity(0.5); }
+/* the character book (K0a): a name for a new character and the hardcore box */
+.hs-name { font: inherit; font-size: calc(var(--p) * 9); width: calc(var(--p) * 110); padding: calc(var(--p) * 2) calc(var(--p) * 4); color: #3b2a1a; background: rgba(255, 244, 214, 0.65); border: calc(var(--p) * 1) solid #8b6a3e; border-radius: calc(var(--p) * 2); }
+.hs-name:focus { outline: calc(var(--p) * 1) solid #c8a060; }
+.hs-hc { font-size: calc(var(--p) * 9); color: #7a1f1f; cursor: pointer; }
+.hs-hc input { width: calc(var(--p) * 9); height: calc(var(--p) * 9); }
 
 /* the map scroll */
 .ms { position: relative; width: calc(var(--p) * 640); height: calc(var(--p) * 432); flex: none; margin: calc(var(--p) * -60) 0; }

@@ -1,6 +1,7 @@
 /* Audio: sample bank, ambience, music selection per situation, mute, fades. */
 const { chromium } = require('playwright-core');
 const ENV = require('./env');
+const { play } = require('./lib');
 (async () => {
   const browser = await chromium.launch({ executablePath: ENV.CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
@@ -37,7 +38,7 @@ const ENV = require('./env');
   await page.keyboard.press('Escape');
 
   // in game: arena music + ambience
-  await page.click('#btn-play'); await page.waitForTimeout(1500);
+  await play(page); await page.waitForTimeout(1500);
   ok('backyard music + ambience', (await track()) === 'court' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_backyard', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });
   // levelling up is a skill point now: no card screen, the arena music keeps playing
   await page.evaluate(() => CH.Upgrades.addXp(CH.G, 30)); await page.waitForTimeout(600);

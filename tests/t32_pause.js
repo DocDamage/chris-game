@@ -2,6 +2,7 @@
    confirm dialogs, Esc out of the Journal even with a slider focused, and the way back to the game. */
 const { chromium } = require('playwright-core');
 const ENV = require('./env');
+const { play } = require('./lib');
 (async () => {
   const browser = await chromium.launch({ executablePath: ENV.CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
@@ -20,7 +21,7 @@ const ENV = require('./env');
     return box;
   };
   const pause = async () => { await page.keyboard.press('Escape'); await page.waitForTimeout(350); };
-  await click('#btn-play'); await page.waitForTimeout(1500);
+  await play(page); await page.waitForTimeout(1500);
   ok('the run started with a click', (await st()).state === 'playing', await st());
   // resume by clicking
   await pause(); let s = await st(); ok('Esc pauses', s.state === 'paused' && s.ui === 'pause', s);

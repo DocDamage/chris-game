@@ -1,5 +1,6 @@
 const { chromium } = require('playwright-core');
 const ENV = require('./env');
+const { play } = require('./lib');
 const URL = ENV.URL;
 const results = [];
 const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, extra === undefined ? '' : JSON.stringify(extra)]); };
@@ -61,7 +62,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.evaluate(() => { const s = CH.Storage.settings; s.difficulty = 'normal'; s.shake = true; s.reduced = false; s.flashing = true; s.keys.dodge = 'Space'; CH.Input.rebuild(); CH.Storage.save(); CH.UI.applyAccessibility(); });
 
   // play with real input
-  await page.click('#btn-play');
+  await play(page);
   ok('run started', (await state()).s === 'playing');
   await page.waitForTimeout(3600);
   await page.mouse.move(900, 300);
@@ -160,7 +161,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
 
   // multiple consecutive runs: entity counts never leak
   for (let i = 0; i < 3; i++) {
-    await page.click('#btn-play');
+    await play(page);
     await page.waitForTimeout(500);
     await page.evaluate(() => { for (let k = 0; k < 6; k++) CH.G.spawnEnemy('chicken', CH.G.player.x + 120, CH.G.player.y, {}); });
     await page.keyboard.press('Escape');
@@ -171,11 +172,11 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   ok('no entities left after repeated runs', leak.ents === 0 && leak.proj === 0 && leak.pk === 0 && leak.zones === 0, leak);
 
   // corrupted storage must not crash
-  await page.evaluate(() => { localStorage.setItem('chaosexe.save.v1', '{not json!!'); });
+  await page.evaluate(() => { localStorage.setItem('chaosexe.save.v3', '{not json!!'); });
   await page.reload();
   await page.waitForFunction(() => document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
   ok('corrupted save falls back to defaults', await page.evaluate(() => CH.Storage.settings.difficulty === 'normal' && CH.G.state === 'menu'));
-  await page.evaluate(() => { localStorage.setItem('chaosexe.save.v1', JSON.stringify({ settings: { master: 'loud', hero: 7, keys: { dodge: 5 }, difficulty: 'nightmare' }, stats: { highScore: -5, totalRuns: 'x' }, unlocked: 'all' })); });
+  await page.evaluate(() => { localStorage.setItem('chaosexe.save.v3', JSON.stringify({ version: 3, account: { settings: { master: 'loud', hero: 7, keys: { dodge: 5 }, difficulty: 'nightmare' }, stats: { highScore: -5, totalRuns: 'x' }, unlocked: 'all' }, slots: [{ hero: 'Nobody' }, 5], active: 9 })); });
   await page.reload();
   await page.waitForFunction(() => document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
   ok('invalid values are sanitised', await page.evaluate(() => { const s = CH.Storage; return s.settings.master === 0.8 && s.settings.hero === 'Mercenary' && s.settings.keys.dodge === 'Space' && s.settings.difficulty === 'normal' && s.stats.highScore === 0 && s.stats.totalRuns === 0; }));
@@ -188,7 +189,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
     ok(`stage fits ${w}x${h}, 16:9`, dim.fits && Math.abs(dim.ar - 16 / 9) < 0.02, dim);
   }
   await page.setViewportSize({ width: 800, height: 450 });
-  await page.click('#btn-play');
+  await play(page);
   await page.waitForTimeout(3600);
   await page.screenshot({ path: __dirname + '/u_small.png' });
   await page.setViewportSize({ width: 1920, height: 1080 });

@@ -574,6 +574,13 @@ Also in the NPC folder, not mentioned: **Lucifer** (160 px frames: hellfire, dar
   account-wide.
 - **Quitting inside an area**: the next load starts in the hideout; the area keeps what you changed and repopulates.
 
+**Decided with the owner (2026-10-24), before unattended work on K0-K11:**
+- Each milestone is pushed to main once the full suite passes.
+- **Jesus and Lucifer** speak in the game's own irreverent, chaotic voice.
+- **Heroes**: a new character can pick the Mercenary only; Dreadbloom unlocks by beating the Act I boss and Vexaria by
+  beating Act II (account-wide).
+- Choices this plan does not cover are made as the work goes and listed in 18.5.
+
 ### 18.2 What the packs give and lack (summary of `docs/ASSET_PACKS.md`)
 
 - All 60 sheets are transparent, AI-made imitation pixel art with baked title banners, frames and stray letter
@@ -680,7 +687,7 @@ runs today).
 | # | What | Needs |
 | --- | --- | --- |
 | K0 | **No more runs**: save slots, character creation (hero, hardcore), persistent world state per area, acts and areas, death and the corpse, monster repopulation, removal of run modes and scoring, co-op joining (saved hero, guest hero or solo); Storage migration | |
-| K0a | Saves v3: account (settings, hero unlocks, achievements, codex) + character slots (hero, hardcore, level, xp, skills, gear, bag, belt, stash, gold, relics, crafting, resources, pets, quests, waypoints, world); the old save kept aside; character select and creation replace PLAY and the HERO book; the hero's level, gear and gold persist | |
+| K0a | **Done.** Saves v3 (`chaosexe.save.v3`): the account (settings, stats, hero unlocks, achievements and their counters, codex, options) and up to 8 character slots (name, hero, hardcore, time played; level, xp, skill points and tree, weapons and their levels, gold, gadget; gear, bag, belt, stash, quests, tiers, waypoints, relics, crafting, resources, loot, pets, sidekicks). `Storage.data` keeps its old shape, composed from the account and the active slot; with no slot (tests, debug) a hidden guest holds the character part. The old `chaosexe.save.v1` is left untouched; only its settings come along. `js/character.js` puts the slot's character on the hero when play starts and writes it back every 15 s, at each stage, on pause, quit, game over and when the page is hidden. PLAY opens the gold book as the character book (PLAY / DELETE with a second click to confirm / BACK per character; the last page makes one: hero, name, hardcore); the HERO button is gone. `t42_characters`; PLAY-click tests use `play()` from tests/lib.js | |
 | K0b | The world: acts and areas with ids, one seed per save, per-area state (chests, cracks, secrets, breaches, bosses), waypoints by area, the hideout as the hub, entering areas from it, thinner repopulation, Save & Quit to the hideout | K0a |
 | K0c | Death: wake in the hideout, gold at a corpse marker to walk back to; hardcore slots deleted on death | K0b |
 | K0d | Removals: run modes, endless, boss rush, training, tutorial, daily, seeds, challenges, heat, score / combo / ghost / board, branch prompts, result screens; first-area hints instead of the tutorial; tests rewritten | K0b |
@@ -696,3 +703,7 @@ runs today).
 | K9 | Cult house, tasks, cursed gifts, Lucifer | K6, K8 |
 | K10 | Omens replace chaos events | K9 |
 | K11 | Balance pass | all |
+
+### 18.5 Choices made during unattended work
+
+Each is a default the owner can change.

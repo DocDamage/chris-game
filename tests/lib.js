@@ -230,4 +230,17 @@ const BOT = () => {
   };
 };
 
-module.exports = { open };
+/* PLAY from the main menu (PLAN.md 18, K0a): it opens the character book; play the character it opens on, or make a
+   new one (CREATE on the last page, CREATE on the first hero) */
+async function play(page) {
+  await page.click('#btn-play');
+  for (let i = 0; i < 60; i++) {
+    const st = await page.evaluate(() => { const b = document.getElementById('hs-pick'); return { playing: CH.G.state === 'playing', pick: CH.UI.active === 'heroes' && !!b && !b.disabled && b.offsetParent !== null }; });
+    if (st.playing) return true;
+    if (st.pick) await page.click('#hs-pick').catch(() => {});
+    await page.waitForTimeout(150);
+  }
+  return false;
+}
+
+module.exports = { open, play };

@@ -1,4 +1,4 @@
-/* Menus of the UI pack: pause icon row, hero select (Gold book), map scroll, dialogue, Journal keys. */
+/* Menus of the UI pack: pause icon row, the character book (Gold book), map scroll, dialogue, Journal keys. */
 const { open } = require('./lib');
 (async () => {
   const { browser, page, errs } = await open({ levels: true });
@@ -6,18 +6,22 @@ const { open } = require('./lib');
     const G = CH.G, X = CH.X, S = CH.Storage, UI = CH.UI, r = {};
     const step = (n) => { for (let i = 0; i < n; i++) CH.stepFrame(1 / 30); };
     const key = (code) => { const e = new KeyboardEvent('keydown', { code, key: code }); UI.onMenuKey(e); };
-    // main menu: new buttons + hero select
-    r.menuBtns = !!document.getElementById('btn-heroes') && !!document.getElementById('btn-journal');
-    document.getElementById('btn-heroes').click();
-    r.heroesOpen = CH.UI.active === 'heroes';
-    r.heroPage = !!document.getElementById('hs-turn');
+    // main menu: PLAY opens the character book (PLAN.md 18, K0a); with no characters it opens on the page that makes one
+    r.menuBtns = !document.getElementById('btn-heroes') && !!document.getElementById('btn-journal');
+    document.getElementById('btn-play').click();
+    r.heroesOpen = CH.UI.active === 'heroes' && document.getElementById('hs-pick').textContent === 'CREATE';
+    document.getElementById('hs-pick').click();
+    r.heroPage = !!document.getElementById('hs-turn') && !!document.getElementById('hs-name');
     key('ArrowRight'); r.flipped = document.querySelector('#hs-host .jp-name') !== null;
     // unlock all heroes, browse to the Specter and pick it
     S.data.unlocked = CH.Balance.heroes.map((h) => h.id);
     const idx = CH.Balance.heroes.findIndex((h) => h.id === 'Specter');
     for (let i = 0; i < 8 && document.querySelector('#hs-host .jp-name').textContent.indexOf('Neon Specter') < 0; i++) key('ArrowRight');
     document.getElementById('hs-pick').click();
-    r.picked = S.settings.hero === 'Specter' && CH.UI.active === 'main';
+    r.picked = !!S.slot() && S.slot().hero === 'Specter' && S.settings.hero === 'Specter' && G.state === 'playing';
+    // the rest runs without a character
+    G.toMenu();
+    S.useSlot(-1);
     S.settings.hero = 'Mercenary';
     // pause menu icon row
     X.startRun({}, null); G._scriptTesting = true; step(10);

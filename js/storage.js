@@ -178,9 +178,92 @@
     return d;
   }
 
+  /* ------------------------------------------------------------------ saves v3: an account and character slots
+     (PLAN.md 18, K0a). The game is no longer made of runs: each slot is one hero taken through the world.
+       KEY3 = { version: 3, account: { settings, stats, unlocked, seen, meta }, slots: [slot], active: index or -1 }
+       slot = { id, name, hero, hardcore, created, played, char: { level, xp, sp, skills, gold, weapons ... },
+                data: { resources, shelter, loot, diablo, sidekicks, meta } }
+     Storage.data keeps the shape every module reads (settings, stats, unlocked, seen, resources, shelter, loot, diablo,
+     sidekicks, meta): built from the account and the active slot on load, split back into them on save. With no
+     active slot (the menu, most tests, the debug start without the book) the character part goes to a nameless
+     guest that is saved like a slot but never listed.
+     The old save (KEY, v1/v2) is left untouched: the owner chose a fresh start; only its settings carry over. */
+  const KEY3 = 'chaosexe.save.v3';
+  const MAX_SLOTS = 8;
+  // meta fields that belong to the player rather than to one character: achievements and their counters, the codex
+  // of monsters seen, options and trophies
+  const ACCOUNT_META = ['ach', 'cnt', 'seen', 'opts', 'noHit', 'tutDone'];
+  const SLOT_PARTS = ['resources', 'shelter', 'loot', 'diablo', 'sidekicks'];
+  let save3 = null; // { version, account, slots, active, guest }
+  // the slot whose data Storage.data shows: the active character, or the guest
+  const cur = () => Storage.slot() || { data: save3.guest };
+
+  /* the v2-shaped view of an account and a slot, rebuilt through sanitize so every field is checked */
+  function compose(account, slot) {
+    const raw = { version: VERSION, settings: account.settings, stats: account.stats, unlocked: account.unlocked, seen: account.seen, meta: Object.assign({}, slot && slot.data ? slot.data.meta : {}, account.meta) };
+    if (slot && slot.data) for (const k of SLOT_PARTS) raw[k] = slot.data[k];
+    return sanitize(raw);
+  }
+  function split(d) {
+    const meta = d.meta || {};
+    const account = { settings: d.settings, stats: d.stats, unlocked: d.unlocked, seen: d.seen, meta: {} };
+    const slotMeta = {};
+    for (const k of Object.keys(meta)) (ACCOUNT_META.includes(k) ? account.meta : slotMeta)[k] = meta[k];
+    const data = { meta: slotMeta };
+    for (const k of SLOT_PARTS) data[k] = d[k];
+    return { account, data };
+  }
+  const str = (v, d, max) => (typeof v === 'string' && v.length <= max ? v : d);
+  /* a character's own progress, checked */
+  function cleanChar(c) {
+    c = c && typeof c === 'object' ? c : {};
+    const out = {
+      level: Math.floor(num(c.level, 1, 1, 99)),
+      xp: num(c.xp, 0, 0, 1e9),
+      sp: Math.floor(num(c.sp, 0, 0, 999)),
+      gold: Math.floor(num(c.gold, 0, 0, 1e9)),
+      skills: {},
+      weapons: [],
+      weapon: str(c.weapon, null, 24),
+      weapon2: str(c.weapon2, null, 24),
+      ws: {},
+      gadget: str(c.gadget, 'frag', 24),
+    };
+    if (c.skills && typeof c.skills === 'object') for (const k of Object.keys(c.skills)) if (/^[a-z0-9_]{1,24}$/i.test(k)) out.skills[k] = Math.floor(num(c.skills[k], 0, 0, 20));
+    if (Array.isArray(c.weapons)) out.weapons = c.weapons.filter((w) => typeof w === 'string' && w.length <= 24).slice(0, 12);
+    if (c.ws && typeof c.ws === 'object') for (const k of Object.keys(c.ws)) if (out.weapons.includes(k)) out.ws[k] = { level: Math.floor(num(c.ws[k] && c.ws[k].level, 1, 1, 20)) };
+    return out;
+  }
+  function cleanSlot(s, i) {
+    if (!s || typeof s !== 'object') return null;
+    const hero = typeof s.hero === 'string' && CH.Balance.heroes.some((h) => h.id === s.hero) ? s.hero : null;
+    if (!hero) return null;
+    const data = s.data && typeof s.data === 'object' ? s.data : {};
+    // run the slot's part through sanitize too (with an empty account), keeping only the slot's fields
+    const checked = split(compose({ settings: {}, stats: {}, unlocked: [], seen: {}, meta: {} }, { data }));
+    return {
+      id: Math.floor(num(s.id, i + 1, 1, 1e9)),
+      name: str(s.name, '', 20).replace(/[<>&"]/g, ''),
+      hero,
+      hardcore: s.hardcore === true,
+      created: Math.floor(num(s.created, 0, 0, 1e13)),
+      played: num(s.played, 0, 0, 1e9),
+      char: cleanChar(s.char),
+      data: checked.data,
+    };
+  }
+  function freshSave(settings) {
+    const d = defaults();
+    if (settings) d.settings = settings;
+    const { account } = split(d);
+    return { version: 3, account, slots: [], active: -1, guest: split(defaults()).data };
+  }
+
   const Storage = (CH.Storage = {
     DEFAULT_KEYS,
     VERSION,
+    KEY3,
+    MAX_SLOTS,
     migrate,
     sanitize,
     MIGRATIONS,
@@ -188,21 +271,41 @@
     available: true,
 
     load() {
-      let raw = null;
+      let raw = null, old = null;
       try {
-        const txt = window.localStorage.getItem(KEY);
+        const txt = window.localStorage.getItem(KEY3);
         if (txt) raw = JSON.parse(txt);
+        if (!raw) {
+          const o = window.localStorage.getItem(KEY);
+          if (o) old = sanitize(JSON.parse(o));
+        }
       } catch (e) {
         Storage.available = false;
         raw = null;
       }
-      Storage.data = sanitize(raw);
+      if (raw && typeof raw === 'object' && raw.account && typeof raw.account === 'object') {
+        const acc = compose(raw.account, null); // checks the account part
+        const g = cleanSlot({ hero: CH.Balance.heroes[0].id, data: raw.guest }, 0);
+        save3 = { version: 3, account: split(acc).account, slots: [], active: -1, guest: g.data };
+        if (Array.isArray(raw.slots)) raw.slots.slice(0, MAX_SLOTS).forEach((s, i) => { const c = cleanSlot(s, i); if (c) save3.slots.push(c); });
+        const a = Math.floor(num(raw.active, -1, -1, MAX_SLOTS - 1));
+        save3.active = a < save3.slots.length ? a : -1;
+      } else {
+        // a fresh start (the owner's choice for K0): only the old settings and key bindings come along
+        save3 = freshSave(old ? old.settings : null);
+      }
+      Storage.data = compose(save3.account, cur());
       return Storage.data;
     },
 
     save() {
+      if (!save3) save3 = freshSave(Storage.data.settings);
+      const { account, data } = split(Storage.data);
+      save3.account = account;
+      cur().data = data;
+      if (!Storage.slot()) save3.guest = data;
       try {
-        window.localStorage.setItem(KEY, JSON.stringify(Storage.data));
+        window.localStorage.setItem(KEY3, JSON.stringify(save3));
         return true;
       } catch (e) {
         Storage.available = false;
@@ -210,9 +313,59 @@
       }
     },
 
+    /* everything, including every character */
     reset() {
-      Storage.data = defaults();
+      save3 = freshSave(null);
+      Storage.data = compose(save3.account, null);
       Storage.save();
+    },
+
+    /* ---------------- character slots */
+    slots: () => (save3 ? save3.slots : []),
+    slot: () => (save3 && save3.active >= 0 ? save3.slots[save3.active] || null : null),
+    activeIndex: () => (save3 ? save3.active : -1),
+    /* a new character; it becomes the active one. Returns the slot, or null when every slot is taken. */
+    createSlot(o) {
+      if (!save3) Storage.load();
+      if (save3.slots.length >= MAX_SLOTS) return null;
+      const hero = CH.Balance.heroes.some((h) => h.id === o.hero) ? o.hero : CH.Balance.heroes[0].id;
+      const id = save3.slots.reduce((m, s) => Math.max(m, s.id), 0) + 1;
+      const fresh = split(defaults()).data;
+      const slot = { id, name: str(o.name, '', 20).replace(/[<>&"]/g, '').trim() || CH.Balance.heroes.find((h) => h.id === hero).name.split(',')[0], hero, hardcore: o.hardcore === true, created: Date.now(), played: 0, char: cleanChar({}), data: fresh };
+      Storage.save(); // the current character's state first
+      save3.slots.push(slot);
+      Storage.useSlot(save3.slots.length - 1);
+      return slot;
+    },
+    /* make slot i the active character (or none with -1) */
+    useSlot(i) {
+      if (!save3) Storage.load();
+      Storage.save();
+      save3.active = i >= 0 && i < save3.slots.length ? i : -1;
+      Storage.data = compose(save3.account, cur());
+      const s = Storage.slot();
+      if (s) Storage.data.settings.hero = s.hero;
+      Storage.save();
+      return s;
+    },
+    deleteSlot(i) {
+      if (!save3 || i < 0 || i >= save3.slots.length) return false;
+      const wasActive = save3.active === i;
+      if (wasActive) Storage.useSlot(-1);
+      save3.slots.splice(i, 1);
+      if (save3.active > i) save3.active--;
+      Storage.data = compose(save3.account, cur());
+      Storage.save();
+      return true;
+    },
+    /* the active character's own progress (level, xp, skills, gold, weapons ...), read and written by js/character.js */
+    charOf: () => (Storage.slot() ? Storage.slot().char : null),
+    setChar(c, playedDelta) {
+      const s = Storage.slot();
+      if (!s) return false;
+      s.char = cleanChar(c);
+      s.played += Math.max(0, playedDelta || 0);
+      return Storage.save();
     },
 
     get settings() {

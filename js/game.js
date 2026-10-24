@@ -1370,6 +1370,7 @@
 
   G.gameOver = function () {
     if (G.state === 'gameover') return;
+    if (CH.Character) CH.Character.saveIfPlaying();
     G.state = 'gameover';
     G.addScore(G.time * B.score.perSecond * 0); // survival score is accrued live
     const prevBest = Storage.stats.highScore;
@@ -1438,6 +1439,7 @@
   };
 
   G.toMenu = function () {
+    if (CH.Character) CH.Character.saveIfPlaying();
     G.state = 'menu';
     G.menuCoop = false;
     G.enemies.length = 0;
@@ -1461,7 +1463,8 @@
     G.state = 'paused';
     CH.Input.clear();
     G.ui.showPause();
-    Storage.save();
+    if (CH.Character) CH.Character.saveIfPlaying();
+    else Storage.save();
   };
   G.resume = function () {
     if (G.state !== 'paused') return;

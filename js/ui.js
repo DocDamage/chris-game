@@ -272,7 +272,7 @@
     }
     $('btn-play').addEventListener('click', () => Audio.sfx('confirm'));
     $('btn-retry').addEventListener('click', () => Audio.sfx('confirm'));
-    click('btn-play', () => G.newRun(null));
+    click('btn-play', () => { if (!(CH.Menus && CH.Menus.characters && CH.Menus.characters())) G.newRun(null); });
     $('btn-coop').addEventListener('click', () => Audio.sfx('confirm'));
     click('btn-coop', () => {
       UI.backTo = 'main';

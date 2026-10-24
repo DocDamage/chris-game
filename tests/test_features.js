@@ -1,6 +1,7 @@
 /* Verification test for all 8 requested features */
 const { chromium } = require('playwright-core');
 const ENV = require('./env');
+const { play } = require('./lib');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: ENV.CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
@@ -11,7 +12,7 @@ const ENV = require('./env');
 
   await page.goto(ENV.URL);
   await page.waitForFunction(() => document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
-  await page.click('#btn-play');
+  await play(page);
   await page.waitForTimeout(1000);
 
   const results = await page.evaluate(() => {

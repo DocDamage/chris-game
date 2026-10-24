@@ -188,7 +188,7 @@ const { open } = require('./lib');
     const vis = (sel) => Array.from(document.querySelectorAll(sel)).filter((b) => b.offsetParent).map((b) => b.id);
     return { main: vis('#screen-main .menu-col .btn'), more: vis('#screen-main .menu-more .btn'), strip: getComputedStyle(document.getElementById('controls-strip')).display };
   });
-  ok('main menu: PLAY, HERO, CO-OP, JOURNAL, SETTINGS', JSON.stringify(r.main) === JSON.stringify(['btn-play', 'btn-heroes', 'btn-coop', 'btn-journal', 'btn-settings']), r);
+  ok('main menu: PLAY, CO-OP, JOURNAL, SETTINGS (the hero belongs to the character: PLAN.md 18, K0a)', JSON.stringify(r.main) === JSON.stringify(['btn-play', 'btn-coop', 'btn-journal', 'btn-settings']), r);
   ok('the rest is a link row, no key strip', r.more.length === 5 && r.strip === 'none', r);
 
   ok('no console errors', errs.length === 0, errs.slice(0, 5));

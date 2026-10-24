@@ -65,14 +65,8 @@
   /* ---------------------------------------------------------------- main menu: hero select */
   function mainMenuButtons() {
     const col = $('screen-main').querySelector('.menu-col');
-    const b = document.createElement('button');
-    b.className = 'btn';
-    b.id = 'btn-heroes';
-    b.textContent = 'HERO';
-    b.onclick = () => Menus.heroes();
-    col.insertBefore(b, $('btn-coop'));
-    Menus.heroLabel = () => { const h = B.heroes.find((q) => q.id === Storage.settings.hero) || B.heroes[0]; b.innerHTML = 'HERO <span class="mm-hero">' + esc(h.name.split(',')[0].toUpperCase()) + '</span>'; };
-    Menus.heroLabel();
+    // the hero belongs to the character now (PLAY opens the character book); the label stays for callers
+    Menus.heroLabel = () => {};
     const j = document.createElement('button');
     j.className = 'btn';
     j.id = 'btn-journal';
@@ -95,15 +89,22 @@
   const heroes = () => B.heroes;
   const goldFrames = (dir, n) => UIK.frames('gold', dir, n);
 
-  Menus.heroes = function () {
+  /* PLAN.md 18, K0a: the gold book lists the characters (save slots) and makes new ones */
+  const pages = () => (hs.mode === 'chars' ? Storage.slots().length + 1 : heroes().length);
+  const render = () => (hs.mode === 'chars' ? renderChar() : renderHero());
+  Menus.characters = () => Menus.open('chars');
+  Menus.heroes = () => Menus.open('create');
+  Menus.open = function (mode) {
     if (!UIK.on || !hs || hs.open) return false;
     hs.open = true;
-    hs.i = Math.max(0, heroes().findIndex((h) => h.id === Storage.settings.hero));
+    hs.mode = mode;
+    $('hs-title').textContent = mode === 'chars' ? 'CHARACTERS' : 'NEW CHARACTER';
+    hs.i = mode === 'chars' ? Math.max(0, Storage.activeIndex()) : Math.max(0, heroes().findIndex((h) => h.id === Storage.settings.hero));
     hs.busy = true;
     hs.host.style.visibility = 'hidden';
     UI.show('heroes');
     Audio.sfx('page');
-    UIK.anim(hs.frame, goldFrames('Open & Close/Open', 8), 14, { onDone() { hs.frame.src = UIK.cUrl('gold', 'Pixel Book/Sprites/Static/1.png'); hs.busy = false; hs.host.style.visibility = 'visible'; renderHero(); } });
+    UIK.anim(hs.frame, goldFrames('Open & Close/Open', 8), 14, { onDone() { hs.frame.src = UIK.cUrl('gold', 'Pixel Book/Sprites/Static/1.png'); hs.busy = false; hs.host.style.visibility = 'visible'; render(); } });
     return true;
   };
   function closeHeroes() {
@@ -116,13 +117,68 @@
   }
   function flip(d) {
     if (!hs.open || hs.busy) return;
-    const n = heroes().length;
+    const n = pages();
     hs.i = (hs.i + d + n) % n;
     hs.busy = true;
     hs.host.style.visibility = 'hidden';
     clearInterval(hs.t);
     Audio.sfx('page');
-    UIK.anim(hs.frame, goldFrames('Page Flip/' + (d > 0 ? 'Right' : 'Left'), 9), 22, { onDone() { hs.frame.src = UIK.cUrl('gold', 'Pixel Book/Sprites/Static/1.png'); hs.busy = false; hs.host.style.visibility = 'visible'; renderHero(); } });
+    UIK.anim(hs.frame, goldFrames('Page Flip/' + (d > 0 ? 'Right' : 'Left'), 9), 22, { onDone() { hs.frame.src = UIK.cUrl('gold', 'Pixel Book/Sprites/Static/1.png'); hs.busy = false; hs.host.style.visibility = 'visible'; render(); } });
+  }
+  /* a hero's eight rotations in a slow spin */
+  function turntable(heroId) {
+    const dirs = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw'];
+    let k = 0;
+    const img = $('hs-turn');
+    if (!img) return;
+    const tick = () => { const im = CH.Assets.images['hero.' + heroId + '.rot_' + dirs[k++ % 8]]; if (im) img.src = im.src; };
+    tick();
+    clearInterval(hs.t);
+    hs.t = setInterval(tick, window.__uikInstant ? 100000 : 220);
+  }
+  const hm = (s) => (s >= 3600 ? Math.floor(s / 3600) + 'h ' : '') + Math.floor((s % 3600) / 60) + 'm';
+  /* start playing the active character */
+  function play() {
+    clearInterval(hs.t);
+    hs.open = false;
+    hs.busy = false;
+    Audio.sfx('confirm');
+    G.newRun(null);
+  }
+  /* a character's page, or the last page: a new character */
+  function renderChar() {
+    const all = Storage.slots();
+    const s = all[hs.i];
+    if (!s) {
+      const full = all.length >= Storage.MAX_SLOTS;
+      hs.host.innerHTML =
+        `<div class="jp spread"><div class="jp-col"><div class="jp-name">NEW CHARACTER</div><div class="jp-sub">${all.length} / ${Storage.MAX_SLOTS} characters</div></div>` +
+        `<div class="jp-col"><p>${full ? 'Every page is written. Delete a character to make room.' : 'Choose a hero and take them through the world. Hardcore characters are gone for good when they fall.'}</p>` +
+        `<div class="row-btns"><button class="btn primary" id="hs-pick" ${full ? 'disabled' : ''}>CREATE</button><button class="btn small" id="hs-back">BACK</button></div></div></div>`;
+      $('hs-pick').onclick = () => { if (full) return; Audio.sfx('page'); hs.mode = 'create'; $('hs-title').textContent = 'NEW CHARACTER'; hs.i = 0; render(); };
+      $('hs-back').onclick = closeHeroes;
+      const first = $('hs-pick');
+      if (first && first.focus) first.focus({ preventScroll: true });
+      return;
+    }
+    const h = heroes().find((q) => q.id === s.hero) || heroes()[0];
+    hs.host.innerHTML =
+      `<div class="jp spread"><div class="jp-col"><img class="hs-turn" id="hs-turn" alt=""><div class="jp-name">${esc(s.name)}</div><div class="jp-sub">${hs.i + 1} / ${all.length}</div></div>` +
+      `<div class="jp-col"><p>${esc(h.name)}</p><div class="jp-sub">LEVEL ${s.char.level}${s.hardcore ? ' &middot; HARDCORE' : ''}</div><p class="jp-dim">Played ${hm(s.played)} &middot; ${s.char.gold} gold</p>` +
+      `<div class="row-btns"><button class="btn primary" id="hs-pick">PLAY</button><button class="btn small" id="hs-del">DELETE</button><button class="btn small" id="hs-back">BACK</button></div></div></div>`;
+    $('hs-pick').onclick = () => { Storage.useSlot(hs.i); play(); };
+    let sure = false;
+    $('hs-del').onclick = () => {
+      if (!sure) { sure = true; $('hs-del').textContent = 'SURE?'; Audio.sfx('nope'); return; }
+      Storage.deleteSlot(hs.i);
+      Audio.sfx('back');
+      hs.i = Math.min(hs.i, Storage.slots().length);
+      render();
+    };
+    $('hs-back').onclick = closeHeroes;
+    turntable(h.id);
+    const first = $('hs-pick');
+    if (first && first.focus) first.focus({ preventScroll: true });
   }
   function renderHero() {
     const h = heroes()[hs.i];
@@ -136,23 +192,23 @@
       `<div class="jp-col"><p>${unlocked ? esc(h.blurb || '') : 'Locked: ' + esc(h.hint || '')}</p>` +
       (unlocked ? `<div class="jp-sub">${esc(h.specialName || '')}</div><p class="jp-dim">Mastery ${lv}/5</p>` : '') +
       (sk && unlocked ? `<div class="jp-row">${skim ? `<img class="ico" style="width:calc(var(--p)*28);height:calc(var(--p)*28)" src="${skim.src}" alt="">` : ''}<span>Companion: ${esc(sk.name)}</span></div>` : '') +
-      `<div class="row-btns"><button class="btn primary" id="hs-pick" ${unlocked ? '' : 'disabled'}>${Storage.settings.hero === h.id ? 'SELECTED' : 'SELECT'}</button><button class="btn small" id="hs-back">BACK</button></div></div></div>`;
-    $('hs-pick').onclick = () => { if (unlocked) { Storage.settings.hero = h.id; Storage.save(); Audio.sfx('buy'); closeHeroes(); } };
-    $('hs-back').onclick = closeHeroes;
-    // the turntable: the hero's eight rotations in a slow spin
-    const dirs = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw'];
-    let k = 0;
-    const img = $('hs-turn');
-    const tick = () => { const im = CH.Assets.images['hero.' + h.id + '.rot_' + dirs[k++ % 8]]; if (im) img.src = im.src; };
-    tick();
-    clearInterval(hs.t);
-    hs.t = setInterval(tick, window.__uikInstant ? 100000 : 220);
+      (unlocked ? `<div class="jp-row"><input class="hs-name" id="hs-name" maxlength="16" placeholder="${esc(h.name.split(',')[0])}" autocomplete="off"></div><label class="jp-row hs-hc"><input type="checkbox" id="hs-hc"> HARDCORE</label>` : '') +
+      `<div class="row-btns"><button class="btn primary" id="hs-pick" ${unlocked ? '' : 'disabled'}>CREATE</button><button class="btn small" id="hs-back">BACK</button></div></div></div>`;
+    $('hs-pick').onclick = () => {
+      if (!unlocked) return;
+      const slot = Storage.createSlot({ hero: h.id, name: ($('hs-name') && $('hs-name').value) || '', hardcore: !!($('hs-hc') && $('hs-hc').checked) });
+      if (!slot) { Audio.sfx('nope'); return; }
+      play();
+    };
+    $('hs-back').onclick = () => { Audio.sfx('back'); hs.mode = 'chars'; $('hs-title').textContent = 'CHARACTERS'; hs.i = Storage.slots().length; render(); };
+    turntable(h.id);
     const first = $('hs-pick');
     if (first && first.focus) first.focus({ preventScroll: true });
   }
   const prevKey = UI.onMenuKey;
   UI.onMenuKey = function (e) {
     if (hs && hs.open && UI.active === 'heroes') {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'text') return prevKey(e);
       if (e.code === 'ArrowLeft' || e.code === 'KeyQ') { flip(-1); e.preventDefault(); return; }
       if (e.code === 'ArrowRight' || e.code === 'KeyE') { flip(1); e.preventDefault(); return; }
     }
