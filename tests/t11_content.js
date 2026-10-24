@@ -168,7 +168,7 @@ const ok = (name, cond, extra) => results.push([cond ? 'PASS' : 'FAIL', name, ex
     if (id === 'volcano' || id === 'zombie') await page.screenshot({ path: path.join(__dirname, 'ct_arena_' + id + '.png') });
   }
 
-  /* ================================================================ 6. branching path screens (waves 4 and 7) */
+  /* ================================================================ 6. no path screens: the forks are the world's (PLAN.md 18, K0d) */
   await fresh({ players: [{ hero: 'Mercenary', src: { kind: 'pad', index: 0 } }, { hero: 'Vexaria', src: { kind: 'pad', index: 1 } }] });
   r = await E(() => {
     const G = CH.G;
@@ -179,31 +179,9 @@ const ok = (name, cond, extra) => results.push([cond ? 'PASS' : 'FAIL', name, ex
     __f(2);
     G.waveComplete();
     __f(60 * 4);
-    return { state: G.state, ws: G.waveState, ui: CH.UI.active };
+    return { state: G.state, ws: G.waveState, ui: CH.UI.active, wave: G.wave, branch: !!document.getElementById('screen-branch') };
   });
-  ok('after wave 3 the branch screen offers two paths', r.ui === 'branch', r);
-  r = await E(() => {
-    const G = CH.G;
-    const [a, b] = G.players;
-    const x0 = [a.x, b.x];
-    a.inp.src.kind === 'pad' && __pad(0, { ls: [1, 0] });
-    __f(40);
-    __pad(0, {});
-    return { state: G.state, moved: Math.abs(a.x - x0[0]) };
-  });
-  ok('the game is paused while you choose a path (nobody can run off)', r.state !== 'playing' && r.moved < 1, r);
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(__dirname, 'ct_branch.png') });
-  r = await E(() => {
-    __tap(1, 13, 3); // P2 d-pad down moves the focus
-    const focus = document.activeElement && (document.activeElement.className || document.activeElement.tagName);
-    __tap(1, 0, 3); // A
-    __f(5);
-    const G = CH.G;
-    return { focus, state: G.state, arena: G.arena.id, wave: G.wave, ui: CH.UI.active };
-  });
-  ok('a controller can pick a path (D-pad + A) and the next wave starts in that arena', r.state === 'playing' && r.wave === 4 && ['wasteland', 'office'].includes(r.arena), r);
-
+  ok('after wave 3 the next wave starts at once, no path screen', r.state === 'playing' && r.wave === 4 && r.ui !== 'branch' && !r.branch, r);
   /* ================================================================ 7. the safehouse */
   await E(() => {
     CH.G.toMenu();

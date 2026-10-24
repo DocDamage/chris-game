@@ -74,7 +74,6 @@ const BOT = () => {
     }
     if (G.state === 'dialog') { CH.Dialogue.skip(); return; }
     if (G.state === 'branch' && CH.UI.active === 'shop') { CH.X.W.closeShop(); return; } // the safe path's shop: leave it
-    if (G.state === 'branch') { if (CH.UI._branchPick) CH.UI._branchPick(Math.random() < 0.5 ? 0 : 1); return; } // the run is frozen on the path-choice screen
     if (G.state === 'levelup') {
       let idx = 0, best = -1;
       G.cards.forEach((c, i) => {

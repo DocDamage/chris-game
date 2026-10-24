@@ -46,15 +46,14 @@ const { play } = require('./lib');
   b = await click('#btn-pause-settings'); await page.waitForTimeout(2400); s = await st(); ok('SETTINGS opens the Journal settings tab', s.j && s.tab === 5, s);
   await page.evaluate(() => document.querySelector('#screen-journal input[type=range]').focus());
   await page.keyboard.press('Escape'); await page.waitForTimeout(2200); s = await st(); ok('Esc leaves the Journal even with a slider focused', !s.j && s.ui === 'pause', s);
-  // keyboard navigation in the pause menu: down, Enter on RESTART RUN -> confirm -> Esc cancels
+  // keyboard navigation in the pause menu: down twice to SAVE & QUIT, Enter -> confirm -> Esc cancels
+  await page.evaluate(() => document.getElementById('btn-resume').focus());
   await page.keyboard.press('ArrowDown'); await page.waitForTimeout(100);
-  await page.keyboard.press('Enter'); await page.waitForTimeout(400); s = await st(); ok('keyboard: Enter on RESTART RUN opens the confirm', s.ui === 'confirm', s);
+  await page.keyboard.press('ArrowDown'); await page.waitForTimeout(100);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(400); s = await st(); ok('keyboard: Enter on SAVE & QUIT opens the confirm', s.ui === 'confirm', s);
   await page.keyboard.press('Escape'); await page.waitForTimeout(300); s = await st(); ok('Esc cancels the confirm', s.ui === 'pause', s);
-  // restart for real
-  const t0 = (await st()).time;
-  await click('#btn-restart'); await page.waitForTimeout(400); await click('#confirm-yes'); await page.waitForTimeout(600); s = await st(); ok('RESTART RUN restarts the stage', s.state === 'playing' && s.time < t0 + 1, [t0, s]);
   // return to main menu
-  await pause(); await click('#btn-pause-menu'); await page.waitForTimeout(400); s = await st(); ok('RETURN opens the confirm', s.ui === 'confirm', s);
+  await click('#btn-pause-menu'); // still on the pause menu after the cancelled confirm await page.waitForTimeout(400); s = await st(); ok('SAVE & QUIT opens the confirm', s.ui === 'confirm', s);
   await click('#confirm-yes'); await page.waitForTimeout(600); s = await st(); ok('the confirm returns to the main menu', s.state === 'menu' && s.ui === 'main', s);
   console.log('errors', errs);
   console.log(fails || errs.length ? 'FAILED' : 'ALL PASSED');

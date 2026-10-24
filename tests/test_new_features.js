@@ -133,13 +133,6 @@ const ENV = require('./env');
     const isSolidJumpable = placedBarricade && placedBarricade.solid && placedBarricade.jumpable;
     out.push({ test: 'Deploy Field Barricade In-Run (Solid & Jumpable)', pass: barricadePlaced && isSolidJumpable });
 
-    // 9. Test branching path prompt
-    let branchHandled = false;
-    G.promptBranch(4);
-    const branchScreenShown = document.getElementById('screen-branch').classList.contains('show');
-    const branchCards = document.getElementById('branch-cards').children.length;
-    out.push({ test: 'Branching Biome Selection Modal (2 Choices)', pass: branchScreenShown && branchCards === 2, val: `cards=${branchCards}` });
-
     return out;
   });
 

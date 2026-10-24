@@ -339,24 +339,19 @@
   };
 
   /* ------------------------------------------------------------------ waves */
-  /* Boss schedule. Campaign: wave 3 (Wild Frog or Boulder Dash), wave 5 (CEO of Evil), wave 8 (Gargoyle,
-     Skeleton Maw or Mecha Golem), wave 10 (Final Bug). The alternates rotate run by run so every boss
-     shows up. Endless: a boss every 5th wave, cycling through all seven, tougher each lap. */
+  /* Boss schedule: stage 3 (Wild Frog or Boulder Dash ...), 5 (CEO of Evil ...), 8 (Gargoyle, Skeleton Maw, Mecha Golem
+     ...), 10 (Final Bug ...). The alternates rotate with G.runIndex (a character's world seed) so every boss shows up.
+     The endless descent past stage 10 went with the runs (PLAN.md 18, K0d). */
   /* the wave-10 bosses: beating any of them wins the run */
   const FINAL_BOSSES = ['bug', 'skull', 'daddy'];
-  const ENDLESS_BOSSES = ['frog', 'treant', 'bd', 'mage', 'knight', 'gol', 'moss', 'chicken', 'sporeeye', 'dragon', 'yeti', 'maw', 'dunewyrm', 'beholder', 'demon', 'bloodwyrm', 'ooze', 'voideye', 'ceo', 'daddy', 'skull', 'bug'];
   G.isBossWave = (w) => {
     const run = G.runIndex || 0;
-    if (w <= B.waves.campaign && !G.endless) {
+    if (w <= B.waves.campaign) {
       if (w === 3) return { kind: ['frog', 'treant', 'bd', 'mage', 'knight', 'ooze'][run % 6], tier: 0 };
       if (w === 5) return { kind: ['ceo', 'beholder', 'moss', 'sporeeye'][run % 4], tier: 0 };
       if (w === 8) return { kind: ['chicken', 'yeti', 'maw', 'dunewyrm', 'gol', 'bloodwyrm', 'dragon', 'voideye', 'demon'][run % 9], tier: 0 };
       if (w === 10) return { kind: ['bug', 'skull', 'daddy'][run % 3], tier: 0 };
       return null;
-    }
-    if (w > 10 && w % 5 === 0) {
-      const k = (w / 5 - 3) % ENDLESS_BOSSES.length;
-      return { kind: ENDLESS_BOSSES[k], tier: Math.floor((w - 10) / 5) };
     }
     return null;
   };
@@ -409,61 +404,7 @@
   G.pathArena = function (n) {
     if (n <= 3) return 'backyard';
     if (n <= 6) return (G.chosenPath && G.chosenPath[4]) || 'office';
-    if (n <= 10) return (G.chosenPath && G.chosenPath[7]) || 'glitch';
-    const pool = ['backyard', 'office', 'glitch', 'zombie', 'wasteland', 'volcano', 'dungeon'];
-    return pool[(n - 11) % pool.length];
-  };
-
-  G.promptBranch = function (nextWave) {
-    let options = [];
-    if (nextWave === 4) {
-      options = [
-        {
-          id: 'wasteland',
-          name: 'SCRAPYARD WASTELAND',
-          tag: 'Sector 2 - Path A',
-          desc: 'High scrap yields, abandoned cars, chain link fences, and barricades.',
-          resName: 'SCRAP METAL',
-          hazard: 'RADIATION',
-        },
-        {
-          id: 'office',
-          name: 'CORPORATE HELL',
-          tag: 'Sector 2 - Path B',
-          desc: 'Abundant coins, dense cubicle mazes, and laser traps.',
-          resName: 'COINS & TECH',
-          hazard: 'LASERS',
-        },
-      ];
-    } else if (nextWave === 7) {
-      options = [
-        {
-          id: 'volcano',
-          name: 'THE MOLTEN CALDERA',
-          tag: 'Sector 3 - Path A',
-          desc: 'Obsidian pillars, intense fire geysers, high danger, and +50% XP.',
-          resName: 'STONE & XP',
-          hazard: 'LAVA',
-        },
-        {
-          id: 'dungeon',
-          name: 'PSYCHOLOGICAL CRYPT',
-          tag: 'Sector 3 - Path B',
-          desc: 'Gothic stone arches, occult altars, crates, and abundant stone.',
-          resName: 'STONE & GEMS',
-          hazard: 'CURSE',
-        },
-      ];
-    }
-    // the run is frozen while the party chooses where to go next
-    G.state = 'branch';
-    CH.Input.clear();
-    CH.UI.showBranch(options, (chosenId) => {
-      G.chosenPath[nextWave] = chosenId;
-      G.state = 'playing';
-      CH.Input.clear();
-      G.startWave(nextWave);
-    });
+    return (G.chosenPath && G.chosenPath[7]) || 'glitch';
   };
 
   G.startWave = (n) => G.call('startWave', { n }, (ev) => startWaveCore(ev.n));
@@ -589,15 +530,7 @@
       }
       case 'clear':
         G.waveT -= dt;
-        if (G.waveT <= 0) {
-          const nextWave = G.wave + 1;
-          if ((nextWave === 4 || nextWave === 7) && !G.endless && CH.UI.showBranch && !G._scriptTesting && !G.players.some((p) => p.inp && p.inp.src && p.inp.src.kind === 'script')) {
-            G.waveState = 'branch';
-            G.promptBranch(nextWave);
-          } else {
-            G.startWave(nextWave);
-          }
-        }
+        if (G.waveT <= 0) G.startWave(G.wave + 1); // the forks are the world's (js/areas.js), not a prompt
         break;
     }
   };
@@ -1415,22 +1348,6 @@
       loot: G.lootCount || 0,
       newLoot: G.newLoot || 0,
     });
-  };
-
-  G.continueEndless = function () {
-    if (G.state !== 'victory') return;
-    G.endless = true;
-    G.state = 'playing';
-    G.ui.hideAll();
-    CH.Input.clear();
-    G.playMusic();
-    G.pendingLevels = G.pendingLevels || 0;
-    // the arena is quiet right now: begin the next wave
-    G.waveState = 'clear';
-    G.waveT = 1.5;
-    G.wavesCleared = G.wave;
-    G.vacuum = 4;
-    G.ui.onRunStart(true);
   };
 
   /* abandon: record what happened, then go back to the menu */

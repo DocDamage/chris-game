@@ -32,8 +32,6 @@
       <div id="wave-panel" class="wood">
         <div id="wavetxt">WAVE 1/10</div>
         <div id="enemytxt">ENEMIES 0</div>
-        <div id="scoretxt">SCORE 0</div>
-        <div id="combotxt">x1.0</div>
       </div>
 
       <div id="boss-panel" class="hidden">
@@ -90,7 +88,6 @@
       </div>
       <div class="menu-meta">
         <div id="menu-diff" class="chip">NORMAL</div>
-        <div id="menu-best">BEST SCORE: 0</div>
       </div>
       <div class="controls-strip" id="controls-strip"></div>
     </div>
@@ -291,9 +288,8 @@
         <h2>PAUSED</h2>
         <div class="menu-col">
           <button class="btn primary" id="btn-resume">RESUME</button>
-          <button class="btn" id="btn-restart">RESTART RUN</button>
           <button class="btn" id="btn-pause-settings">SETTINGS</button>
-          <button class="btn" id="btn-pause-menu">RETURN TO MAIN MENU</button>
+          <button class="btn" id="btn-pause-menu">SAVE &amp; QUIT</button>
         </div>
         <div class="hint center">Press ESC or <kbd class="pad">START</kbd> to resume</div>
       </div>
@@ -320,20 +316,12 @@
     </div>
 
     <!-- ============ BRANCHING BIOME SELECTION ============ -->
-    <div class="screen dim" id="screen-branch">
-      <div class="levelup-title">SECTOR CLEARED!</div>
-      <div class="levelup-sub" id="branch-sub">CHOOSE YOUR NEXT PATH <small>(click, 1 / 2, or D-PAD + A)</small></div>
-      <div class="cards" id="branch-cards"></div>
-      <div class="hint center">Choose a destination to deploy into its hazards and rewards.</div>
-    </div>
-
     <!-- ============ GAME OVER ============ -->
     <div class="screen dim" id="screen-gameover">
       <div class="panel">
         <h2 class="bad" id="go-title">GAME OVER</h2>
         <div class="center snark" id="go-snark"></div>
         <table class="statlist" id="go-stats"></table>
-        <div class="center newbest hidden" id="go-newbest">NEW PERSONAL BEST!</div>
         <div class="center unlocked hidden" id="go-unlock"></div>
         <div class="row-btns">
           <button class="btn primary" id="btn-retry">RETRY</button>
@@ -350,12 +338,11 @@
         <h2 class="good" id="vic-title">VICTORY!</h2>
         <div class="center snark">THE FINAL BUG HAS BEEN PATCHED. REALITY.EXE IS BACK ONLINE.</div>
         <table class="statlist" id="vic-stats"></table>
-        <div class="center newbest hidden" id="vic-newbest">NEW PERSONAL BEST!</div>
         <div class="center unlocked hidden" id="vic-unlock"></div>
         <div class="rewards" id="vic-rewards"></div>
         <div class="row-btns">
-          <button class="btn primary" id="btn-endless">CONTINUE TO ENDLESS MODE</button>
-          <button class="btn" id="btn-again">PLAY AGAIN</button>
+          <button class="btn primary" id="btn-vic-hideout">BACK TO THE HIDEOUT</button>
+          <button class="btn primary" id="btn-again">PLAY AGAIN</button>
           <button class="btn" id="btn-vic-menu">MAIN MENU</button>
         </div>
       </div>

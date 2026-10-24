@@ -70,62 +70,12 @@
     return orig.call(G, w);
   });
 
-  /* ---------------------------------------------------------- branch screens */
-  const canPrompt = () => !G.endless && !!CH.UI.showBranch && !G._scriptTesting && !G.players.some((p) => p.inp && p.inp.src && p.inp.src.kind === 'script');
+  /* ---------------------------------------------------------- stage paths (hard / safe / secret) */
+  const canPrompt = () => !G._scriptTesting && !G.players.some((p) => p.inp && p.inp.src && p.inp.src.kind === 'script');
   W.canPrompt = canPrompt;
 
-  /* show the boss behind each path option */
-  wrap(G, 'promptBranch', function (orig, nextWave) {
-    W.branchFor = nextWave;
-    try {
-      return orig.call(G, nextWave);
-    } finally {
-      W.branchFor = null;
-    }
-  });
-  wrap(CH.UI, 'showBranch', function (orig, options, cb) {
-    if (W.branchFor) {
-      const bw = W.branchFor + 1;
-      options.forEach((o, i) => {
-        const b = G.isBossWave(bw, i);
-        if (b && !o._boss) {
-          o._boss = true;
-          o.desc += `<br><b style="color:#e43b44">BOSS AHEAD (wave ${bw}): ${bossName(b.kind)}</b>`;
-        }
-      });
-    }
-    return orig.call(CH.UI, options, cb);
-  });
-
-  const EXTRA_OPTIONS = {
-    hard: { id: 'hard', name: 'HARD PATH', tag: 'Risk', desc: 'An elite-heavy wave. Double coins and a rare drop when you clear it.', resName: 'DOUBLE REWARDS', hazard: 'ELITES' },
-    safe: { id: 'safe', name: 'SAFE PATH', tag: 'Rest', desc: 'Heal 40% and browse the shop before the next wave.', resName: 'HEAL + SHOP', hazard: 'CALM' },
-    secret: { id: 'secret', name: 'SECRET ARENA', tag: 'Hidden', desc: 'A strange zombie arena with a golden goblin and bonus curios.', resName: 'CURIOS', hazard: 'UNKNOWN' },
-  };
-  const extraSet = () => [2, 6, 9];
-
-  /* a wave with a path choice waits for it: the choice takes the call over and starts the wave once it is made */
-  G.on('startWave:before', function (ev) {
-    const n = ev.n;
-    if (n > 1 && extraSet().includes(n) && canPrompt() && !G.isBossWave(n)) {
-      ev.stop = true;
-      const opts = [EXTRA_OPTIONS.hard, EXTRA_OPTIONS.safe];
-      if (W.rng() < 0.4) opts.push(EXTRA_OPTIONS.secret);
-      G.waveState = 'branch';
-      G.state = 'branch';
-      CH.Input.clear();
-      W.branchFor = null;
-      CH.UI.showBranch(opts.map((o) => Object.assign({}, o)), (id) => {
-        W.pathMod[n] = id;
-        G.state = 'playing';
-        CH.Input.clear();
-        ev.core(ev);
-        begin(n);
-      });
-    }
-  });
   G.on('startWave', function (ev) {
-    if (ev.stop) return; // waiting for the path choice above, which begins the wave itself
+    if (ev.stop) return; // a level stage (js/run.js) or the hideout: no wave paths
     begin(ev.n);
   });
   /* the path's effects, once the core has started the wave */

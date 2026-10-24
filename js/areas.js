@@ -98,7 +98,10 @@
     A.capture(); // the area being left
     G.runSeed = W.seed; // every area comes from the character's world
     G.runIndex = W.seed % 2520; // and so do its bosses
-    if (W.path && G.chosenPath && !Object.keys(G.chosenPath).length) Object.assign(G.chosenPath, W.path);
+    // the world's forks are fixed by its seed (the path prompts went with the runs: K0d)
+    if (!W.path[4]) W.path[4] = ['office', 'wasteland'][W.seed % 2];
+    if (!W.path[7]) W.path[7] = ['dungeon', 'volcano', 'glitch'][Math.floor(W.seed / 2) % 3];
+    if (G.chosenPath && !Object.keys(G.chosenPath).length) Object.assign(G.chosenPath, W.path);
     // a character who has been out before starts in the hideout
     if (A.loading) {
       A.loading = false;
@@ -132,6 +135,31 @@
     // the hideout's music and its afternoon, after newRun's own music call
     if (CH.Town && CH.Town.inTown && A.world()) CH.Audio.setMusic('shop');
   });
+
+  /* ------------------------------------------------------------------ the world saved (K0d) */
+  /* the final boss's victory screen: a character goes back to the hideout and plays on; the portal leads to the first
+     area again (the elder sets the next difficulty tier) */
+  A.afterVictory = function () {
+    const W = A.world();
+    if (!W || G.state !== 'victory') return false;
+    W.at = 1;
+    G.state = 'playing';
+    G.victoryPending = false;
+    G.bossDying = null;
+    if (CH.Town) {
+      CH.Town.inTown = false;
+      CH.Town.saved = null;
+      CH.Town.pendingStage = 0;
+      CH.Town.wantTown = false;
+    }
+    G.level = null;
+    G.arena = null;
+    CH.Input.clear();
+    G.ui.onRunStart(true);
+    if (CH.Town) CH.Town.enter('victory');
+    if (CH.Character) CH.Character.save();
+    return true;
+  };
 
   /* ------------------------------------------------------------------ bosses and the heroes they unlock */
   G.on('kill', function (e) {

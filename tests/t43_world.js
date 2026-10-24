@@ -79,6 +79,23 @@ const { open } = require('./lib');
   ok('after the act boss the next area starts from the hideout', r.town.inTown && r.town.pending === 4 && r.next === 4, r);
   ok('going back to a beaten boss walks on to the next area', r.skipped === 4 && r.level && r.deepest === 4, r);
 
+  // 4b. the forks are the world's, no path screen; the final boss saves the world and the character plays on
+  r = await page.evaluate(() => {
+    const G = CH.G, St = CH.Storage, W = St.slot().world;
+    const forks = { a: W.path[4], b: W.path[7], chosen: G.chosenPath[4], arena: G.pathArena(5) };
+    G.startWave(10);
+    const b = G.isBossWave(10);
+    const e = G.enemies.find((q) => q.isBoss && q.kind === b.kind) || G.spawnEnemy(b.kind, G.player.x + 200, G.player.y, { boss: true });
+    G.killEnemy(e);
+    for (let i = 0; i < 80 && G.state !== 'victory'; i++) CH.stepFrame(1 / 30);
+    const vic = { state: G.state, title: document.getElementById('vic-title').textContent, hideout: getComputedStyle(document.getElementById('btn-vic-hideout')).display, again: getComputedStyle(document.getElementById('btn-again')).display };
+    document.getElementById('btn-vic-hideout').click();
+    return { forks, vic, after: { state: G.state, town: !!(G.level && G.level.isTown), at: W.at, slot: !!St.slot() } };
+  });
+  ok('the forks are fixed by the world seed', ['office', 'wasteland'].includes(r.forks.a) && ['dungeon', 'volcano', 'glitch'].includes(r.forks.b) && r.forks.chosen === r.forks.a && r.forks.arena === r.forks.a, r.forks);
+  ok('the final boss saves the world: the character goes back to the hideout', r.vic.state === 'victory' && /WORLD IS SAVED/.test(r.vic.title) && r.vic.hideout !== 'none' && r.vic.again === 'none', r.vic);
+  ok('BACK TO THE HIDEOUT plays on in the hideout, the portal leads to area 1', r.after.state === 'playing' && r.after.town && r.after.at === 1 && r.after.slot, r.after);
+
   // 5. without a character: no world, stage 1 as before
   r = await page.evaluate(() => {
     const G = CH.G, St = CH.Storage;

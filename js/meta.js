@@ -481,7 +481,7 @@
     A('corpse', 'Grave Robber', 'Take your gold back from your own corpse', 'tick', () => lifetime('corpses') >= 1),
     A('bosses22', 'Boss Slayer', 'Defeat 22 bosses in total', 'tick', () => Storage.stats.bossesDefeated >= 22),
     A('pets3', 'Pet Lover', 'Unlock 3 pets', 'tick', () => M.PETS.filter((p) => M.petUnlocked(p.id)).length >= 3),
-    A('combo', 'Combo King', 'Reach the top combo tier', 'tick', () => X.comboTier >= 3),
+    A('level20', 'Seasoned', 'Reach level 20 with one character', 'tick', () => G.players.some((p) => p.level >= 20)),
     A('elite25', 'Elite Hunter', 'Defeat 25 affixed elites', 'tick', () => lifetime('affixKills') >= 25),
     A('obj5', 'Contractor', 'Complete 5 wave objectives', 'tick', () => lifetime('objectives') >= 5),
     A('mini10', 'Giant Killer', 'Defeat 10 mini-bosses', 'tick', () => lifetime('miniBosses') >= 10),

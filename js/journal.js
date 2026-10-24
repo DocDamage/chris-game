@@ -378,7 +378,7 @@
           if (SK.choose(hero.id, b.dataset.id)) {
             Audio.sfx('buy');
             h.querySelectorAll('.skr-card').forEach((c) => c.classList.toggle('sel', c === b));
-            if (G.state !== 'menu' && G.player) CH.UI.toast('Takes effect next run');
+            if (G.state !== 'menu' && G.player) CH.UI.toast('Takes effect next time you set out');
           } else Audio.sfx('nope');
         };
       });
@@ -388,8 +388,8 @@
     title: 'SAVE & QUIT',
     render(h) {
       h.innerHTML =
-        '<div class="jp spread"><div class="jp-col"><p>Your progress saves automatically. Leave a run here or carry on.</p>' +
-        '<button class="btn primary" id="jb-resume">BACK TO THE GAME</button><button class="btn" id="jb-restart">RESTART RUN</button><button class="btn danger" id="jb-menu">RETURN TO MAIN MENU</button></div></div>';
+        '<div class="jp spread"><div class="jp-col"><p>Your character saves as you play. Quit here and you wake in the hideout next time.</p>' +
+        '<button class="btn primary" id="jb-resume">BACK TO THE GAME</button><button class="btn danger" id="jb-menu">SAVE &amp; QUIT</button></div></div>';
       const clickPause = (id) => () => {
         J.close(true);
         const b = $(id);
@@ -397,11 +397,10 @@
         b && b.click();
       };
       $('jb-resume').onclick = () => J.close();
-      $('jb-restart').onclick = clickPause('btn-restart');
       $('jb-menu').onclick = clickPause('btn-pause-menu');
       if (G.state === 'menu') {
         $('jb-resume').textContent = 'CLOSE';
-        $('jb-restart').style.display = $('jb-menu').style.display = 'none';
+        $('jb-menu').style.display = 'none';
       }
     },
   });

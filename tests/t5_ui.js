@@ -99,18 +99,17 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   const held = await page.evaluate(() => JSON.stringify(CH.Input.held));
   ok('no stuck keys after resume', held === '{}' || !/true/.test(held), held);
 
-  // restart with confirmation
+  // SAVE & QUIT asks first; the restart went with the runs (PLAN.md 18, K0d)
   await page.keyboard.press('Escape');
-  await page.click('#btn-restart');
-  ok('restart asks for confirmation', (await state()).ui === 'confirm');
+  ok('there is no RESTART button', await page.evaluate(() => !document.getElementById('btn-restart')));
+  await page.click('#btn-pause-menu');
+  ok('SAVE & QUIT asks for confirmation', (await state()).ui === 'confirm');
   await page.screenshot({ path: __dirname + '/u_confirm.png' });
   await page.click('#confirm-no');
   ok('confirm No returns to pause', (await state()).ui === 'pause');
-  await page.click('#btn-restart');
-  await page.click('#confirm-yes');
+  await page.keyboard.press('Escape');
   await page.waitForTimeout(300);
-  const afterRestart = await state();
-  ok('restart starts clean (stage 1 or the hideout, no leftovers)', afterRestart.s === 'playing' && start(afterRestart) && afterRestart.proj === 0 && afterRestart.pk === 0 && afterRestart.kills === 0, afterRestart);
+  ok('Escape resumes after the confirm', (await state()).s === 'playing');
 
   // levelling: skill points, no card screen; the tree opens with K and pauses the game (PLAN.md 15, request 7)
   await page.evaluate(() => { CH.Upgrades.addXp(CH.G, 500); });
@@ -149,7 +148,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   ok('game over screen shown', (await state()).s === 'gameover' && (await state()).ui === 'gameover');
   await page.screenshot({ path: __dirname + '/u_gameover.png' });
   const st = await page.evaluate(() => CH.Storage.stats);
-  ok('stats recorded exactly once for the run', st.totalRuns === 2 && st.deaths === 2, st); // first run abandoned by restart + this death
+  ok('stats recorded exactly once for the run', st.totalRuns === 1 && st.deaths === 1, st); // this death (the restart is gone)
   ok('a fallen hardcore character gets no RETRY', await page.evaluate(() => getComputedStyle(document.getElementById('btn-retry')).display === 'none' && !CH.Storage.slot()));
   await page.click('#btn-go-menu');
   await play(page);

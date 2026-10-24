@@ -46,14 +46,6 @@ const { open } = require('./lib');
     const c0 = G.coins; X.W.buy(0); res.shopBuy = G.coins < c0;
     X.W.closeShop(); res.shopClosed = G.state === 'playing' || G.state === 'levelup';
     if (G.state === 'levelup') G.pickUpgrade(0);
-    // extra branch
-    G.state = 'playing'; G.waveState = 'clear'; G.endless = false; X.run.mode = 'classic';
-    G.startWave(6);
-    res.branchShown = G.state === 'branch' && CH.UI.active === 'branch';
-    CH.UI._branchPick(1);
-    res.pathMod = X.W.pathMod[6];
-    res.safeShop = CH.UI.active === 'shop';
-    X.W.closeShop(); if (G.state === 'levelup') G.pickUpgrade(0);
     // orbs
     G.state = 'playing'; G.wave = 5; G.waveState = 'combat'; G.event = null; god();
     Ev.start(G);

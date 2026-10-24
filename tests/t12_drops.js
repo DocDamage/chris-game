@@ -398,12 +398,9 @@ const { open } = require('./lib');
       for (const w of [3, 5, 8, 10]) kinds.add(G.isBossWave(w).kind);
     }
     G.runIndex = 0;
-    G.endless = true;
-    for (let w = 15; w < 15 + 5 * 24; w += 5) kinds.add(G.isBossWave(w).kind);
-    G.endless = false;
     return [...kinds].sort();
   });
-  ok(sched.length === 22, 'the campaign and endless rotations reach all 22 bosses', sched.length + ' ' + sched.join(','));
+  ok(sched.length === 22, 'the boss rotation (world seeds) reaches all 22 bosses', sched.length + ' ' + sched.join(','));
 
   /* the wave-10 bosses all end the run with a win */
   for (const kind of ['bug', 'skull', 'daddy']) {

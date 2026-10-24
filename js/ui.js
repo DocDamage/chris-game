@@ -45,7 +45,7 @@
     }
   }
 
-  const SCREENS = ['main', 'lobby', 'howto', 'settings', 'stats', 'credits', 'pause', 'confirm', 'levelup', 'gameover', 'victory', 'shelter', 'branch', 'codex'];
+  const SCREENS = ['main', 'lobby', 'howto', 'settings', 'stats', 'credits', 'pause', 'confirm', 'levelup', 'gameover', 'victory', 'shelter', 'codex'];
   UI.SCREENS = SCREENS; // add-on modules push their own screens here
   const SFX_CLICK = () => Audio.sfx('click');
   const heroIcon = (id) => (CH.Art.on && CH.Sprites.has('hero.' + id) ? CH.Sprites.icon('hero.' + id, 0) : CH.Sprites.icon('player', 0));
@@ -179,7 +179,6 @@
   };
 
   UI.refreshMenuMeta = function () {
-    setText($('menu-best'), 'BEST ' + U.fmtNum(Storage.stats.highScore));
     if (CH.Menus && CH.Menus.heroLabel) CH.Menus.heroLabel();
     setText($('menu-diff'), B.difficulty[Storage.settings.difficulty].name.toUpperCase());
     UI.renderControlsStrip();
@@ -321,19 +320,13 @@
     });
     for (const b of document.querySelectorAll('[data-back]')) b.addEventListener('click', () => UI.back());
     click('btn-resume', () => G.resume());
-    click('btn-restart', () =>
-      UI.confirm('RESTART RUN?', 'Your current run will be abandoned and a new one will start.', () => {
-        G.abandon();
-        G.newRun();
-      }, 'RESTART')
-    );
     click('btn-pause-settings', () => {
       UI.backTo = 'pause';
       UI.refreshSettings();
       UI.show('settings');
     });
     click('btn-pause-menu', () =>
-      UI.confirm('ABANDON RUN?', 'Your current run will be lost. Lifetime stats are kept.', () => G.abandon(), 'ABANDON')
+      UI.confirm('SAVE & QUIT?', 'Your character is saved. You will wake in the hideout next time.', () => G.abandon(), 'QUIT')
     );
     click('confirm-yes', () => {
       const fn = UI._confirmYes;
@@ -343,7 +336,7 @@
     click('confirm-no', () => UI.cancelConfirm());
     click('btn-retry', () => G.newRun());
     click('btn-go-menu', () => G.toMenu());
-    click('btn-endless', () => G.continueEndless());
+    click('btn-vic-hideout', () => CH.Areas && CH.Areas.afterVictory());
     click('btn-again', () => G.newRun());
     click('btn-vic-menu', () => G.toMenu());
     click('btn-resetsave', () =>
@@ -397,13 +390,6 @@
     if (UI.active === 'lobby') {
       CH.Lobby.keyInput(e);
       return;
-    }
-    if (G.state === 'branch' && UI._branchPick) {
-      const bm = /^(Digit|Numpad)([1-2])$/.exec(e.code);
-      if (bm) {
-        UI._branchPick(parseInt(bm[2], 10) - 1);
-        return;
-      }
     }
     if (G.state === 'levelup') {
       if (CH.Perks && CH.Perks.onKey(e)) return;
@@ -484,7 +470,7 @@
     } else if (G.state === 'paused') {
       if (UI.active === 'pause') G.resume();
     } else if (G.state === 'gameover') $('btn-retry').click();
-    else if (G.state === 'victory') $('btn-endless').click();
+    else if (G.state === 'victory') $(Storage.slot() ? 'btn-vic-hideout' : 'btn-again').click();
     else if (G.state === 'levelup' || G.state === 'branch') UI.activate();
   };
 
@@ -821,47 +807,6 @@
     setPlaying(true);
   };
 
-  UI.showBranch = function (options, onSelect) {
-    setPlaying(false);
-    const container = $('branch-cards');
-    container.innerHTML = '';
-    options.forEach((opt, idx) => {
-      const card = document.createElement('div');
-      card.className = 'biome-card';
-      card.tabIndex = 0;
-      card.innerHTML = `
-        <div class="biome-title">${opt.name}</div>
-        <div class="biome-tag">${opt.tag}</div>
-        <div class="biome-desc">${opt.desc}</div>
-        <div style="display:flex;gap:8px;margin-top:6px;">
-          <span class="biome-badge badge-resource">+${opt.resName}</span>
-          <span class="biome-badge badge-hazard">${opt.hazard}</span>
-        </div>
-        <button class="btn primary" style="margin-top:12px;">DEPLOY</button>
-      `;
-      const select = () => {
-        if (UI.active !== 'branch') return;
-        Audio.sfx('item_get');
-        UI.hideAll();
-        setPlaying(true);
-        onSelect(opt.id);
-      };
-      card.onclick = select;
-      card.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') select(); };
-      card.__select = select;
-      container.appendChild(card);
-    });
-    UI._branchPick = (i) => {
-      const c = container.children[i];
-      if (c && c.__select) c.__select();
-    };
-    UI.show('branch');
-    setTimeout(() => {
-      const first = container.querySelector('.biome-card .btn');
-      if (first) first.focus();
-    }, 40);
-  };
-
   /* ---------------------------------------------------------- end screens */
   function rowsHTML(rows) {
     return rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
@@ -892,15 +837,12 @@
     $('btn-retry').style.display = G.fallen ? 'none' : '';
     setText($('go-snark'), G.fallen ? 'Hardcore means hardcore. Their page in the book is torn out.' : U.pick(SNARK));
     $('go-stats').innerHTML = rowsHTML([
-      ['Final score', U.fmtNum(d.score)],
-      ['Waves survived', d.wave],
+      ['Stages cleared', d.wave],
       ['Enemies defeated', U.fmtNum(d.kills)],
       ['Coins earned', U.fmtNum(d.coins)],
       ['Trophies found', U.fmtNum(d.loot || 0) + (d.newLoot ? '  (' + d.newLoot + ' new)' : '')],
       ['Time survived', U.fmtTime(d.time)],
-      ['Best score', U.fmtNum(d.best)],
     ]) + UI.lootRowHTML();
-    $('go-newbest').classList.toggle('hidden', !d.newBest);
     const f = freshText(d.fresh);
     setText($('go-unlock'), f);
     $('go-unlock').classList.toggle('hidden', !f);
@@ -911,16 +853,18 @@
     setPlaying(false);
     $('hud').classList.add('hidden');
     $('banner').classList.add('hidden');
+    // a character goes back to the hideout and plays on (js/areas.js); without one: play again
+    const hero = !!Storage.slot();
+    setText($('vic-title'), hero ? 'THE WORLD IS SAVED!' : 'VICTORY!');
+    $('btn-vic-hideout').style.display = hero ? '' : 'none';
+    $('btn-again').style.display = hero ? 'none' : '';
     $('vic-stats').innerHTML = rowsHTML([
-      ['Final score', U.fmtNum(d.score)],
       ['Enemies defeated', U.fmtNum(d.kills)],
       ['Bosses defeated', d.bosses],
       ['Coins earned', U.fmtNum(d.coins)],
       ['Trophies found', U.fmtNum(d.loot || 0) + (d.newLoot ? '  (' + d.newLoot + ' new)' : '')],
       ['Time taken', U.fmtTime(d.time)],
-      ['Best score', U.fmtNum(d.best)],
     ]) + UI.lootRowHTML();
-    $('vic-newbest').classList.toggle('hidden', !d.newBest);
     const f = freshText(d.fresh);
     setText($('vic-unlock'), f);
     $('vic-unlock').classList.toggle('hidden', !f);
@@ -1175,13 +1119,8 @@
     });
     UI.chips = UI.huds[0].chips;
 
-    const camp = !G.endless && G.wave <= B.waves.campaign;
-    setText($('wavetxt'), camp ? `WAVE ${G.wave}/${B.waves.campaign}` : `WAVE ${G.wave} ENDLESS`);
+    setText($('wavetxt'), G.level && G.level.isTown ? 'HIDEOUT' : 'STAGE ' + G.wave);
     setText($('enemytxt'), G.waveState === 'intro' ? 'GET READY...' : G.waveState === 'clear' ? 'CLEARED!' : 'ENEMIES ' + G.remaining());
-    setText($('scoretxt'), 'SCORE ' + U.fmtNum(G.score));
-    const cm = G.scoreMult();
-    setText($('combotxt'), (G.combo > 1 ? G.combo + ' COMBO  ' : '') + 'x' + cm.toFixed(1));
-    toggleCls($('combotxt'), 'hot', cm >= 1.5);
     setText($('cointxt'), U.fmtNum(G.coins));
     // the stockpile the barricade (F / R3) is paid from; the green number is what this run has added
     const res = Storage.resources;
