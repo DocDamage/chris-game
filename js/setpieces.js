@@ -26,11 +26,13 @@
   const LG = CH.LevelGen;
   const SP = (CH.SetPieces = { on: true });
 
-  const FAM = { gaslight: 'g', deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
-  const ALT = { gaslight: 'z', deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
+  const FAM = { catacombs: 'a', castle: 'r', gaslight: 'g', deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
+  const ALT = { catacombs: 'h', castle: 'a', gaslight: 'z', deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
   /* scenes each biome draws from (the first entries are the most common) */
   const SCENES = {
     backyard: ['grove', 'ruin', 'yard', 'graveyard', 'grove', 'camp'],
+    catacombs: ['ossuary', 'crypt', 'alchemy', 'storage', 'ossuary', 'torture', 'shrine', 'alchemy'],
+    castle: ['hall', 'throne', 'armory', 'hall', 'garden', 'lavahall', 'storage', 'throne'],
     gaslight: ['townhouse', 'gstreet', 'cemetery', 'market', 'townhouse', 'occult', 'ruin', 'graveyard', 'gstreet'],
     deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
     frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'grove', 'castle'],
@@ -54,11 +56,11 @@
     pot: ['obj.jarBlue', 'obj.jarClay'],
     flower: ['obj.flowerPurple1', 'obj.flowerPurple2', 'obj.flowerBlue1', 'obj.flowerBlue2', 'obj.grassTuft'],
   };
-  const LIGHT_KIND = { g: 'lamp', f: 'brazier', c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
-  const FIRE = { gaslight: 'purple', deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
+  const LIGHT_KIND = { a: 'lantern', r: 'brazier', g: 'lamp', f: 'brazier', c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
+  const FIRE = { catacombs: 'purple', castle: 'orange', gaslight: 'purple', deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
   const MIRROR = { corpse: 1, bones: 1, skeleton: 1, debris: 1, patch: 1, ashes: 1, pool: 1 }; // decals with writing (blood "HELP", signs) are never mirrored
-  const FLAT = { patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
+  const FLAT = { room: 1, lava: 1, patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
 
   /* ------------------------------------------------------------------ a dressing session for one level */
   function Dresser(L, biome) {
@@ -528,6 +530,75 @@
     D.scatter('skeleton', A.x, A.y, A.rx * 0.6, 1);
     D.scatter('hang', A.x, A.y, A.rx * 0.7, 1);
   };
+  /* ------------------------------------------------------------------ the Catacombs and the Crimson Castle (PLAN.md 19, W2) */
+  /* an ossuary: skeletons and bone piles along the back wall, skull heaps, a cage, candles, old blood */
+  SCENE.ossuary = (D, A) => {
+    alongWalls(D, A, ['skeleton', 'bones', 'bones', 'pot', 'skeleton'], 34);
+    D.scatter('bones', A.x, A.y, A.rx * 0.7, 6);
+    D.near(D.key('cage'), A.x + A.rx * 0.5, A.y + A.ry * 0.3, 20);
+    for (const s of [-1, 1]) D.put(D.key('candles'), A.x + s * 40, A.y + 10);
+    D.put(D.key('statue'), A.x, A.y - A.ry * 0.45);
+    D.scatter('decal', A.x, A.y, A.rx * 0.6, 3);
+  };
+  /* an alchemist's den: tables of jars and books, shelves along the wall, pots, crystals, a circle on the floor */
+  SCENE.alchemy = (D, A) => {
+    alongWalls(D, A, ['shelf', 'shelf', 'pot', 'table'], 36);
+    for (let i = -1; i <= 1; i++) D.put(D.key('table'), A.x + i * 52, A.y + 6);
+    D.scatter('item', A.x, A.y + 4, 60, 4);
+    D.put(D.key('altar') || D.key('table'), A.x, A.y + A.ry * 0.45);
+    D.near(D.key('crystal'), A.x + A.rx * 0.55, A.y + A.ry * 0.3, 20);
+    D.pile(A.x - A.rx * 0.55, A.y + A.ry * 0.35, ['pot', 'pot', 'sack', 'crate'], 4);
+    D.scatter('candles', A.x, A.y, A.rx * 0.5, 2);
+    D.scatter('decal', A.x, A.y + 30, 40, 1);
+  };
+  /* a castle hall: one of the pack's whole halls painted into the floor, rows of pillars, braziers at the corners */
+  const fits = (D, kind, A, fam) => PR.pool(kind, fam || 'r').filter((k) => { const im = CH.Assets.images[k]; return im && im.width < A.rx * 1.7 && im.height < A.ry * 1.7; });
+  SCENE.hall = (D, A) => {
+    const rooms = fits(D, 'room', A);
+    if (rooms.length) D.put(D.pick(rooms), A.x, A.y + Math.round(CH.Assets.images[rooms[0]].height / 2) - 10, { a: 1 });
+    const rugs = fits(D, 'rug', A);
+    if (rugs.length && D.r() < 0.6) D.put(D.pick(rugs), A.x, A.y + 30, { a: 1 });
+    for (const s of [-1, 1]) for (let y = A.y - A.ry * 0.5; y <= A.y + A.ry * 0.5; y += 56) D.put(D.key('pillar'), A.x + s * A.rx * 0.62, y);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) D.put(D.key('brazier'), A.x + sx * A.rx * 0.8, A.y + sy * A.ry * 0.7);
+  };
+  /* a throne room: a hall, a Gothic throne at the back between banners and candelabras, a red runner to it */
+  SCENE.throne = (D, A) => {
+    const rugs = fits(D, 'rug', A);
+    if (rugs.length) D.put(D.pick(rugs), A.x, A.y + 20, { a: 1 });
+    D.put(D.key('throne', 'g') || D.key('statue'), A.x, A.y - A.ry * 0.55);
+    for (const s of [-1, 1]) { D.put(D.key('hang', 'a') || D.key('banner'), A.x + s * 50, A.y - A.ry * 0.7); D.put(D.key('brazier'), A.x + s * 70, A.y - A.ry * 0.4); D.put(D.key('pillar'), A.x + s * A.rx * 0.6, A.y); }
+    D.scatter('plate', A.x, A.y, A.rx * 0.6, 2);
+  };
+  /* an armoury and store: stone blocks along the walls, crates, barrels, statues, torches */
+  SCENE.armory = (D, A) => {
+    alongWalls(D, A, ['block', 'block', 'statue', 'crate'], 40);
+    D.pile(A.x - A.rx * 0.4, A.y + A.ry * 0.3, ['crate', 'crate', 'sack', 'pot'], 4);
+    D.pile(A.x + A.rx * 0.45, A.y + A.ry * 0.2, ['crate', 'pot', 'pot'], 3);
+    D.put(D.key('trap'), A.x, A.y + 10);
+    for (const s of [-1, 1]) D.put(D.key('torch', 'a') || D.key('brazier'), A.x + s * A.rx * 0.7, A.y - A.ry * 0.6);
+  };
+  /* the castle garden: hedges and potted plants, floor inlays, a fountain, statues */
+  SCENE.garden = (D, A) => {
+    D.scatter('shrub', A.x, A.y, A.rx * 0.8, 6);
+    D.scatter('plate', A.x, A.y, A.rx * 0.6, 3);
+    D.put(D.key('block'), A.x, A.y);
+    for (const s of [-1, 1]) D.put(D.key('statue', 'a'), A.x + s * A.rx * 0.55, A.y - A.ry * 0.3);
+  };
+  /* a hall of lava channels: lava inlays, braziers, plates, a pillar or two */
+  SCENE.lavahall = (D, A) => {
+    const lava = fits(D, 'lava', A);
+    for (let i = 0; i < 3 && lava.length; i++) D.put(D.pick(lava), A.x + (i - 1) * A.rx * 0.5, A.y + (D.r() - 0.5) * A.ry * 0.6, { a: 1 });
+    D.scatter('brazier', A.x, A.y, A.rx * 0.7, 3);
+    D.scatter('plate', A.x, A.y, A.rx * 0.5, 2);
+    D.near(D.key('pillar'), A.x, A.y - A.ry * 0.5, 20);
+  };
+  /* gates at the ends, and a last check that every piece of the packs gets a chance (one of each sheet's kinds) */
+  function dungeons(D, L) {
+    const doors = PR.pool('door', D.fam === 'r' ? 'a' : 'a');
+    if (doors.length) { L.exit.gate = D.pick(doors); L.entrance.gate = D.pick(doors); }
+    for (const s of L.secrets) D.near(D.key(D.fam === 'r' ? 'statue' : 'skeleton'), (s.crack.x + 0.5) * TS + 26, (s.crack.y + 1.4) * TS, 20); // a watcher by the hollow wall
+  }
+
   /* ------------------------------------------------------------------ the Gaslight District (PLAN.md 18, K4) */
   const HV = (sheet, kind) => PR.pool(kind, 'g').filter((k) => k.startsWith('kit.' + sheet + '.'));
   /* a townhouse: Victorian brick front segments with a door and windows, under a slate roof with a dormer and a chimney,
@@ -875,6 +946,7 @@
     if (D.fam === 'c') deadwood(D, L);
     if (D.fam === 'f') frozen(D, L);
     if (D.fam === 'g') gaslight(D, L);
+    if (D.fam === 'a' || D.fam === 'r') dungeons(D, L);
     fields(D, L);
     edges(D, L);
     keepReachable(L);
@@ -894,6 +966,8 @@
     c: ['shrub', 'mushroom', 'rock', 'stump', 'bones', 'debris', 'flower', 'grave'],
     f: ['rock', 'crystal', 'rubble', 'tree', 'debris', 'spike', 'pillar'],
     g: ['rubble', 'debris', 'pipe', 'shrub', 'bin', 'hang', 'plate', 'patch'],
+    a: ['bones', 'bones', 'debris', 'pot', 'skeleton', 'decal', 'candles', 'hang'],
+    r: ['pillar', 'block', 'plate', 'brazier', 'debris', 'pot', 'statue', 'shrub'],
   };
   /* open ground between the rooms (outdoor maps are mostly that): a small clump every few tiles */
   const FIELD = {

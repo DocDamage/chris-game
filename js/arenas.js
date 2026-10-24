@@ -11,6 +11,8 @@
   const Arenas = (CH.Arenas = {});
 
   const THEMES = {
+    catacombs: { id: 'catacombs', name: 'The Catacombs', tag: 'Mind the bones. Some of them mind you.', clear: '#120f16', music: 'dungeon', amb: 'amb_glitch', weather: 'none' }, // PLAN.md 19, W2
+    castle: { id: 'castle', name: 'The Crimson Castle', tag: 'The host has been expecting you.', clear: '#140a0e', music: 'superboss', amb: 'amb_glitch', weather: 'none' },
     gaslight: { id: 'gaslight', name: 'The Gaslight District', tag: 'Mind the fog. It minds you.', clear: '#1a1720', music: 'rain', amb: 'amb_rain', weather: 'rain' }, // PLAN.md 18, K4: act II
     deadwood: { id: 'deadwood', name: 'The Dead Wood', tag: 'The trees remember you.', clear: '#1d2117', music: 'library', amb: 'amb_wind', weather: 'rain' }, // PLAN.md 18, K2: stages 1-2
     backyard: { id: 'backyard', name: 'The Broken Backyard', tag: 'Gnomes are watching.', clear: '#3d7a2e', music: 'court', amb: 'amb_backyard', weather: 'sun' },
@@ -847,7 +849,7 @@
     dungeon: buildDungeon,
   };
 
-  const ARENA_OF = { deadwood: 'backyard', frozen: 'dungeon', gaslight: 'zombie' }; // gaslight: the Outbreak City's streets
+  const ARENA_OF = { deadwood: 'backyard', frozen: 'dungeon', gaslight: 'zombie', catacombs: 'dungeon', castle: 'volcano' }; // gaslight: the Outbreak City's streets
   Arenas.arenaOf = (id) => (BUILD[id] ? id : ARENA_OF[id] || id);
   Arenas.build = function (id) {
     const theme = THEMES[id] || THEMES.backyard;

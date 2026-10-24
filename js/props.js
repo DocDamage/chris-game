@@ -123,6 +123,12 @@
     bridge: K(1, null, { skip: 1 }), // bridges and stairs wait for the height work (K7)
     particle: K(1, null, { skip: 1 }), // snowflakes and footprints are drawn by code (js/atmos.js)
     throne: K(1, [0.8, 0.3], { res: 'stone' }), // Gothic thrones (Victorian 20): the cult house and boss halls
+    // the packs of 2026-10-24 (PLAN.md 19, W2)
+    face: K(1, null, { skip: 1 }), // wall faces: drawn on the walls by js/level.js, not props
+    ground: K(1, null, { skip: 1 }), // floor tiles: js/level.js
+    room: K(1, null), // a whole castle hall painted into the floor
+    lava: K(1, null), // a lava inlay
+    block: K(1, [0.86, 0.4], { res: 'stone' }), // a castle stone feature: plinths, steps, fountains, fireplaces
   };
   PR.KIND = KIND;
 
@@ -265,7 +271,7 @@
     fk20: { barrel: '0,2,17', sack: '1', crate: '3,8', pole: '4,16', cauldron: '5', table: '6', bench: '7,9,10', well: '11,13', crystal: '12', signpost: '14', lamp: '15,18-20,33,34', brazier: '21', obelisk: '22', door: '23', smallstatue: '24,25', grave: '26', banner: '27,28,35', fence: '29,30', rock: '31', tree: '32' },
   };
   PR.KCAT = KCAT;
-  const KFAM = { cf: 'c', fk: 'f', hv: 'g' };
+  const KFAM = { cf: 'c', fk: 'f', hv: 'g', da: 'a', gc: 'r' };
   const parse = (s) => {
     const out = [];
     for (const part of s.split(',')) {
@@ -318,6 +324,18 @@
         kindOf[key] = kind;
         ((byKind[kind] = byKind[kind] || {})[f] = byKind[kind][f] || []).push(key);
       }
+    }
+    // the packs that carry their own kinds (tools/pack-kits.js: the Dungeon Asset Pack, the Crimson Gothic Castle)
+    for (const id of Object.keys(MK)) {
+      const m = MK[id];
+      if (!m || !m.kinds || KCAT[id]) continue;
+      const f = KFAM[id.slice(0, 2)];
+      m.kinds.forEach((kind, i) => {
+        const key = 'kit.' + id + '.' + i;
+        if (!kind || kindOf[key]) return;
+        kindOf[key] = kind;
+        ((byKind[kind] = byKind[kind] || {})[f] = byKind[kind][f] || []).push(key);
+      });
     }
     // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
     const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door', hv_eye_portal: 'door', hv_pentagram: 'decal', hv_skull_arch: 'door' };

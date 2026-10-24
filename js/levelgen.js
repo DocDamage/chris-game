@@ -11,13 +11,15 @@
   const TS = Level.TS;
   const LG = (CH.LevelGen = {});
 
-  const LAYOUT = { gaslight: 'outdoor', deadwood: 'outdoor', dungeon: 'dungeon', office: 'dungeon', glitch: 'dungeon', volcano: 'dungeon', backyard: 'outdoor', zombie: 'outdoor', wasteland: 'outdoor', frozen: 'outdoor' };
+  const LAYOUT = { catacombs: 'dungeon', castle: 'dungeon', gaslight: 'outdoor', deadwood: 'outdoor', dungeon: 'dungeon', office: 'dungeon', glitch: 'dungeon', volcano: 'dungeon', backyard: 'outdoor', zombie: 'outdoor', wasteland: 'outdoor', frozen: 'outdoor' };
   /* size classes in tiles: roughly 1.4x, 2.5x and 3.6x the old 2880x1620 arena */
   LG.SIZES = { S: [96, 64], M: [128, 88], L: [160, 104] };
   LG.MOBS = {
     backyard: ['slime', 'plant', 'spider', 'chicken', 'goblin'],
     deadwood: ['spider', 'plant', 'slime', 'goblin', 'chicken'],
     gaslight: ['influencer', 'intern', 'trashcan', 'spider', 'goblin'],
+    catacombs: ['spider', 'golem', 'office', 'influencer', 'plant'],
+    castle: ['influencer', 'office', 'fridge', 'toaster', 'pigeon', 'cart'],
     office: ['intern', 'office', 'influencer', 'toaster', 'trashcan'],
     glitch: ['potato', 'influencer', 'pigeon', 'office', 'cart'],
     zombie: ['intern', 'trashcan', 'slime', 'plant', 'goblin'],
@@ -29,7 +31,7 @@
   /* hive kinds per biome (PLAN.md section 8) */
   LG.HIVES = {
     glitch: { kind: 'portal', name: 'GLITCH PORTAL' }, office: { kind: 'portal', name: 'GLITCH PORTAL' },
-    backyard: { kind: 'hive', name: 'HIVE' }, deadwood: { kind: 'grave', name: 'OSSUARY' }, gaslight: { kind: 'portal', name: 'CULT RIFT' }, zombie: { kind: 'grave', name: 'OSSUARY' },
+    backyard: { kind: 'hive', name: 'HIVE' }, deadwood: { kind: 'grave', name: 'OSSUARY' }, gaslight: { kind: 'portal', name: 'CULT RIFT' }, catacombs: { kind: 'grave', name: 'OSSUARY' }, castle: { kind: 'gate', name: 'BLOOD GATE' }, zombie: { kind: 'grave', name: 'OSSUARY' },
     dungeon: { kind: 'grave', name: 'OSSUARY' }, volcano: { kind: 'gate', name: 'HELL GATE' },
     wasteland: { kind: 'camp', name: 'WAR CAMP' }, frozen: { kind: 'rift', name: 'FROST RIFT' },
   };
@@ -355,7 +357,7 @@
       }
     }
     // puddles of water / blood / toxic goo / lava (the shader makes them reflect); never on top of anything we placed
-    const PK = { gaslight: ['water', 'water', 'blood'], deadwood: ['water', 'water', 'toxic'], backyard: ['water'], office: ['water'], glitch: ['toxic'], zombie: ['water', 'toxic'], wasteland: ['toxic', 'water'], volcano: ['lava', 'lava', 'water'], dungeon: ['water', 'blood'], frozen: ['water'] };
+    const PK = { catacombs: ['water', 'blood', 'blood'], castle: ['blood', 'blood', 'lava'], gaslight: ['water', 'water', 'blood'], deadwood: ['water', 'water', 'toxic'], backyard: ['water'], office: ['water'], glitch: ['toxic'], zombie: ['water', 'toxic'], wasteland: ['toxic', 'water'], volcano: ['lava', 'lava', 'water'], dungeon: ['water', 'blood'], frozen: ['water'] };
     const pk = PK[biome] || ['water'];
     const np = R.int(5, 9);
     for (let i = 0, tries = 0; i < np && tries < np * 6; tries++) {

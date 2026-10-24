@@ -40,7 +40,7 @@
 
   /* ------------------------------------------------------------------ weather */
   const TABLE = {
-    backyard: ['clear', 'clear', 'rain', 'storm', 'wind'], deadwood: ['fog', 'fog', 'rain', 'storm', 'clear'], gaslight: ['rain', 'rain', 'fog', 'storm', 'clear', 'bloodrain'], office: ['none'], glitch: ['glitch'], zombie: ['rain', 'storm', 'fog'],
+    backyard: ['clear', 'clear', 'rain', 'storm', 'wind'], deadwood: ['fog', 'fog', 'rain', 'storm', 'clear'], gaslight: ['rain', 'rain', 'fog', 'storm', 'clear', 'bloodrain'], catacombs: ['none', 'fog'], castle: ['none', 'none', 'fog'], office: ['none'], glitch: ['glitch'], zombie: ['rain', 'storm', 'fog'],
     wasteland: ['wind', 'ash', 'storm'], volcano: ['ash', 'firestorm', 'clear'], dungeon: ['fog', 'bloodrain', 'clear'], frozen: ['snow', 'blizzard'],
   };
   const OLD = { clear: 'sun', rain: 'rain', storm: 'rain', bloodrain: 'rain', wind: 'wind', glitch: 'glitch', none: 'none', fog: 'none', snow: 'none', blizzard: 'none', ash: 'none', firestorm: 'none' };

@@ -23,6 +23,22 @@
     wasteland: { floor: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
     volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
     dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
+    // The Catacombs (PLAN.md 19, W2): the Dungeon Asset Pack's flagstones (grey, mossy, brown, purple and blue runes),
+    // walls with its brick faces, arches and banners
+    catacombs: {
+      floor: 'kit', sheet: 'tile.rock', tint: '#4a4652', wall: '#0c0b10', top: '#24222b', edge: '#06050a', faces: 'face:a',
+      mats: {
+        dirt: { base: ['da1.0', 'da1.1', 'da1.2'], acc: ['da1.3', 'da1.4', 'da1.5', 'da1.6', 'da1.7', 'da1.8'] },
+        moss: { base: ['da1.9', 'da1.10'], acc: ['da1.11', 'da1.12', 'da1.13', 'da1.14', 'da1.15', 'da1.16', 'da1.17'] },
+        roots: { base: ['da1.18', 'da1.19', 'da1.45'], acc: ['da1.20', 'da1.21', 'da1.22', 'da1.23', 'da1.24', 'da1.25', 'da1.26', 'da1.46', 'da1.47', 'da1.48', 'da1.49', 'da1.50', 'da1.51', 'da1.52', 'da1.53'] },
+        rust: { base: ['da1.27', 'da1.28'], acc: ['da1.29', 'da1.30', 'da1.31', 'da1.32', 'da1.33', 'da1.34', 'da1.35'] },
+        stone: { base: ['da1.36', 'da1.37'], acc: ['da1.38', 'da1.39', 'da1.40', 'da1.41', 'da1.42', 'da1.43', 'da1.44'] },
+        swamp: { base: ['da1.12'], acc: ['da1.16', 'da1.17'] },
+      },
+    },
+    // The Crimson Castle (PLAN.md 19, W2): its floor tiles sorted by colour at load (grey stone, dark stone, pale stone,
+    // red, green), a few of each chosen per stage; walls with its long wall strips
+    castle: { floor: 'kit', sheet: 'tile.rock', tint: '#4a3a44', wall: '#0e090c', top: '#2c1f26', edge: '#070406', faces: 'strip:r', mats: 'auto:gc' },
     // the Gaslight District (PLAN.md 18, K4): cobbled streets (kit.hv1), slab pavements (kit.hv2), grates; city walls
     gaslight: {
       floor: 'kit', sheet: 'wall.zombie', ftint: null, tint: '#6a5e78', wall: '#14121a', top: '#2a2533', edge: '#09080d', trail: 'kit.hv2.0',
@@ -88,6 +104,50 @@
     return (seams[key] = c);
   }
   const tinted = {};
+  /* the face pieces of a family ('face:a' -> the Dungeon Asset Pack's faces, 'strip:r' -> the castle's wall strips) */
+  function facesOf(spec) {
+    const [how, fam] = spec.split(':');
+    return CH.Props ? CH.Props.pool(how === 'strip' ? 'wall' : 'face', fam).filter((k) => CH.Assets.images[k] && CH.Assets.images[k].width >= TS) : [];
+  }
+  /* floor materials from a pack's 32 px tiles sorted by colour ('gc': the castle): grey stone is the dirt, dark stone the
+     roots, pale stone the stone, red the rust; the moss is more grey and the swamp more dark */
+  function autoMats(pack) {
+    const K = (CH.Assets.meta && CH.Assets.meta.kits) || {};
+    const g = { grey: [], dark: [], pale: [], red: [], green: [] }, plain = new Set();
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    for (const id of Object.keys(K)) {
+      if (id.slice(0, 2) !== pack || !K[id].kinds) continue;
+      K[id].kinds.forEach((kind, i) => {
+        const im = kind === 'ground' && CH.Assets.images['kit.' + id + '.' + i];
+        if (!im) return;
+        x.clearRect(0, 0, 32, 32);
+        x.drawImage(im, 0, 0);
+        const d = x.getImageData(0, 0, 32, 32).data;
+        let r = 0, gg = 0, b = 0, ring = 0, nr = 0, mid = 0, nm = 0;
+        for (let k = 0; k < d.length; k += 4) {
+          r += d[k]; gg += d[k + 1]; b += d[k + 2];
+          const px = (k / 4) % 32, py = (k / 128) | 0, l = d[k] + d[k + 1] + d[k + 2];
+          if (px < 3 || py < 3 || px > 28 || py > 28) { ring += l; nr++; } else if (px > 8 && py > 8 && px < 23 && py < 23) { mid += l; nm++; }
+        }
+        if (Math.abs(ring / nr - mid / nm) < 45) plain.add(id + '.' + i); // no frame: it tiles
+        r /= 1024; gg /= 1024; b /= 1024;
+        const lum = (r + gg + b) / 3;
+        const key = id + '.' + i;
+        if (gg > r + 6 && gg > b + 2) g.green.push(key);
+        else if (r > gg + 30 && r > b + 25) g.red.push(key);
+        else if (lum > 150) g.pale.push(key);
+        else if (lum < 62) g.dark.push(key);
+        else g.grey.push(key);
+      });
+    }
+    // the plain tiles make the base of every material, the framed plaques its accents
+    const half = (l) => { const p = l.filter((k) => plain.has(k)), f = l.filter((k) => !plain.has(k)); return p.length ? { base: p, acc: f.length ? f : p } : { base: l.slice(0, Math.max(1, Math.ceil(l.length / 2))), acc: l.slice(Math.ceil(l.length / 2)).concat(l.slice(0, 1)) }; };
+    const or = (l, d) => (l.length ? l : d);
+    // green tiles are hedge tops, not floor: the plants stand in the rooms as shrubs instead
+    return { big: true, dirt: half(g.grey), roots: half(or(g.dark, g.grey)), stone: half(or(g.pale, g.grey)), rust: half(or(g.red, g.grey)), moss: half(g.grey.slice().reverse()), swamp: half(or(g.dark, g.grey)) };
+  }
   function wallSheet(st) { return tintOf(CH.Assets.images[st.sheet], st.sheet, st.tint); }
   function tintOf(im, name, tint) {
     if (!im) return null;
@@ -415,6 +475,7 @@
             continue;
           }
           this.paintWall(g, st, gx, gy, px, py);
+          if (st.faces && !this.solid(gx, gy + 1)) this.paintFaces(g, st, gx, gy, px, py);
           if (v === CRACKED) {
             g.strokeStyle = '#000000aa';
             g.lineWidth = 1;
@@ -426,6 +487,42 @@
       }
       this.chunks.set(key, c);
       return c;
+    }
+    /* this level's own few tiles of each material, from a long list (the castle's): its floor looks of one piece */
+    matsFor(st) {
+      if (this._mats) return this._mats;
+      const M = st.mats;
+      if (!M.big) return (this._mats = M);
+      let s = (this.tw * 73856093) ^ (this.th * 19349663) ^ ((this.entrance ? this.entrance.x : 0) * 83492791);
+      const r = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+      const take = (list, n) => { const out = []; for (let i = 0; i < n && list.length; i++) out.push(list[Math.floor(r() * list.length)]); return out.length ? out : list.slice(0, 1); };
+      const out = {};
+      for (const k of Object.keys(M)) if (k !== 'big') out[k] = { base: take(M[k].base, 2), acc: take(M[k].acc, 5) };
+      return (this._mats = out);
+    }
+    /* wall faces (PLAN.md 19, W2): the brick, banner and arch faces of a pack, or a castle's long wall strips sliced into
+       32 px columns, on every wall cell with open floor south of it */
+    paintFaces(g, st, gx, gy, px, py) {
+      const IM = CH.Assets.images;
+      const h = ((gx * 374761393 + gy * 668265263) >>> 0) / 4294967296;
+      if (!this._faces) this._faces = facesOf(st.faces);
+      const F = this._faces;
+      if (!F.length) return;
+      if (st.faces.indexOf('strip:') === 0) { // one strip per run of wall, its slices side by side
+        const run = Math.floor(gx / 6) * 31 + gy * 17;
+        const im = IM[F[Math.abs(run) % F.length]];
+        if (!im) return;
+        const sx = ((gx * TS) % Math.max(TS, im.width - TS)) | 0;
+        const hgt = Math.min(TS + 8, im.height);
+        g.drawImage(im, sx, 0, TS, hgt, px, py + TS - hgt, TS, hgt);
+        return;
+      }
+      const plain = F.filter((k, i) => i < Math.ceil(F.length * 0.5));
+      const key = h < 0.78 ? plain[Math.floor(h / 0.78 * plain.length) % plain.length] : F[Math.floor(((h - 0.78) / 0.22) * F.length) % F.length];
+      const im = IM[key];
+      if (!im) return;
+      const hgt = Math.min(TS + 10, Math.round(im.height * (TS / im.width)));
+      g.drawImage(im, 0, 0, im.width, im.height, px, py + TS - hgt, TS, hgt);
     }
     /* a pit: darkness falling away under a crumbling lip (the north edge shows its far face) */
     paintPit(g, st, gx, gy, px, py) {
@@ -486,6 +583,9 @@
         g.fillStyle = pat;
         g.fillRect(0, 0, size + tex.width, size + tex.height);
         g.restore();
+      } else if (st.floor === 'kit' && st.mats && st.mats.indexOf && st.mats.indexOf('auto:') === 0) {
+        st.mats = autoMats(st.mats.slice(5));
+        return this.paintFloor(g, st, x0, y0, size);
       } else if (st.floor === 'kit' && st.mats) {
         // patches: two slow value-noise fields pick the material, a per-tile hash picks the swatch
         const pick = (m, r) => { if (!m) return null; const list = r < 0.17 ? m.acc : m.base; return IM['kit.' + list[Math.floor((r < 0.17 ? r / 0.17 : (r - 0.17) / 0.83) * list.length) % list.length]]; };
@@ -495,7 +595,7 @@
           const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
           return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
         };
-        const M = st.mats;
+        const M = this.matsFor(st);
         for (let y = 0; y < size; y += TS) for (let x = 0; x < size; x += TS) {
           const tx = (x0 + x) / TS, ty = (y0 + y) / TS;
           const n1 = vn(tx, ty, 10, 11), n2 = vn(tx, ty, 8, 97), r = h(tx, ty);
