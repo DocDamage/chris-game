@@ -445,7 +445,7 @@ Everything below is committed to `DocDamage/chris-game` (code only; `assets/` an
 
 **Not done / deferred (honest list)**
 
-- Snow footprints, slippery ice and wet footprints (the puddles themselves, reflections, burning lava and goo are in).
+- Snow footprints and slippery ice (the puddles, their reflections, burning lava and goo, and footprints out of blood, water and goo are in: section 17).
 - Chaos events forcing a weather type; dedicated gear art beyond the pack's Equipments icons (the 650 power-up icons are used for power-ups, not gear).
 - The pack's baked label sheet (PAUSE / OPTIONS ...) is exported but the screens use the game font in the pack's ink colour.
 - Co-op: the Journal, shop and dialogue take the colour of the player who opened them for the shop and dialogue; the Journal itself always opens in Brown.
@@ -510,7 +510,7 @@ Order: sprites and animation (2, 3, 4, 6), crowds (11), hero attacks (10), colli
 - `t35_playtest3` (never in a suite run before) found real issues: boot read pixels back from about 5,400 GPU canvases (the sheet bake now reads the source images through one CPU scratch canvas, and `scaleFrame` records each frame's bottom row); walk frames floated because each animation's ground was its *lowest* frame (now the most common bottom row, snapping up to 2 source pixels both ways); two solid set pieces could leave a gap narrower than a hero's feet, trapping them (`D.free` now wants 12 px or no gap); goblin (13 px) and intern (16 px) were still small (goblin gets a 1.45x baked up-scale, intern 1.65x; the slime stays a blob). Test-side: spawn rule moves targets 80 px off a hero, ranged weapons release along the live mouse aim, the loiter check could start next to the camp, the hero trees have 9 skills by design.
 - Screenshots of `t4` / `t5` / `t7` / `t8` are written next to the tests (they landed in the current directory and got committed from the repo root).
 
-## 16. Refactor (2026-10-23, in progress)
+## 16. Refactor (2026-10-23, done)
 
 | Step | State | Notes |
 | --- | --- | --- |
