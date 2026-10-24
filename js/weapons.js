@@ -518,7 +518,7 @@
         }
       }
       // level walls, the same way: a bouncing shot bounces, the rest end against the rock
-      if (g.level && pr.life > 0 && g.level.solidAt(pr.x, pr.y)) {
+      if (g.level && pr.life > 0 && g.level.blocksAt(pr.x, pr.y)) {
         if (CH.World.bounceShot(g.level, pr, x0, y0)) {
           if (pr.kind === 'chicken') Audio.sfx('squeak');
         } else {

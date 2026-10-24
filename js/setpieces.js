@@ -745,6 +745,8 @@
       if (d && d.img) L.ice.push({ x: d.x, y: d.y + d.img.height / 2, rx: d.img.width * 0.45, ry: d.img.height * 0.45 });
     }
     if (CH.Assets.images['kit.fk_ice_gate']) L.exit.gate = 'kit.fk_ice_gate';
+    const stalls = PR.pool('stall', 'f').filter((k) => k.startsWith('kit.fk16.')); // a trader's stall (Frozen 16) not far from the start
+    if (stalls.length) D.near(D.pick(stalls), L.entrance.x + 120, L.entrance.y - 44, 40);
     const pillars = PR.pool('pillar', 'f').filter((k) => k.startsWith('kit.fk15.')); // ice pillars flank the exit and the entrance
     for (const P of [L.exit, L.entrance]) for (const sx of [-1, 1]) if (pillars.length) D.near(D.pick(pillars), P.x + sx * 76, P.y - 6, 14);
     if (CH.Assets.images['kit.fk_portal']) D.near('kit.fk_portal', L.exit.x + 80, L.exit.y - 30, 20);
@@ -779,6 +781,9 @@
     }
     if (L.trail) for (let ty = 0; ty < L.th; ty += 3) for (let tx = 0; tx < L.tw; tx += 3) if (L.trail[L.idx(tx, ty)] === 2 && D.r() < 0.28) D.put(D.key('patch'), tx * TS + 16, ty * TS + 20, { a: 0.9 });
     if (IM['kit.cf_skull_gate']) L.exit.gate = 'kit.cf_skull_gate';
+    // one of the legendary pieces (Creepy Forest 20) waits by the way out: an altar, a throne-portal, a skull pillar
+    const legend = Object.keys(PR.KCAT.cf20).reduce((a, k) => a.concat(PR.pool(k, 'c').filter((q) => q.startsWith('kit.cf20.'))), []);
+    if (legend.length) D.near(D.pick(legend), L.exit.x - 96, L.exit.y - 36, 30);
     if (IM['kit.cf_crypt_arch']) L.entrance.gate = 'kit.cf_crypt_arch';
   }
 

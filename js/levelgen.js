@@ -188,6 +188,75 @@
     L.secrets = out;
   }
 
+  /* ---------------------------------------------------------------- height (PLAN.md 18, K7) */
+  /* up to two rooms get a raised plateau (a rim of LEDGE cells with stairs in its south side) and one gets a ring of pit
+     round an island with a chest, to jump to. Each change is kept only if everything the stage needs stays reachable. */
+  function height(L, R0, stage, rooms, start, exitRoom) {
+    const T = Level.TS;
+    // its own random stream, from the map so far: the rest of the generator draws exactly what it drew before K7
+    let hc = stage * 83492791;
+    for (let i = 0; i < L.cells.length; i += 7) hc = (hc * 31 + L.cells[i] + i) | 0;
+    const R = mkRng(U.seeded(hc >>> 0));
+    L.top = new Uint8Array(L.tw * L.th);
+    L.stairs = new Set();
+    const spots = () => [L.entrance, L.exit].concat(L.waypoints, L.spawners, L.chests.filter((c) => !c.island), L.shrines, L.packs);
+    const reach = () => { // by the cells alone (the outdoor layout's scattered props are not this step's business)
+      L.flows.clear();
+      const props = L.props;
+      L.props = [];
+      const f = L.flowFor(L.entrance.x, L.entrance.y);
+      L.props = props;
+      const ok = spots().every((s) => f.dist[L.idx(Math.floor(s.x / T), Math.floor(s.y / T))] >= 0);
+      L.flows.clear();
+      return ok;
+    };
+    const busy = (x0, y0, x1, y1) => spots().some((s) => { const tx = Math.floor(s.x / T), ty = Math.floor(s.y / T); return tx >= x0 - 1 && tx <= x1 + 1 && ty >= y0 - 1 && ty <= y1 + 1; });
+    const rectOf = (rm) => {
+      if (rm.r) { const hw = Math.floor(rm.r * 0.55), cx = Math.floor(rm.cx / T), cy = Math.floor(rm.cy / T); return [cx - hw, cy - Math.floor(hw * 0.8), cx + hw, cy + Math.floor(hw * 0.8)]; }
+      return [rm.x + 2, rm.y + 2, rm.x + rm.w - 3, rm.y + rm.h - 3];
+    };
+    const free = rooms.filter((rm) => rm !== start && rm !== exitRoom && !L.spawners.some((s) => s.room === rm.id));
+    const mix = (a, b) => { let n = (a * 374761393 + b * 668265263 + hc) | 0; n = (n ^ (n >> 13)) * 1274126177; return (n ^ (n >> 16)) >>> 0; };
+    const order = free.slice().sort((a, b) => mix(a.id, 1) - mix(b.id, 1)); // a fixed shuffle: no draws, so nothing downstream depends on how many
+    let plateaus = 0;
+    for (const rm of order) {
+      if (plateaus >= 2) break;
+      const [x0, y0, x1, y1] = rectOf(rm);
+      if (x1 - x0 < 5 || y1 - y0 < 4) continue;
+      // the plateau holds the room's spots on top (the chest, a shrine) but none may sit on its rim
+      const rim = [];
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if ((x === x0 || x === x1 || y === y0 || y === y1) && L.cell(x, y) === Level.FLOOR) rim.push([x, y]);
+      if (spots().some((s) => rim.some(([x, y]) => x === Math.floor(s.x / T) && y === Math.floor(s.y / T)))) continue;
+      const sx = x0 + 1 + (mix(x0, y1) % Math.max(1, x1 - x0 - 2));
+      const steps = [[sx, y1], [sx + 1, y1]];
+      for (const [x, y] of rim) if (!steps.some(([a, b]) => a === x && b === y)) L.cells[L.idx(x, y)] = Level.LEDGE;
+      if (!reach()) { for (const [x, y] of rim) L.cells[L.idx(x, y)] = Level.FLOOR; continue; }
+      for (let y = y0 + 1; y < y1; y++) for (let x = x0 + 1; x < x1; x++) if (L.cell(x, y) === Level.FLOOR) L.top[L.idx(x, y)] = 1;
+      for (const [x, y] of steps) L.stairs.add(L.idx(x, y));
+      rm.plateau = [x0, y0, x1, y1];
+      plateaus++;
+    }
+    // the island: a one-tile ring of pit round a 3x3 patch, a chest in the middle
+    for (const rm of order) {
+      if (rm.plateau) continue;
+      const cx = Math.floor(rm.cx / T), cy = Math.floor(rm.cy / T);
+      const ring = [];
+      let clear = true;
+      for (let y = cy - 3; y <= cy + 3 && clear; y++) for (let x = cx - 3; x <= cx + 3; x++) {
+        const d = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+        if (L.cell(x, y) !== Level.FLOOR) { if (d <= 2) clear = false; continue; }
+        if (d === 2) ring.push([x, y]);
+      }
+      if (!clear || busy(cx - 3, cy - 3, cx + 3, cy + 3)) continue;
+      for (const [x, y] of ring) L.cells[L.idx(x, y)] = Level.PIT;
+      if (!reach()) { for (const [x, y] of ring) L.cells[L.idx(x, y)] = Level.FLOOR; continue; }
+      L.chests.push({ x: cx * T + 16, y: cy * T + 18, opened: false, id: L.chests.length, room: rm.id, tier: stage + 2, secret: true, island: true });
+      rm.island = true;
+      break;
+    }
+    L.flows.clear();
+  }
+
   /* ---------------------------------------------------------------- the whole level */
   /** @param {string} biome @param {number} stage 1-based depth @param {() => number} rng
    *  @param {{size?: string, layout?: string}} [opts] */
@@ -262,6 +331,7 @@
     const shrineRooms = rooms.filter((r) => r !== start && r !== exitRoom).sort(() => R.f() - 0.5).slice(0, R.int(1, 2));
     L.shrines = shrineRooms.map((r, i) => { const p = L.randomNear(r.cx, r.cy, 40, 90, 18, R.f) || L.nearestOpen(r.cx, r.cy); return { x: p.x, y: p.y, used: false, id: i, kind: R.pick(['blood', 'elite', 'healing', 'speed']) }; });
 
+    height(L, R, stage, rooms, start, exitRoom);
     if (layout === 'dungeon' || opts.secrets || biome === 'zombie') secretRooms(L, R, stage >= 2 ? R.int(1, 2) : 1);
     if (biome === 'zombie' && L.secrets[0]) L.secrets[0].kind = 'garage'; // the locked garage of the Outbreak City (needs the key a named unique carries)
     // each secret room holds a chest

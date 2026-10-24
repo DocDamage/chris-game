@@ -7,9 +7,12 @@
   const B = CH.Balance;
   const U = CH.U;
 
-  const TS = 32; // tile size in world pixels
+  const TS = 32; // tile size in world pixels (also Level.TS)
   const CHUNK = 8; // tiles per floor chunk side
   const FLOOR = 0, WALL = 1, CRACKED = 3;
+  // height (PLAN.md 18, K7): a PIT is a drop you jump across (shots and eyes cross it), a LEDGE the rim of a plateau you
+  // climb by its stairs and may jump down from; both block everything that walks
+  const PIT = 4, LEDGE = 5;
 
   /* per-biome look: floor painter, wall colours, light level */
   const STYLE = {
@@ -149,6 +152,9 @@
     cell(tx, ty) { return this.inb(tx, ty) ? this.cells[ty * this.tw + tx] : WALL; }
     solid(tx, ty) { return this.cell(tx, ty) !== FLOOR; }
     solidAt(x, y) { return this.solid(Math.floor(x / TS), Math.floor(y / TS)); }
+    /* what stops a shot or a look: everything solid but a pit */
+    blocks(tx, ty) { const v = this.cell(tx, ty); return v !== FLOOR && v !== PIT; }
+    blocksAt(x, y) { return this.blocks(Math.floor(x / TS), Math.floor(y / TS)); }
     set(tx, ty, v) {
       if (this.inb(tx, ty)) {
         this.cells[ty * this.tw + tx] = v;
@@ -175,7 +181,10 @@
         const y0 = Math.floor((e.y - r) / TS), y1 = Math.floor((e.y + r) / TS);
         for (let ty = y0; ty <= y1; ty++) {
           for (let tx = x0; tx <= x1; tx++) {
-            if (!this.solid(tx, ty)) continue;
+            const v = this.cell(tx, ty);
+            if (v === FLOOR) continue;
+            // a hero in the air flies over a pit, and off a plateau's rim (jumping down: never up)
+            if (e.hero && e.z > 2 && (v === PIT || (v === LEDGE && e.top))) continue;
             const rx0 = tx * TS, ry0 = ty * TS;
             if (CH.World.pushBox(e, 0, r, rx0, ry0, rx0 + TS, ry0 + TS)) moved = true;
           }
@@ -206,7 +215,7 @@
       const sx = tx < ex ? 1 : -1, sy = ty < ey ? 1 : -1;
       let err = dx + dy;
       for (let n = 0; n < 400; n++) {
-        if (this.solid(tx, ty)) return false;
+        if (this.blocks(tx, ty)) return false;
         if (tx === ex && ty === ey) return true;
         const e2 = 2 * err;
         if (e2 >= dy) { err += dy; tx += sx; }
@@ -393,8 +402,11 @@
           const gx = cx * CHUNK + tx, gy = cy * CHUNK + ty;
           const v = this.cell(gx, gy);
           const px = tx * TS, py = ty * TS;
+          if (v === PIT) { this.paintPit(g, st, gx, gy, px, py); continue; }
           if (v === FLOOR) {
-            if (this.solid(gx, gy - 1)) { // shadow under the wall above
+            if (this.top && this.top[this.idx(gx, gy)]) { g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(px, py, TS, TS); } // a plateau's top catches more light
+            if (this.stairs && this.stairs.has(this.idx(gx, gy))) this.paintStairs(g, st, px, py);
+            if (this.solid(gx, gy - 1) && this.cell(gx, gy - 1) !== PIT) { // shadow under the wall above
               g.fillStyle = 'rgba(0,0,0,0.38)';
               g.fillRect(px, py, TS, 8);
               g.fillStyle = 'rgba(0,0,0,0.18)';
@@ -414,6 +426,31 @@
       }
       this.chunks.set(key, c);
       return c;
+    }
+    /* a pit: darkness falling away under a crumbling lip (the north edge shows its far face) */
+    paintPit(g, st, gx, gy, px, py) {
+      const h = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
+      g.fillStyle = '#040308';
+      g.fillRect(px, py, TS, TS);
+      if (this.cell(gx, gy - 1) !== PIT) { // the far face, lit from above
+        g.fillStyle = st.top || '#3a3530';
+        g.fillRect(px, py, TS, 7);
+        g.fillStyle = 'rgba(0,0,0,0.45)';
+        g.fillRect(px, py + 7, TS, 5);
+      }
+      for (let i = 0; i < 4; i++) { g.fillStyle = 'rgba(120,110,150,0.08)'; g.fillRect(px + Math.floor(h(gx + i, gy) * 28), py + 12 + Math.floor(h(gy, gx + i) * 18), 2, 1); }
+      for (const [dx, x0, w] of [[-1, 0, 2], [1, TS - 2, 2]]) if (this.cell(gx + dx, gy) !== PIT) { g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(px + x0, py, w, TS); }
+      if (this.cell(gx, gy + 1) !== PIT) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(px, py + TS - 3, TS, 3); }
+    }
+    /* stairs up a plateau's rim: worn steps between two cheek walls */
+    paintStairs(g, st, px, py) {
+      for (let i = 0; i < 5; i++) {
+        g.fillStyle = i % 2 ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.12)';
+        g.fillRect(px + 3, py + i * 6 + 2, TS - 6, 4);
+      }
+      g.fillStyle = 'rgba(0,0,0,0.35)';
+      g.fillRect(px, py, 3, TS);
+      g.fillRect(px + TS - 3, py, 3, TS);
     }
     /* walls are autotiled from the packs' 9-slice wall sheets (hedge / snowy rock, tinted per biome): four 16px
        sub-tiles per cell, each picking its edge piece from which of its own neighbours are open floor */
@@ -626,5 +663,7 @@
   Level.FLOOR = FLOOR;
   Level.WALL = WALL;
   Level.CRACKED = CRACKED;
+  Level.PIT = PIT;
+  Level.LEDGE = LEDGE;
   Level.STYLE = STYLE;
 })(window.CH);

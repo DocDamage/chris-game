@@ -94,9 +94,32 @@
 
   /* walls, once per step after everything has moved: heroes, monsters and sidekicks at their feet (projectiles meet
      walls as they move, in js/weapons.js) */
+  /* height (PLAN.md 18, K7): a hero on a plateau's top may jump down off its rim; one who lands in a pit hurts and is
+     put back on its edge by the push out of the wall tiles that follows */
+  World.height = function (L, p, foot) {
+    if (p.dead || p.z > 2) return;
+    const tx = Math.floor(p.x / L.constructor.TS), ty = Math.floor((p.y + foot) / L.constructor.TS);
+    const v = L.cell(tx, ty);
+    p.top = !!(L.top && L.top[L.idx(tx, ty)]);
+    p.fallT = Math.max(0, (p.fallT || 0) - 1 / 60);
+    if (v === CH.Level.PIT && !p.fallT) {
+      p.fallT = 0.8;
+      const dmg = Math.max(1, Math.round(p.maxHp * 0.08));
+      p.hp = Math.max(1, p.hp - dmg);
+      p.flash = 0.3;
+      CH.FX.text(p.x, p.y - 24, 'FELL -' + dmg, '#e43b44', 1);
+      CH.Audio.sfx('hurt');
+      const q = L.nearestOpen(p.x, p.y + foot); // back on the nearest edge
+      if (q) { p.x = q.x; p.y = q.y - foot; p.vx = p.vy = 0; }
+    }
+  };
   World.settleWalls = function (L) {
     const G = CH.G, F = World.FEET;
-    for (const p of G.players) { const f = F.hero(p); L.pushOutFeet(p, f[1], f[0]); }
+    for (const p of G.players) {
+      const f = F.hero(p);
+      World.height(L, p, f[0]);
+      L.pushOutFeet(p, f[1], f[0]);
+    }
     for (const e of G.enemies) if (!e.dead) { const f = F.enemy(e); L.pushOutFeet(e, f[1], f[0]); }
     if (CH.SK) for (const s of CH.SK.list) { const f = F.sidekick(s); L.pushOutFeet(s, f[1], f[0]); }
   };
@@ -126,7 +149,8 @@
      corner) and returns true; the rest are left in the wall for the caller to end */
   World.bounceShot = function (L, pr, x0, y0) {
     if (!(pr.wallBounce > 0)) return false;
-    const sx = L.solidAt(pr.x, y0), sy = L.solidAt(x0, pr.y);
+    const hit = L.blocksAt ? (x, y) => L.blocksAt(x, y) : (x, y) => L.solidAt(x, y); // a level lets shots over its pits
+    const sx = hit(pr.x, y0), sy = hit(x0, pr.y);
     if (sx || !sy) pr.vx = -pr.vx;
     if (sy || !sx) pr.vy = -pr.vy;
     pr.x = x0;
