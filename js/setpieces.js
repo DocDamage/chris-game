@@ -35,7 +35,7 @@
     castle: ['hall', 'throne', 'armory', 'hall', 'garden', 'lavahall', 'storage', 'throne'],
     gaslight: ['townhouse', 'gstreet', 'cemetery', 'market', 'townhouse', 'occult', 'ruin', 'graveyard', 'gstreet'],
     deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
-    frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'grove', 'castle'],
+    frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'frozentown', 'grove', 'castle'],
     zombie: ['street', 'wreck', 'yard', 'ruin', 'graveyard', 'camp'],
     wasteland: ['wreck', 'toxic', 'yard', 'ruin', 'camp'],
     volcano: ['forge', 'lava', 'shrine', 'ruin', 'camp'],
@@ -463,7 +463,7 @@
     if (eave) { const ei = IM[eave]; for (let x = 0; x < c.width; x += ei.width - 6) g.drawImage(ei, x, roofH - ei.height / 2 + 2); }
     const name = 'cabin' + Object.keys(built).length;
     S.fromFrames(name, [c], { anchor: 'feet' });
-    built[id] = { name, w: c.width, h: c.height, keys: pick.concat([roof], eave ? [eave] : []) };
+    built[id] = { name, w: c.width, h: c.height, keys: pick.concat([roof], eave ? [eave] : []), door: 4 + doorAt * cw + cw / 2 - c.width / 2 };
     return built[id];
   }
   SCENE.cabin = (D, A) => {
@@ -481,6 +481,8 @@
     const p = D.L.props[D.L.props.length - 1];
     p.sp = true;
     p.kits = cab.keys; // the pieces it is built of (t46_deadwood counts every sheet)
+    p.enter = 'cabin'; // a way in (js/interiors.js)
+    p.door = { x: x + cab.door, y: y + 2 };
     D.L.cabins = (D.L.cabins || 0) + 1;
     D.placed.push(p);
     // the yard: a fence to one side, the woodpile and a barrel at the other, a lantern by the door, a well in front
@@ -488,7 +490,7 @@
     const rotten = PR.pool('fence', 'c').filter((k) => k.startsWith('kit.cf4.')); // the Rotten Fence sheet
     for (let i = 0; i < 3; i++) D.put(rotten.length ? D.pick(rotten) : D.key('fence'), x + side * (cab.w / 2 + 18 + i * 34), y + 10);
     D.pile(x - side * (cab.w / 2 + 26), y - 6, ['log', 'log', 'barrel', 'stump'], 3);
-    D.put(D.key('lantern'), x + 20, y + 14);
+    D.put(D.key('lantern'), x + cab.door + 26, y + 14);
     D.near(D.key('well'), x - side * 30, y + 70, 30);
     D.scatter('flower', x, y + 40, 50, 3);
     D.scatter('debris', x, y + 30, 70, 2);
@@ -655,7 +657,7 @@
     }
     const name = 'townhouse' + Object.keys(built).length;
     S.fromFrames(name, [c], { anchor: 'feet' });
-    built[id] = { name, w: c.width, h: c.height, keys: front.concat(over.filter(Boolean), [slate], dormer ? [dormer] : [], chim ? [chim] : []) };
+    built[id] = { name, w: c.width, h: c.height, keys: front.concat(over.filter(Boolean), [slate], dormer ? [dormer] : [], chim ? [chim] : []), door: 3 + doorAt * cw + cw / 2 - c.width / 2 };
     return built[id];
   }
   SCENE.townhouse = (D, A) => {
@@ -674,6 +676,8 @@
     const p = D.L.props[D.L.props.length - 1];
     p.sp = true;
     p.kits = th.keys;
+    p.enter = 'house'; // a way in (js/interiors.js)
+    p.door = { x: x + th.door, y: y + 2 };
     D.L.townhouses = (D.L.townhouses || 0) + 1;
     D.placed.push(p);
     // the street in front: an iron fence, lamps, a bench, a bin, a poster, a carriage at the kerb
@@ -756,6 +760,7 @@
     const y = A.y - A.ry * 0.15;
     for (let i = 0; i < 3 && x < A.x + A.rx * 0.6; i++) {
       const p = D.put(D.pick(houses), x, y);
+      if (p && p.box) { p.enter = 'hut'; p.door = { x: p.x, y: p.y + 2 }; } // a way in (js/interiors.js)
       x += (p && p.box ? p.box.hw * 2 : 60) + 26;
     }
     D.near(D.key('stall'), A.x + A.rx * 0.3, A.y + A.ry * 0.45, 20);

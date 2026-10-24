@@ -31,7 +31,7 @@
 
   const indexes = (list, test) => (list || []).reduce((out, o, i) => (test(o) ? out.concat(i) : out), []);
   /* the area being played, or the one left behind for the hideout */
-  const current = () => (CH.Town && CH.Town.inTown ? CH.Town.saved && CH.Town.saved.L : G.level);
+  const current = () => (CH.Town && CH.Town.inTown ? CH.Town.saved && CH.Town.saved.L : CH.Interiors && CH.Interiors.outside ? CH.Interiors.outside.L : G.level); // inside a building: the stage outside
 
   /* write what changed in the current area into the world (js/character.js calls this before every save) */
   A.capture = function () {

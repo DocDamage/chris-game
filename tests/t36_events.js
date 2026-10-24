@@ -29,8 +29,8 @@ const { open } = require('./lib');
     const h = CH.G.hooks(), n = (k) => (h[k] || []).length;
     return { newRun: [n('newRun:before'), n('newRun')], startWave: [n('startWave:before'), n('startWave')], damageEnemy: [n('damageEnemy:before'), n('damageEnemy')], hurtPlayer: [n('hurtPlayer:before'), n('hurtPlayer')], playerUpdate: [n('playerUpdate:before'), n('playerUpdate')] };
   });
-  ok('listeners: newRun 10 + 9, startWave 5 + 9 (js/character.js, js/areas.js, js/clinic.js, js/cult.js, js/omens.js and js/worldmap.js add theirs, the path prompt went), damageEnemy 4 + 4, hurtPlayer 2 + 3, playerUpdate 6 + 5',
-    JSON.stringify(r) === JSON.stringify({ newRun: [10, 9], startWave: [5, 9], damageEnemy: [4, 4], hurtPlayer: [2, 3], playerUpdate: [6, 5] }), r);
+  ok('listeners: newRun 11 + 9, startWave 5 + 9 (js/character.js, js/areas.js, js/clinic.js, js/cult.js, js/omens.js, js/worldmap.js and js/interiors.js add theirs, the path prompt went), damageEnemy 4 + 4, hurtPlayer 2 + 3, playerUpdate 6 + 5',
+    JSON.stringify(r) === JSON.stringify({ newRun: [11, 9], startWave: [5, 9], damageEnemy: [4, 4], hurtPlayer: [2, 3], playerUpdate: [6, 5] }), r);
 
   // 3. shields, fear and a hit on the hero
   r = await page.evaluate(() => {
