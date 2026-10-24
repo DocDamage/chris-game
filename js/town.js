@@ -198,6 +198,7 @@
   const color = (p) => (UIK.on ? G.players.indexOf(p) : 0);
 
   function talk(n, p) {
+    if (Town.talkTo && Town.talkTo[n.id]) return Town.talkTo[n.id](n, p); // people with their own module (js/clinic.js)
     const say = (lines, choices) => D().say({ who: n.name, portrait: 'npc:' + n.face, lines, choices, color: color(p) });
     if (n.id === 'vendor') {
       say(['BZZT. Everything must go. Mostly because I do not know where it came from.'], [
@@ -270,14 +271,9 @@
     if (arena.isTown) drawTown(ctx, arena, cam);
     else if (arena.portal) drawPortal(ctx, arena.portal, cam);
   };
+  /* the town portal: a front-facing vortex (js/vortex.js, PLAN.md 18 K5) */
   function drawPortal(ctx, p, cam) {
-    const x = Math.round(p.x - cam.x), y = Math.round(p.y - cam.y);
-    ctx.save();
-    ctx.translate(x, y);
-    for (let i = 0; i < 3; i++) { ctx.strokeStyle = i ? '#9fd8ef' : '#3ccbe6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, -8, 11 - i * 3, 18 - i * 4, p.t * (1 + i * 0.7), 0, 5.2); ctx.stroke(); }
-    ctx.fillStyle = 'rgba(60,203,230,0.35)';
-    ctx.beginPath(); ctx.ellipse(0, -8, 7, 12, 0, 0, 6.283); ctx.fill();
-    ctx.restore();
+    CH.Vortex.draw(ctx, p.x - cam.x, p.y - cam.y + 4, 15, p.t, 'town');
   }
   function drawTown(ctx, L, cam) {
     const t = L.fx || 0;

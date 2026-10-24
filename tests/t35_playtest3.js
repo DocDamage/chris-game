@@ -160,8 +160,8 @@ const { open } = require('./lib');
     for (const n of L.npcs) stalls[n.id] = near(n, 110);
     return { hideout: !!L.hideout, npcs: L.npcs.length, npcProps: npcProps.length, stalls, fires: L.props.filter((q) => q.fire).length, trail: !!L.trail, giant: L.props.some((q) => q.sprite === 'obj.giantTree') };
   });
-  ok('the hideout is built as a place (stalls by every townsperson, fires, roads, the giant tree)', r.hideout && r.npcs === 6 && Object.values(r.stalls).every((n) => n >= 2) && r.fires >= 3 && r.trail && r.giant, r);
-  ok('townspeople are solid', r.npcProps === 6, r);
+  ok('the hideout is built as a place (stalls by every townsperson, fires, roads, the giant tree)', r.hideout && r.npcs === 9 && Object.values(r.stalls).every((n) => n >= 2) && r.fires >= 3 && r.trail && r.giant, r);
+  ok('townspeople are solid (the six traders and the nurse, the doctor, Jesus: PLAN.md 18, K6)', r.npcProps === 9, r);
 
   // 8. the skill tree replaces the cards
   r = await page.evaluate(() => {

@@ -141,13 +141,7 @@
       draw(name, 17, 0);
     } else if (e.kind === 'portal') {
       draw(name, 0, 4);
-      for (let i = 0; i < 2; i++) {
-        ctx.strokeStyle = i === 0 ? k.glow : k.c2;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, -14, 13 - i * 4, 17 - i * 5, t * (1 + i * 0.6), 0, 6.283 * 0.8);
-        ctx.stroke();
-      }
+      CH.Vortex.draw(ctx, 0, 2, 13, t, CH.Vortex.palette(k.glow), { alpha: 0.95 }); // PLAN.md 18, K5
     } else if (e.kind === 'camp') {
       draw(name, 0, 4);
       if (CH.Fires && CH.Assets.images['prop.campsmoke.orange']) CH.Fires.draw(ctx, { sprite: 'prop.campsmoke.orange', smoke: true, phase: 0.3, x: e.x }, 0, -6);
@@ -172,17 +166,7 @@
     const col = (c) => (flash > 0.2 ? '#ffffff' : c);
     if (!real(ctx, e, k, t, flash)) switch (e.kind) {
       case 'portal': {
-        for (let i = 0; i < 3; i++) {
-          ctx.strokeStyle = i === 0 ? col(k.glow) : col(k.c2);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.ellipse(0, -6, 15 - i * 3, 21 - i * 4, t * (1 + i * 0.6), 0, 6.283 * 0.8);
-          ctx.stroke();
-        }
-        ctx.fillStyle = col(k.c1);
-        ctx.beginPath();
-        ctx.ellipse(0, -6, 7, 11, 0, 0, 6.283);
-        ctx.fill();
+        CH.Vortex.draw(ctx, 0, 6, 15, t, flash > 0.2 ? 'frost' : CH.Vortex.palette(k.glow)); // PLAN.md 18, K5
         break;
       }
       case 'grave': {

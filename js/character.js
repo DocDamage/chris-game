@@ -15,7 +15,8 @@
   C.snapshot = (p) => {
     const ws = {};
     for (const w of p.weapons) if (p.ws && p.ws[w]) ws[w] = { level: p.ws[w].level || 1 };
-    return { level: p.level, xp: p.xp, sp: p.sp || 0, skills: Object.assign({}, p.skills || {}), gold: Math.floor(G.coins || 0), weapons: p.weapons.slice(), weapon: p.weapon, weapon2: p.weapon2, ws, gadget: p.gadget };
+    return { level: p.level, xp: p.xp, sp: p.sp || 0, skills: Object.assign({}, p.skills || {}), gold: Math.floor(G.coins || 0), weapons: p.weapons.slice(), weapon: p.weapon, weapon2: p.weapon2, ws, gadget: p.gadget,
+      belt: (p.belt || []).map((s) => (s ? { id: s.id, n: s.n } : null)), body: Object.assign({}, p.body || {}), revive: p.revive || 0, bless: p.bless ? Object.assign({}, p.bless) : null };
   };
 
   /* bring a slot's progress back onto a fresh player (after the newRun listeners gave the hero its own weapon) */
@@ -37,6 +38,10 @@
       p.weapon2 = c.weapon2 && weapons.includes(c.weapon2) ? c.weapon2 : p.weapon2;
     }
     if (c.gadget) p.gadget = c.gadget;
+    if (c.belt) p.belt = c.belt.map((s) => (s && CH.Items.CONSUMABLES[s.id] ? { id: s.id, n: s.n } : null));
+    p.body = Object.assign({ vit: 0, gut: 0, heart: 0 }, c.body || {});
+    p.revive = c.revive || 0;
+    p.bless = c.bless ? Object.assign({}, c.bless) : null;
     CH.Upgrades.recalc(p);
     p.hp = p.maxHp;
   };

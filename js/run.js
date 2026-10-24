@@ -471,6 +471,7 @@
         CH.Sprites.draw(ctx, CH.Sheets.sprite(ex.gate), x, y + 2, { alpha: ex.open ? 1 : 0.6 });
         top = gh.h + 6;
       } else { ctx.fillStyle = '#d1c29a'; ctx.fillRect(x - 11, y - 30, 22, 22); }
+      if (ex.open && CH.Vortex) CH.Vortex.draw(ctx, x, y + 6, 13, t, 'exit', { lift: 18 }); // the way on (PLAN.md 18, K5)
       sign(7, x, y - top + Math.sin(t * 3) * (ex.open ? 1.5 : 0), 26, ex.open ? 1 : 0.5);
       if (!ex.open) CH.Font.draw(ctx, 'SEALED', x, y - top - 14, '#b9b4c8', 1, true);
     }
@@ -479,12 +480,15 @@
     for (const w of L.waypoints) {
       if (!onScreen(w) || !seen(w)) continue;
       const x = sx(w.x), y = sy(w.y);
-      ctx.strokeStyle = w.active ? '#63c74d' : '#4a5a4a';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(x, y + 4, 14, 7, 0, 0, U.TAU);
-      ctx.stroke();
-      sign(2, x, y - 10, 20, w.active ? 1 : 0.55);
+      if (w.active && CH.Vortex) CH.Vortex.draw(ctx, x, y + 4, 9, t + w.x * 0.01, 'waypoint', { lift: 12 }); // a lit waypoint is a small vortex
+      else {
+        ctx.strokeStyle = '#4a5a4a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y - 8, 9, 0, U.TAU);
+        ctx.stroke();
+      }
+      sign(2, x, y - 26, 16, w.active ? 1 : 0.55);
     }
     for (const s of L.shrines) {
       if (!onScreen(s) || !seen(s)) continue;

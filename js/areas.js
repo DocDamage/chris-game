@@ -186,6 +186,23 @@
   A.onDeath = function () {
     const s = Storage.slot(), W = A.world();
     if (!s || !W) return false;
+    // the nurse's revive charge (js/clinic.js): the party gets up where it fell
+    const host = G.players[0];
+    if (host && host.revive > 0) {
+      host.revive--;
+      for (const q of G.players) {
+        q.dead = false;
+        q.deathT = 0;
+        q.reviveT = 0;
+        q.hp = Math.round(q.maxHp * 0.5);
+        q.invuln = 3;
+        FX.ring(q.x, q.y, 6, 70, '#63c74d', 0.8);
+      }
+      G.deathTimer = 0;
+      G.banner('BACK ON YOUR FEET', 'The nurse\'s charge. ' + host.revive + ' left.', 2.4);
+      if (CH.Character) CH.Character.save();
+      return true;
+    }
     if (s.hardcore) {
       G.fallen = s.name || 'Your hero';
       Storage.deleteSlot(Storage.activeIndex());

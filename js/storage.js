@@ -83,7 +83,7 @@
       keys: Object.assign({}, DEFAULT_KEYS),
     },
     stats: { totalRuns: 0, totalKills: 0, bossesDefeated: 0, highestWave: 0, highScore: 0, totalPlayTime: 0, wins: 0, totalCoins: 0, deaths: 0, bestTime: 0, acts: 0 },
-    resources: { wood: 0, scrap: 0, stone: 0 },
+    resources: { wood: 0, scrap: 0, stone: 0, organ: 0 }, // organs: from secret rooms, for the doctor (js/clinic.js)
     shelter: { workbench: 0, bed: 0, storage: 0, radio: 0, barricades: 0, decor: {} },
     loot: {}, // mob-drop item id -> how many are in stock
     seen: {}, // mob-drop item id -> true once found (the Trophy Codex)
@@ -131,7 +131,7 @@
     for (const k of Object.keys(d.stats)) d.stats[k] = num(st[k], d.stats[k], 0, 1e12);
 
     const res = raw.resources && typeof raw.resources === 'object' ? raw.resources : {};
-    for (const k of ['wood', 'scrap', 'stone']) d.resources[k] = num(res[k], 0, 0, 1e9);
+    for (const k of ['wood', 'scrap', 'stone', 'organ']) d.resources[k] = num(res[k], 0, 0, 1e9);
 
     const sh = raw.shelter && typeof raw.shelter === 'object' ? raw.shelter : {};
     for (const k of ['workbench', 'bed', 'storage', 'radio', 'barricades']) d.shelter[k] = num(sh[k], 0, 0, 5);
@@ -228,7 +228,13 @@
       weapon2: str(c.weapon2, null, 24),
       ws: {},
       gadget: str(c.gadget, 'frag', 24),
+      // the hideout's people (js/clinic.js): the belt, the doctor's work, the nurse's charges, a blessing
+      belt: null,
+      body: { vit: Math.floor(num(c.body && c.body.vit, 0, 0, 5)), gut: Math.floor(num(c.body && c.body.gut, 0, 0, 3)), heart: Math.floor(num(c.body && c.body.heart, 0, 0, 1)) },
+      revive: Math.floor(num(c.revive, 0, 0, 2)),
+      bless: c.bless && typeof c.bless === 'object' && /^[a-z]{1,12}$/.test(c.bless.id) && num(c.bless.left, 0, 0, 9) > 0 ? { id: c.bless.id, left: Math.floor(num(c.bless.left, 0, 0, 9)) } : null,
     };
+    if (Array.isArray(c.belt)) out.belt = c.belt.slice(0, 4).map((s) => (s && typeof s === 'object' && /^[a-z]{1,12}$/.test(s.id) && num(s.n, 0, 0, 999) > 0 ? { id: s.id, n: Math.floor(num(s.n, 1, 1, 999)) } : null));
     if (c.skills && typeof c.skills === 'object') for (const k of Object.keys(c.skills)) if (/^[a-z0-9_]{1,24}$/i.test(k)) out.skills[k] = Math.floor(num(c.skills[k], 0, 0, 20));
     if (Array.isArray(c.weapons)) out.weapons = c.weapons.filter((w) => typeof w === 'string' && w.length <= 24).slice(0, 12);
     if (c.ws && typeof c.ws === 'object') for (const k of Object.keys(c.ws)) if (out.weapons.includes(k)) out.ws[k] = { level: Math.floor(num(c.ws[k] && c.ws[k].level, 1, 1, 20)) };

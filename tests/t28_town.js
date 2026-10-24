@@ -54,7 +54,7 @@ const { open } = require('./lib');
     return r;
   });
   console.log(JSON.stringify(out));
-  const ok = out.quill && out.inTown && out.npcs === 6 && out.noEnemies && out.dialog && out.dialogEnded && out.vendorDialog && out.back && out.kept && out.portalGone &&
+  const ok = out.quill && out.inTown && out.npcs === 9 && out.noEnemies && out.dialog && out.dialogEnded && out.vendorDialog && out.back && out.kept && out.portalGone &&
     out.wpMenu && out.wpSaved && out.bossArena && out.wantTown && out.actTown && out.nextStage && out.lostShrine && out.unique && out.garage && out.uniqueSpawned && out.key && out.dropped;
   console.log('errors', errs);
   console.log(ok && !errs.length ? 'ALL PASSED' : 'FAILED');
