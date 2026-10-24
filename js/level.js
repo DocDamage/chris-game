@@ -195,17 +195,20 @@
       // solid props block their tile for walkers (a monster should path around a crate, not push into it)
       const pb = new Uint8Array(this.tw * this.th);
       for (const p of this.props) {
-        if (!p.solid || p.dead || (p.cr || 10) < 9) continue;
+        if (!p.solid || p.dead) continue;
+        // a small prop (a crate, a stool) only blocks a tile whose middle a walker's feet (7 px) could not stand on;
+        // ignoring them sent walkers straight into them, where the slower ones stuck
+        const small = (p.cr || 10) < 9;
         if (p.box) { // a box footprint blocks the tiles it covers (plus a walker's half width)
-          const bx = p.x + (p.cx || 0), by = p.y + (p.cy || 0), hw = p.box.hw + 6, hh = p.box.hh + 6;
+          const bx = p.x + (p.cx || 0), by = p.y + (p.cy || 0), hw = p.box.hw + (small ? 7 : 6), hh = p.box.hh + (small ? 7 : 6), m = small ? 0 : TS * 0.25;
           for (let ty = Math.floor((by - hh) / TS); ty <= Math.floor((by + hh) / TS); ty++) for (let tx = Math.floor((bx - hw) / TS); tx <= Math.floor((bx + hw) / TS); tx++) {
             if (!this.inb(tx, ty)) continue;
             const cx = (tx + 0.5) * TS, cy = (ty + 0.5) * TS;
-            if (Math.abs(cx - bx) < hw + TS * 0.25 && Math.abs(cy - by) < hh + TS * 0.25) pb[ty * this.tw + tx] = 1;
+            if (Math.abs(cx - bx) < hw + m && Math.abs(cy - by) < hh + m) pb[ty * this.tw + tx] = 1;
           }
           continue;
         }
-        const px = p.x + (p.cx || 0), py = p.y + (p.cy || 0), rr = (p.cr || 10) + 11; // a walker's body plus a little room
+        const px = p.x + (p.cx || 0), py = p.y + (p.cy || 0), rr = (p.cr || 10) + (small ? 7 : 11); // a walker's body plus a little room
         for (let ty = Math.floor((py - rr) / TS); ty <= Math.floor((py + rr) / TS); ty++) for (let tx = Math.floor((px - rr) / TS); tx <= Math.floor((px + rr) / TS); tx++) {
           if (this.inb(tx, ty) && Math.hypot((tx + 0.5) * TS - px, (ty + 0.5) * TS - py) < rr) pb[ty * this.tw + tx] = 1;
         }
