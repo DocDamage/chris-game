@@ -363,7 +363,7 @@
     G.addCoins(Math.round(14 + 6 * c.tier), c.x, c.y);
     for (let i = 0; i < 2 + (c.secret ? 3 : 0); i++) G.dropPickup('coin', c.x + U.rand(-18, 18), c.y + U.rand(-18, 18), 3, {});
     G.dropPickup('curio', c.x, c.y, 2 + (c.tier > 3 ? 1 : 0), { icon: 'pu.' + U.pick(CH.PowerUps ? CH.PowerUps.CURIO_ICONS : [259]), life: 30 });
-    if (Math.random() < 0.35 + (c.secret ? 0.5 : 0)) G.dropLoot && G.dropLoot({ x: c.x, y: c.y, type: 'chicken', isElite: true }, p);
+    if (Math.random() < 0.35 + (c.secret ? 0.5 : 0)) G.dropLoot && G.dropLoot({ x: c.x, y: c.y, type: 'chicken', isElite: true, def: CH.Balance.enemies.chicken }, p);
     if (CH.Run.onChest) CH.Run.onChest(c, p);
     FX.text(c.x, c.y - 22, 'TREASURE!', '#fee761', 1);
   }

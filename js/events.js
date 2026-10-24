@@ -275,7 +275,7 @@
       ev.left -= dt;
       if (ev.def.tick) ev.def.tick(g, dt, ev);
       if (ev.left <= 0) Ev.end(g, true);
-    } else if (g.waveState === 'combat' && !g.bossAlive()) {
+    } else if (g.waveState === 'combat' && !g.bossAlive() && !(CH.Areas && CH.Areas.world())) { // a character's world has omens instead (js/omens.js)
       g.eventTimer -= dt;
       if (g.eventTimer <= 0) Ev.start(g);
     }

@@ -253,6 +253,8 @@
       out.areas[k] = { biome: str(a.biome, '', 24), visits: Math.floor(num(a.visits, 0, 0, 1e6)), closed: ints(a.closed, 32), chests: ints(a.chests, 64), secrets: ints(a.secrets, 16), shrines: ints(a.shrines, 32), wps: ints(a.wps, 16), cleared: a.cleared === true, boss: a.boss === true };
     }
     out.abilities = Array.isArray(w.abilities) ? Array.from(new Set(w.abilities.filter((a) => /^[a-z]{1,12}$/.test(a)))).slice(0, 12) : [];
+    out.omens = {}; // omens broken, by stage (js/omens.js)
+    if (w.omens && typeof w.omens === 'object') for (const k of Object.keys(w.omens).slice(0, 20)) if (/^[0-9]{1,2}$/.test(k) && w.omens[k] === true) out.omens[k] = true;
     const cu = w.cult && typeof w.cult === 'object' ? w.cult : {};
     out.cult = { // the cult house (js/cult.js)
       favour: Math.floor(num(cu.favour, 0, 0, 999)),

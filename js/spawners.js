@@ -88,7 +88,7 @@
     const mine = g.enemies.filter((q) => q.hive === e.hive && !q.dead).length;
     const extra = Math.max(0, players().length - 1);
     const cap = 3 + lv * 2 + extra * 2;
-    e.spawnT -= dt;
+    e.spawnT -= dt * (CH.Omens ? CH.Omens.breedRate() : 1); // a breach surge (js/omens.js)
     if (e.spawnT > 0 || mine >= cap) return;
     const run = CH.Run;
     if (run && run.aliveCount() >= g.aliveCap()) { e.spawnT = 0.6; return; }
