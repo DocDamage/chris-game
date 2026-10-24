@@ -372,20 +372,24 @@
         g.z += g.vz * dt;
         if (g.z <= 0) { g.z = 0; g.vz = 0; g.vx = g.vy = 0; }
       }
-      if (g.age < 0.5) continue;
-      for (const p of G.players) {
-        if (p.dead) continue;
-        if (U.dist(p.x, p.y, g.x, g.y) < 20 + (p.stats ? p.stats.magnet * 0.1 : 0)) {
-          if (Items.addToBag(g.it)) {
-            Items.ground.splice(i, 1);
-            FX.text(g.x, g.y - 16, g.it.name || Items.nameOf(g.it), RARITY[g.it.rarity].color, 1);
-            Audio.sfx('pickup');
-            if (G.ui && G.ui.toast && (g.it.rarity === 'legendary' || g.it.rarity === 'set')) G.ui.toast('FOUND: ' + g.it.name);
-          } else if (!g.fullWarn || g.age - g.fullWarn > 3) { g.fullWarn = g.age; FX.text(p.x, p.y - 24, 'BAG FULL', '#e43b44', 1); }
-          break;
-        }
-      }
     }
+  };
+  /* gear waits on the ground until a hero picks it up with the interact button (js/interact.js); gold, food and
+     curios still fly to you */
+  Items.pickUp = function (g, p) {
+    const i = Items.ground.indexOf(g);
+    if (i < 0) return false;
+    if (!Items.addToBag(g.it)) {
+      FX.text(p.x, p.y - 24, 'BAG FULL', '#e43b44', 1);
+      Audio.sfx('nope');
+      return false;
+    }
+    Items.ground.splice(i, 1);
+    FX.text(g.x, g.y - 16, g.it.name || Items.nameOf(g.it), RARITY[g.it.rarity].color, 1);
+    FX.burst(g.x, g.y - 4, { n: 8, colors: [RARITY[g.it.rarity].color, '#ffffff'], speed: 50, life: 0.35, up: 30 });
+    Audio.sfx('pickup');
+    if (G.ui && G.ui.toast && (g.it.rarity === 'legendary' || g.it.rarity === 'set')) G.ui.toast('FOUND: ' + g.it.name);
+    return true;
   };
   G.on('step', function (dt) {
     if (G.state === 'playing') Items.update(dt);
@@ -398,6 +402,8 @@
   CH.Hooks.world.push((ctx, cam) => {
     if (!Items.ground.length || G.state === 'menu') return;
     const showAll = !!(CH.Input.raw && (CH.Input.raw.AltLeft || CH.Input.raw.AltRight));
+    const near = (g) => G.players.some((p) => !p.dead && U.dist2(p.x, p.y, g.x, g.y) < 110 * 110);
+    const focus = CH.Interact && CH.Interact.focusOf ? CH.Interact.focusOf() : null;
     for (const g of Items.ground) {
       const x = Math.round(g.x - cam.x), y = Math.round(g.y - cam.y);
       if (x < -30 || y < -60 || x > B.view.w + 30 || y > B.view.h + 30) continue;
@@ -419,7 +425,14 @@
         const kind = g.it.rarity === 'normal' || g.it.rarity === 'magic' ? 'leather' : 'iron';
         CH.UIK.draw(ctx, Items.artPath(g.it.slot, kind), x - 8, y - 8 - g.z, { w: 16, h: 16 });
       } else { ctx.fillStyle = R.color; ctx.fillRect(x - 4, y - 4 - g.z, 8, 8); }
-      if (showAll || (g.it.rarity !== 'normal' && g.it.rarity !== 'magic') || g.age < 2.2) CH.Font.draw(ctx, g.it.name || Items.nameOf(g.it), x, y - 16 - g.z, R.color, 1, true, 'center');
+      // its name on a dark plate, Diablo style: always for what lies near, everything while Alt is held
+      if (g === focus) continue; // the interact prompt shows the one you would pick up
+      if (showAll || near(g) || (g.it.rarity !== 'normal' && g.it.rarity !== 'magic') || g.age < 2.2) {
+        const name = g.it.name || Items.nameOf(g.it), w = CH.Font.width(name, 1) + 6;
+        ctx.fillStyle = 'rgba(10,6,14,0.78)';
+        ctx.fillRect(x - Math.ceil(w / 2), y - 21 - g.z, w, 9);
+        CH.Font.draw(ctx, name, x, y - 19 - g.z, R.color, 1, false, 'center');
+      }
     }
   });
 

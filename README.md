@@ -25,8 +25,7 @@ The first click/keypress unlocks audio (browser autoplay rules); the soundtrack 
 | **RB** | Special ability |
 | **LB** | Throw a grenade (3 charges that recharge; the type is chosen with D-pad down) |
 | **A** | Dodge roll (jumps instead when a low prop is right in front of you) |
-| **B** | Jump (interacts instead when a machine, chest or person is right there) |
-| **B** | Jump; interact at machines, chests and people. In menus: back |
+| **B** | Jump; when something usable is in reach (its prompt shows `[B]`): use it. In menus: back |
 | **X** | Reload |
 | **Y** | Swap the main and second weapon |
 | D-pad left / right | Cycle the main weapon |
@@ -49,7 +48,7 @@ The D-pad / left stick and **A** / **B** / **Start** also drive every menu. Cont
 | `G` | Throw a grenade (`X` cycles the type) |
 | `Q` | Special ability |
 | `R` | Reload (ammo weapons also auto-reload) |
-| `E` | Interact (vending machines: 25 coins) |
+| `E` | Interact: whatever shows a prompt (`[E] OPEN`, `PICK UP`, `ENTER`, `TALK`, `PRAY`, `READ`, `TRAVEL`) |
 | `1`-`6`, wheel, `Tab` / `C` | Choose the main weapon |
 | `Z` / `V` | Cycle the second weapon / swap the two weapons |
 | `Esc` | Pause / resume |
@@ -289,7 +288,7 @@ fog of war and a minimap); boss stages stay arena fights.
 | `Q` / `E` | Journal and map: previous / next tab or page |
 | `7 8 9 0` | Use belt slot 1-4 (pad: View button uses the first filled slot) |
 | `Alt` | Show all item labels on the floor |
-| `E` | Interact: vending machine, chests, waypoints, town people |
+| `E` | Interact: chests, gear on the ground, exit and building doors, shrines, lore stones, waypoints, people, the vending machine |
 
 ### Tests
 
@@ -341,3 +340,41 @@ Aseprite and 7-Zip for the UI and sidekick packs).
   giant tree with a garden, a store yard and a small graveyard. The townspeople are the Valley Ruin villager and block.
 - **Main menu.** Five buttons (PLAY, HERO, CO-OP, JOURNAL, SETTINGS) and a quiet row of links (How to play, Codex,
   Stats, Modes, Credits); the key strip is gone (keys are in How to play and Settings).
+
+## Fourth playtest (2026-10-24)
+
+- **An interact button for everything.** Walk up to a chest, an item on the ground, a door, a shrine, a lore stone, a
+  waypoint or a person: it gets a ring and a prompt (`[E] OPEN  CHEST`, `[B]` on a pad) and the button uses it. Gear
+  waits on the ground with its name on a plate until you pick it up (Alt shows every name); gold and food still fly to
+  you. Chests rattle, fly open in a shaft of light and fountain their loot, gear included.
+- **Exits are doors.** Nothing ends a stage by itself any more: kill a boss, gather the loot, then `ENTER` the far door.
+  The final boss's door is `THE WAY HOME`.
+- **Monsters step out of front-facing portals** in the colours of their biome.
+- **Puddles belong to the ground.** They stay on open floor, apart from each other and from everything that stands, take
+  their colour from the ground under them and stop at walls; kill blood never lands in water.
+- **Collision** for tall bushes, giant mushrooms, standing lanterns, candelabras and heaps of supplies.
+- **Stages.** The ground is one piece (no more quilt of swatches), stains are sized like stains, enemy camps are
+  stockades with tents, a fire and a gate, and every stage has a landmark (The Bone Throne, The Fountain Square, The
+  Pile-Up, The Ward, The Reactor, The Ice Shrine, The Forge of Ash, The Hall of Kings, the giant tree) with a lore stone
+  to READ for a little experience.
+- **Menus in the manner of Diablo III** (`d3.css`): dark leather and bronze, gold serif titles, red buttons, rarity
+  glows; the heroes screen with the hero on a lit dais and the roster beside it; the inventory and paper doll on one
+  sheet with floating tooltips.
+- `node tests/tour.js` and `node tests/tour_menus.js` write screenshots of the world and the menus to `tests/tour/`.
+
+## The second drop (2026-10-24, evening)
+
+- **Walls from the Dungeon Asset Pack everywhere.** Every walled stage is built from the pack's wall pieces in all
+  directions: stone faces with corner pieces at the ends of each run, stone rims where you look down on a wall, and
+  darkness beyond in the dungeons. The walls carry banners, shields, grates, arches and broken stretches, and each
+  biome mounts its own pieces on them: doors and windows in the city and the Gaslight District, warning signs and pipes
+  in the Outbreak City and the wasteland, chains and cages in the dungeons and the castle, gates in the Caldera.
+- **Every piece of every stage pack shows.** Each biome's five stages split its packs between them, so every crate,
+  grave, statue, sign and stain turns up somewhere. `node tests/audit_assets.js` counts what the world really shows.
+- **Undead Land Objects and the Seabed** dress the Dead Wood, the Catacombs, the Gaslight District and the Crypt:
+  boneyards of dug-up graves and beast carcasses, drowned rooms with a leviathan's bones, coral, swaying weeds and
+  opening anemones.
+- **The Sky Road and the Final Tower.** The last area is a road of flying islands and plank bridges over a dusk void,
+  with dragons in the sky. The Final Tower stands on the last island; when its breaches are closed its maw opens.
+  Inside is the Belly, a hall of living flesh with a beating heart, where the final boss waits.
+- `node tests/mapshot.js <area> [room]` writes a top-down picture of a stage's room to `tests/tour/`.

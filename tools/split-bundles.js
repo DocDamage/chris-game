@@ -6,6 +6,7 @@
      data/bundle_ui.js, data/bundle_sidekicks.js  empty slots, filled by pack-ui / pack-sidekicks
      data/bundle_kits.js, data/bundle_npcs.js  img keys 'kit.*' and 'npc.*' (pack-kits.js)
      data/bundle_dungeons.js  img keys 'kit.da*', 'kit.gc*': the Dungeon Asset Pack and the Crimson Gothic Castle
+     data/bundle_lands.js  img keys 'kit.ul*', 'kit.sb*', 'kit.fi*', 'kit.ft*', 'kit.mb*', 'anim.*' (pack-lands.js: the second drop)
    Every bundle merges itself into window.CH_ASSETS, so each one is optional.
    CLI: `node tools/split-bundles.js` re-splits whatever is in data/ (idempotent). */
 const fs = require('fs');
@@ -28,10 +29,11 @@ const BUNDLES = {
   sidekicks: (kind, key) => kind === 'img' && key.startsWith('sk.'),
   sheets: (kind, key) => kind === 'img' && key.startsWith('sh.'),
   dungeons: (kind, key) => kind === 'img' && (key.startsWith('kit.da') || key.startsWith('kit.gc')), // the 2026-10-24 packs: Dungeon Asset Pack, Crimson Gothic Castle (pack-kits.js)
+  lands: (kind, key) => kind === 'img' && (/^kit\.(ul|sb|fi|ft|mb)/.test(key) || key.startsWith('anim.')), // Undead Land, Seabed, Flying Islands, Final Tower, Belly (pack-lands.js)
   kits: (kind, key) => kind === 'img' && key.startsWith('kit.'), // the 2026-10-23 tile packs (pack-kits.js)
   npcs: (kind, key) => kind === 'img' && key.startsWith('npc.'), // the hideout people and the cult
 };
-const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'sheets', 'dungeons', 'kits', 'npcs', 'assets'];
+const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'sheets', 'dungeons', 'lands', 'kits', 'npcs', 'assets'];
 const fileOf = (name) => path.join(OUT, name === 'assets' ? 'assets.js' : 'bundle_' + name + '.js');
 
 function splitBundles(all) {

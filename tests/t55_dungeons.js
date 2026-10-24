@@ -23,7 +23,8 @@ const { open } = require('./lib');
         const M = L.matsFor(L.style);
         for (const k of Object.keys(M)) for (const t of M[k].base.concat(M[k].acc)) mark('kit.' + t);
         for (const k of L._faces || []) mark(k);
-        per.push({ props: L.props.length, gate: L.exit.gate, faces: (L._faces || []).length });
+        for (const k of L.wallKeys || []) mark(k); // the walls (js/walls.js, PLAN.md 21): the Dungeon Asset Pack's faces and corners, the castle's strips
+        per.push({ props: L.props.length, gate: L.exit.gate, faces: (L._faces || []).length + [...(L.wallKeys || [])].filter((k) => k.startsWith('kit.da2.') || k.startsWith('kit.gc')).length });
       }
       return { used, per };
     }, [biome, pre]);

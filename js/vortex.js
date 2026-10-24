@@ -27,6 +27,21 @@
     return { rim: '#ffffff', arm: hex, glow: hexRgb(hex), core: '#0a0610' };
   };
 
+  /* the colour monsters come through in each biome */
+  const BIOME = { frozen: 'frost', volcano: 'hell', castle: 'hell', gaslight: 'cult', catacombs: 'cult', dungeon: 'cult', deadwood: 'waypoint', zombie: 'waypoint', wasteland: 'exit' };
+  Vortex.biome = (biome) => PAL[BIOME[biome]] || PAL.glitch;
+
+  /* a monster stepping into the world: a front-facing portal that opens, holds while it comes through (spawnTime) and
+     closes behind it. k = seconds since it began; returns false once it has closed. */
+  Vortex.spawnDraw = function (ctx, x, y, r, k, hold, pal) {
+    const open = 0.16, close = 0.32;
+    if (k > hold + close) return false;
+    const s = k < open ? k / open : k < hold ? 1 : 1 - (k - hold) / close;
+    const e = s * s * (3 - 2 * s);
+    if (e > 0.04) Vortex.draw(ctx, x, y, Math.max(2, r * e), k * 1.6 + 0.4, pal, { alpha: Math.min(1, e * 1.4), lift: Math.round(r * 1.1) });
+    return true;
+  };
+
   Vortex.draw = function (ctx, x, y, r, t, pal, o) {
     o = o || {};
     const P = typeof pal === 'string' ? Vortex.palette(pal) : pal || PAL.town;

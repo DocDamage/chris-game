@@ -750,3 +750,118 @@ tuning holds at both ends.
 | W4 | **Done.** `js/interiors.js`: Dead Wood cabins, Gaslight townhouses and Frozen Kingdom houses have a door (`p.enter`, `p.door` set in js/setpieces.js); walking into it builds a furnished room of its own from the world seed, the area and the building (furniture from that biome's pack, a chest, now and then 2-4 monsters waiting), with no weather indoors. The stage outside is held as it was and you come back out at the door; an opened chest is kept in the area (`areas[n].inside`). The castle has no free-standing buildings to enter (its halls are painted into the floor), so castle doors were not added. Lore pages and traders indoors were left out. Test: t57. | W3 |
 | W5 | **Done.** js/levelgen.js `height()`: a big plateau (2 in 3) gets an upper tier, an inner rim with its own stairs away from the first flight (`L.top` = 2, `rm.tier2`). A rim is now and then climbed by a ramp three tiles wide (`L.ramps`), and about two stages in three have a chasm, a band of pit two tiles deep across a room (round ones too), with a bridge two tiles wide over its middle (`L.bridges`). js/level.js: a hero in the air passes a rim only from its own tier or higher (down, never up); each tier is shaded lighter; ramps are drawn as slopes; bridges use the Frozen Kingdom's north-south bridge pieces and the Volcanic Ruins' walkways (both in other biomes), with plain planks as a fallback. Every change is kept only if all a stage needs stays reachable and no floor that was reachable is cut off (a secret room is dug later off any floor); set pieces now keep the way to a hollow wall clear. No castle bridges: the Crimson Castle cut (W1) sorted no piece as a bridge. Test: t58 (t51 still passes). | W3 |
 | W6 | **Done (bot pass).** `tests/batch_world.js` now also prints the hero level on reaching areas 1, 6, 11, 12, 22, 27, 28, 38, 39, 44 and 49. Before: the bot saved 4 of 9 worlds (the rest stalled, see below) in 128-167 game minutes, ending at **hero level 86-97**, because closing a breach gives a share of a level and a world has five times the breaches of the old ten stages. Changes: (1) a breach gives 0.08 of a level in a world, not 0.35 (js/spawners.js); (2) past level 20 each level needs more XP (`B.xp.need` + 0.5 (level-20)^3), act I unchanged. (3) js/setpieces.js `keepReachable` now removes the prop where the way is cut (it walks the walls-only path back from what is cut off), not the one nearest it: a Catacombs stage had a breach room walled off by one wide piece 30 tiles away. After: normal / human ends at level 43, reaching the act I boss at about 21, act II at 32, act III at 38, act IV at 41; normal has about 4 deaths a world and chaotic 7-10, mostly in the Castle (44-48); a world takes the rushing bot about 140-180 game minutes. Monster health and damage were left as they were. The bot still sometimes stalls on the long dungeon layouts (Catacombs, Dungeon, Caldera): it stops walking while two or more monsters are near, and a stage keeps sending more, but every stall checked had its targets reachable, so this is the bot, not the maps. Next: a human playtest of the long world | all |
+
+## 20. Fourth playtest (2026-10-24): nine requests
+
+| # | Request | What was found | Plan |
+| --- | --- | --- | --- |
+| 1 | Enemy camps feel unfinished and incohesive | `SCENE.camp` rings a breach with single fence / spike pieces round an ellipse; the pieces face south only, so the ring reads as litter, and banners, cages and piles land wherever they fit | Camps built as a place: trodden ground, a stockade along the back with a gate at the front, tents round a central fire with seats, a war totem, racks and supplies in their corners, torches at the gate; a theme per biome |
+| 2 | Puddles look out of place; puddles on puddles, water on blood | Level puddles are placed with no check against each other, the walls they spill over or the set pieces; kill blood lands in water and lava; the colour is a fixed blue / red ellipse that ignores the ground | Puddles sit in free floor only (clipped to floor cells, apart from each other, off the route and props), kill blood never lands in another puddle, and a puddle's colour comes from the ground under it (wet, darkened ground, a tinted surface, a soft wet rim) |
+| 3 | Enemy portals still sideways | Every monster's arrival plays VFX pack 7 effect 12, a portal seen side-on | Monsters step out of a small front-facing vortex (js/vortex.js) that opens, holds and closes behind them, in the biome's colour |
+| 4 | Killing the boss ends the stage | Boss halls open the exit on the kill and walking near it ends the stage; the final boss goes straight to the victory screen | Every exit is a door you enter with the interact button; the final boss opens a door to the victory |
+| 5 | The menus, weapon screen included, are awful; study Diablo 3 | Parchment book pages, mostly empty, titles across the spine, a bookmark over the bag grid, a debug build list on pause | A dark Diablo 3 style: black and leather panels with bronze trim and corner ornaments, gold serif titles, red primary buttons, rarity-coloured tooltips; the character screen as a hero on a lit dais with the roster beside it; inventory and paper doll on one sheet |
+| 6 | Props missing collision | Shrubs, giant mushrooms, standing lanterns, candelabras, sacks and packs, arches: any non-flat kind without a box was walk-through | Every standing piece over 16 px tall blocks with a foot box; only flat litter and hanging things stay walkable |
+| 7 | Stages have no feeling; props misplaced; no buildings or points of interest | Floors are a quilt of mismatched 32 px swatches, castle plaques scattered one per tile, opaque square decals pasted on crypt floors, huge blood splats, a washed-out frozen grade, banner / hint / omen text stacked at the top | Floors in broad patches with soft edges and accents grouped as inlays; decals sized and placed with care; one landmark building or point of interest per stage; the HUD messages queued, not stacked |
+| 8 | Picking up items and opening chests need a better feel; no interact button | E / pad B interacts, but nothing says so; gear is grabbed by walking over it; chests just burst; shrines fire on touch | One interaction system: the nearest thing gets an outline and a prompt (`[E] OPEN`, `PICK UP`, `TALK`, `ENTER`, `PRAY`, `TRAVEL`); gear is picked up with E (gold and potions stay automatic), labels for what lies near; chests open with a lid, a light and a fountain of loot |
+| 9 | What would the perfect game of this sort have that we lack? | | Answered in 20.2 |
+
+### 20.1 Progress
+
+| Step | State | Notes |
+| --- | --- | --- |
+| 3. Portals | done | `Vortex.spawnDraw` (js/vortex.js): a monster's arrival is a small front-facing vortex in the biome's colour, drawn behind it, that opens, holds for its `spawnTime` and closes; the monster grows out of it. Monsters that were already there (`spawnSilent`) have none. The volcano's hell-gate breach is a red vortex between its pillars (it was a flat orange box) |
+| 4 + 8. One interaction system | done | `js/interact.js`: chests, gear on the ground, the exit door, shrines, lit waypoints, the vending machine, the hideout's people, building doors, the way out of a room, the purple door and lore stones are targets; the nearest in reach is the hero's focus (a ring at its feet, a plate above it: `[E] OPEN  CHEST`, `[B]` on a pad) and the button uses it. Exits are doors: standing on one does nothing, `ENTER <next area>` goes on. A boss's hall door opens on the kill and waits; after the final boss `THE WAY HOME` leads to the victory. Gear is picked up with the button (gold, food and curios still fly to you); names show on dark plates for what lies near, Alt for all. A chest rattles, its lid flies up in a shaft of light and the loot fountains out (half the chests and every hidden one also hold gear). Shrines are prayed at, no longer used by touching them. Building doors and the purple door open with the button; walking out of a room still works |
+| 2. Puddles | done | `LG.puddles` (js/levelgen.js) runs last, after the set pieces: a puddle lies only where all of it is floor, clear of solid pieces, buildings, inlays, the stage's spots and every other puddle (lava and goo off the route); water puddles get a small one or two beside them. js/atmos.js: a puddle's pixels stop at walls, pits and rims, and its colour comes from the ground under it (water darkens and cools it and lets it show through, blood soaks it, goo stains it), with a wet, ragged rim. Kill blood never lands in a level puddle, on a wall, or grows into one. The Frozen Kingdom has its ice instead |
+| 6. Collision | done | js/props.js `PR.TALL`: a bush, giant mushroom, standing lantern, candelabra or heap of supplies 17 px or taller blocks with a foot box (low ones can be jumped); Valley Ruin bushes too. Only flat litter, hanging things and vine arches stay walk-through |
+| 7. Floors, decals, HUD | done | `Level.paintKitFloor`: the pack swatches are cut into feathered, flipped crops scattered over each material's mean colour (no repeat, no seams), materials meet on ragged 4 px edges, accents are rare and feathered, a faint mottling hides the rest. `PR.goodDecal`: no stains bigger than a tile and a half, no filled squares as floor decals. The top of the screen: the omen on a strip at the top centre, the weather under the minimap, hints above the action bar, toasts two at most and no omen toast under the omen banner. Lights are capped (snow burned white) and the blizzard is a squall, not a white screen |
+| 1. Camps | done | `SCENE.camp` (js/setpieces.js) builds a stockade on trodden ground (`Level.paintGrounds`): a straight back wall of one sheet's long segments and post-lined sides (`D.wall`, `D.shaped`, pieces of one wall may touch: `join`), a gated front between torches, the war banner behind the breach, tents in the back corners, a fire with seats in front, supplies and a cage or rack in the front corners, bones and victims outside; a material set per biome (`CAMP`) |
+| 7. Landmarks | done | `landmark()` in js/setpieces.js: the biggest quiet room of every stage holds its biome's monument (The Bone Throne, The Fountain Square, The Pile-Up, The Ward, The Reactor, The Ice Shrine, The Forge of Ash, The Hall of Kings; the Dead Wood's giant tree) with a glowing lore stone in front; READ shows a line of the world's lore and pays experience and gold once per area |
+| 5. Menus | done | `d3.css` (body.d3): black and leather panels with a bronze edge and corner brackets, gold small-caps serif titles between rules, red primary buttons, dark slots that glow with their rarity, tooltips with a name band in the item's colour, dark-glass HUD frames, embers on the main menu and the demo scene sunk into a dark murk. The heroes screen (js/menus.js) is Diablo III's: the hero on a lit dais at the left, the roster down the right, PLAY at the bottom; creating a hero lists the classes there. The Journal is one window with labelled tabs along the top; the Inventory page is one sheet (doll left, bag right, a floating tooltip). Book animations are instant in this theme |
+| Tests | done | `t59_playtest4`; t26, t27, t43, t53, t57 use the button where they walked in; `tests/navbot.js` presses it at the exit; `tests/tour.js` and `tests/tour_menus.js` take screenshots of the world and the menus for a human |
+
+### 20.2 What the perfect game of this kind would still have (request 9)
+
+In order of what it would add to play, with what is here already:
+
+1. **Active skills on a bar, with runes.** The heart of Diablo III: four to six actives per class on keys / buttons, each with five runes that change what it does; resource per class. Here each hero has one special and its weapons; the skill tree is passive. This is the biggest gap.
+2. **Elites with affixes and named mini-bosses per biome.** Champion packs that are molten, frozen, arcane, vortex, waller, jailer, combined; a biome's own mid-boss. Here elites are tougher and gilded and some have an affix; not yet the combinations that make every fight different.
+3. **An endgame loop.** Rifts (a random area run against a timer, a guardian at the end, a key for a harder one), Paragon levels after the cap, bounties per act. Here Nightmare and Hell repeat the world.
+4. **Legendary powers that change a build.** Items whose power rewrites a skill (a sword that makes the special leave fire, boots that make the roll a teleport), sets of six whose bonuses define a build, a cube to extract a power. Here legendaries and sets are stronger numbers.
+5. **Events in the stages.** Cursed chests (survive the waves), ambushes, a trapped merchant to escort, a shrine that becomes a gauntlet, a timed hunt for a treasure goblin; one or two per stage. Omens are the start of this.
+6. **Health and resource globes, a potion on a cooldown, health globes dropped by monsters.** The classic read of life and resource and the reward of pushing forward.
+7. **A full-screen map overlay (Tab)** drawn over the play field, with the landmarks, waypoints, the exit and the lore stones; markers for quests.
+8. **A town per act and people who tell the story.** Quest-givers with a line of story per act, a short scene at each act boss, a voice or two. Here one hideout serves the whole world.
+9. **Sound of place.** Ambient beds per biome (wind in the Dead Wood, drips in the Catacombs, gaslamps hissing), music that rises in fights and falls in quiet, positional sound for monsters off screen.
+10. **Vaults and set rooms.** Hand-made rooms dropped into the generated stages: a library with a puzzle, a flooded crypt, a collapsed bridge you cross on a lever.
+11. **Stash tabs, auto-sort, loot sounds per rarity and a loot filter**; comparing on hover with the item you wear (partly there).
+12. **Online co-op and trading**; local co-op is here.
+
+## 21. The second drop and every piece used (owner's requests of 2026-10-24, evening)
+
+| # | Request | What was found | Done |
+| --- | --- | --- | --- |
+| 1 | Five new packs: Undead Land Objects and Seabed (props for the stages, not stages), Flying Islands, the Final Tower (the final boss's entryway) and Inside the Monster's Belly (inside the tower) | | `tools/pack-lands.js` cuts all five into `data/bundle_lands.js` (`meta.lands`): every Undead Land file (138, three shadow variants each), the Seabed's objects (179), its animated sheet as 158 animations (weeds sway, anemones open), its sand spots (224 floor decals), the islands' objects, bridges, details, ground swatches and island undersides, their animated statues, trees, floating rocks and flowers and clouds, the Final Tower's sheet (props, 46 floor plates) and the tower itself put together from its world-map tiles (240x276), the Belly's sheet, 18 floor swatches and its animations (the heart, cell creatures, tentacles, the teeth doors, the worm). New prop kinds (carcass, bone pile, open grave, lich, chasm, leviathan, kraken, tentacle, urchin, coral, anemone, weed, ruin, floater, pustule, heart, cell, worm); animated props (`anim.<name>`, `p.fps`, js/render.js) |
+| 1a | Undead and Seabed as props | | Families `u` and `s` (js/setpieces.js `FAMS`): the Undead Land Objects dress the Dead Wood, the Catacombs, the Gaslight District and the Crypt; the Seabed is drowned in the Catacombs and the Crypt. New scenes: `boneyard` (rows of dug-up graves and coffins, a beast's carcass, bone heaps, web trees) and `drowned` (a leviathan or kraken half sunk in the floor, coral, weeds, anemones, urchins, washed-up shells) |
+| 1b | Islands, the tower, the belly | | `js/sky.js`: **area 49 is the Sky Road**, its own layout (`CH.Sky.gen`): eleven round islands over a dusk void joined by plank bridges, the islands' rock undersides hanging below their rims, clouds far below, rocks and flowers floating in the void, dragons crossing the sky; breaches and packs as in any stage. On the last island stands **the Final Tower** with a plaza of its own floor plates and a maw of teeth for a door: sealed (`SEALED / CLOSE THE BREACHES`) until the breaches close, then the teeth open and `ENTER  THE FINAL TOWER` leads into **the Belly**, a boss hall of flesh (gut floors, flesh walls with teeth, eyes and sphincter doors, two beating hearts, cell creatures, tentacles, the worm, the tower's tanks and machines); the final boss walks in and its fall opens `THE WAY HOME` |
+| 2 | Use the Dungeon Asset Pack's wall pieces for all directions, everywhere | Only the Catacombs drew its faces, south faces only | `js/walls.js`: every walled biome is built from them. A wall cell with floor south is a face (the pack's nine stones and long runs, by stretches of wall), a run of faces starts and ends on the pack's corner pieces (mirrored for the east end), a wall with floor east, west or north shows the stone rim of the corner pieces; indoors (Catacombs, Crypt, Castle, Caldera) the wall mass is worked stone along the rooms and black beyond, in the Dead Wood a forest dark. Faces carry the pack's banners, shields, grates, arches and broken stretches, and the biomes' own pieces are mounted on them: doors and windows (Outbreak City, Gaslight, Crypt, Dead Wood, Frozen Kingdom), warning signs and pipes (city, wasteland), chains and cages (dungeons, castle, Caldera), gates (Caldera, wasteland). The Frozen Kingdom's walls are frost-tinted with snow on top. Faces reach into the next chunk's row (no seams) |
+| 3 | Use ALL the assets of the stage packs | `tests/audit_assets.js` (new): one build of every area showed **2,377 of 5,535 pieces (43%)**; whole sheets never appeared (every door, window, chain, gate and plaque sheet, obsidian blocks, the castle's blocks and halls, the ice castle's walls) | Each biome deals its pools in its own order and each of its five stages starts at its own fifth (`D.deal`), so the five stages show every piece between them; a **sweep** places what the scenes left of the stage's fifth, each kind as a group of its own in a room (a row of graves, a heap of crates); wall-mounted sheets are on the walls (2); big blood splats are shrunk to a stain's size instead of left out. After: see 21.1 |
+| 4 | Suggest improvements | | 21.2 |
+
+### 21.1 Results
+
+`node tests/audit_assets.js` (one build of each of the 49 areas, the belly included; the packs' autotile blocks and
+particle frames, which floors, walls and weather are cut from, not counted):
+
+| Pack | After |
+| --- | --- |
+| Crimson Gothic Castle | 100% |
+| Seabed (new) | 100% |
+| Final Tower (new) | 98% |
+| Zombie / Wasteland / Volcanic / Psychological Horror sheets (33-38% before) | 97-99% |
+| Undead Land Objects (new) | 96% |
+| Frozen Kingdom | 92% |
+| Haunted Victorian City | 90% |
+| Monster's Belly (new) | 90% |
+| Dungeon Asset Pack | 89% |
+| Flying Islands (new) | 86% |
+| Creepy Forest | 82% |
+| **All** | **6,223 / 6,630 (94%)**, from **2,377 / 5,535 (43%)** |
+
+Still left out, and why: cabin, townhouse and house roofs (the buildings use the roof pieces that fit their fronts),
+the Frozen Kingdom's bridges (only chasms use them), some Victorian windows and Creepy Forest fences and well parts
+beyond each stage's share, the dragons (they fly over the sky road at play time, which the audit does not see), the
+Seabed's sand floors and bubbles (props were asked for). Wall plans, decks and the sweep are deterministic per world.
+
+Also on the way: level generation keeps under 400 ms (t25): a floor decal's fill is read once from its decoded image
+(reading a drawn sprite canvas back cost ~6 ms a piece) and every piece's sprite is made in idle time after load
+(`CH.Props.warm`); swept pieces keep clear of doorways and are the first taken out if a way is cut; every Gaslight stage
+gets its townhouse (on the open street if no room is free); puddles check their own rim against the walls; the Crypt's
+landmark is The Lich's Pit on every other stage. Tests: `t60_lands` (new); t25, t38, t50, t55, t59 follow the new world
+(t38 puts its two crates back by hand: the dressing deals other pieces now). Tools: `tests/audit_assets.js`,
+`tests/mapshot.js`, `tools/contact.js`, `tools/pack-lands.js` (also called by `tools/build-assets.js`).
+
+### 21.2 What else should be better (request 4)
+
+Seen while doing this work, in order of how much they would add:
+
+1. **The older biomes' floors** (Outbreak City streets, the wasteland, the Caldera, the Crypt) are still one texture
+   repeated, and the repeat shows (the Crypt's cobweb tile, the road's lines). They should get the stamped, patched
+   ground the newer biomes have (js/level.js `paintKitFloor`), from their own packs' floor tiles.
+2. **Outdoors should not look walled.** The Dead Wood and the Frozen Kingdom now edge their clearings with mossy or
+   frosted stone; overhanging tree canopy into the dark (the Creepy Forest's trees cut as canopy) and the Frozen
+   Kingdom's glacier cliff blocks as the edge would read as forest and ice, not ruins.
+3. **Lights on the walls.** The pack's wall torches, lanterns and the biomes' lamps are mounted as paint; as real lights
+   (glow, flicker, shadows) the dungeons would be lit by their walls as Diablo's are.
+4. **A final boss that belongs to the Belly.** The fight inside the tower is still the old final boss; the tower's heart
+   as its last phase (it beats, the tentacles strike, the worm erupts from the floor, the cell creatures swarm) would make
+   the ending.
+5. **Round island rims.** The islands are cut on the 32 px grid; the Flying Islands ground is a full autotile that would
+   round their rims and draw grass edges.
+6. **Doors that open.** Some of the mounted doors could lead into small vaults (a treasure room, a trap, a lore page),
+   which is also 20.2's vaults.
+7. **The Seabed's floors** (sand, reef edges, rising bubbles) were not asked for as props; a flooded secret room with a
+   sand floor and bubbles would use them.
+8. **Performance check on a low machine.** Stages now hold more pieces (the sweep adds some 60-120 per stage) and
+   animated props; `node tests/perf_levels.js` should be run on the target machine.
+9. 20.2 still stands: active skills with runes, elite affixes, an endgame loop, legendary powers, events, globes, a map
+   overlay, story per act, sound of place, stash and loot filter.

@@ -24,22 +24,29 @@
   const TS = CH.Level.TS;
   const wrap = CH.X.wrap;
   const LG = CH.LevelGen;
-  const SP = (CH.SetPieces = { on: true });
+  const SP = (CH.SetPieces = { on: true, after: {}, STRICT: {}, SINGLE: {} });
 
   const FAM = { catacombs: 'a', castle: 'r', gaslight: 'g', deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
+  /* every family a biome dresses with (PLAN.md 21): its own pack first, then the packs of the second drop that belong
+     there: Undead Land Objects (u) in the Dead Wood, the Catacombs, the Gaslight District and the Crypt; the Seabed (s)
+     drowned in the Catacombs and the Crypt and grown in the Belly; the Flying Islands (i) and the Final Tower (t) in the
+     sky; the Belly (b) inside the tower */
+  const FAMS = { catacombs: 'aus', castle: 'r', gaslight: 'gu', deadwood: 'cu', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'hus', office: 'h', glitch: 'h', sky: 'it', belly: 'bst' };
+  const ALLF = 'zwvhmcfgarusitb';
+  SP.FAMS = FAMS;
   const ALT = { catacombs: 'h', castle: 'a', gaslight: 'z', deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
   /* scenes each biome draws from (the first entries are the most common) */
   const SCENES = {
     backyard: ['grove', 'ruin', 'yard', 'graveyard', 'grove', 'camp'],
-    catacombs: ['ossuary', 'crypt', 'alchemy', 'storage', 'ossuary', 'torture', 'shrine', 'alchemy'],
+    catacombs: ['ossuary', 'crypt', 'alchemy', 'drowned', 'storage', 'ossuary', 'torture', 'shrine', 'boneyard', 'alchemy'],
     castle: ['hall', 'throne', 'armory', 'hall', 'garden', 'lavahall', 'storage', 'throne'],
-    gaslight: ['townhouse', 'gstreet', 'cemetery', 'market', 'townhouse', 'occult', 'ruin', 'graveyard', 'gstreet'],
-    deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
+    gaslight: ['townhouse', 'gstreet', 'cemetery', 'market', 'townhouse', 'occult', 'boneyard', 'ruin', 'graveyard', 'gstreet'],
+    deadwood: ['grove', 'cabin', 'boneyard', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'boneyard', 'graveyard', 'camp'],
     frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'frozentown', 'grove', 'castle'],
     zombie: ['street', 'wreck', 'yard', 'ruin', 'graveyard', 'camp'],
     wasteland: ['wreck', 'toxic', 'yard', 'ruin', 'camp'],
     volcano: ['forge', 'lava', 'shrine', 'ruin', 'camp'],
-    dungeon: ['crypt', 'storage', 'torture', 'shrine', 'ward'],
+    dungeon: ['crypt', 'drowned', 'storage', 'torture', 'boneyard', 'shrine', 'ward', 'drowned'],
     office: ['ward', 'storage', 'crypt', 'shrine'],
     glitch: ['crypt', 'shrine', 'storage', 'torture'],
   };
@@ -60,19 +67,36 @@
   const FIRE = { catacombs: 'purple', castle: 'orange', gaslight: 'purple', deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
   const MIRROR = { corpse: 1, bones: 1, skeleton: 1, debris: 1, patch: 1, ashes: 1, pool: 1 }; // decals with writing (blood "HELP", signs) are never mirrored
-  const FLAT = { room: 1, lava: 1, patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
+  const FLAT = { chasm: 1, vein: 1, room: 1, lava: 1, patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
 
   /* ------------------------------------------------------------------ a dressing session for one level */
   function Dresser(L, biome) {
     const seed = Math.round(L.entrance.x * 13 + L.entrance.y * 7) + L.tw * 5 + L.th;
     let n = 0;
     const D = {
-      L, biome, fam: FAM[biome] || 'h', alt: ALT[biome] || 'm',
+      L, biome, fam: FAM[biome] || 'h', alt: ALT[biome] || 'm', fams: FAMS[biome] || FAM[biome] || 'h',
       r: () => hash(seed, n++),
       reserved: [],
       placed: [],
+      decks: {},
     };
     D.pick = (list) => list[Math.floor(D.r() * list.length) % list.length];
+    /* which of its biome's five stages this is (0-4): each stage deals its own fifth of every pool first, so the five
+       stages of a biome show every piece of its packs between them (PLAN.md 21, request 3) */
+    const WMp = CH.WorldMap, ar = WMp && WMp.on && WMp.on() && CH.G.wave ? WMp.area(CH.G.wave) : null;
+    D.step = ar && ar.step ? ar.step - 1 : ((CH.G.wave || 1) - 1) % 5;
+    const wseed = (CH.Areas && CH.Areas.world && CH.Areas.world() ? CH.Areas.world().seed : 0) | 0;
+    const bseed = [...biome].reduce((a, c) => a * 31 + c.charCodeAt(0), wseed) | 0;
+    /* a pool in the biome's own order (the same in all its stages), and where this stage starts in it */
+    D.deckOf = (tag, pool) => {
+      let dk = D.decks[tag];
+      if (!dk || dk.len !== pool.length) {
+        const order = pool.map((k, i) => [hash(bseed + i * 7, i * 131 + 17), k]).sort((a, b) => a[0] - b[0]).map((q) => q[1]);
+        dk = D.decks[tag] = { len: pool.length, order, start: SP.SINGLE[biome] ? 0 : D.step * Math.ceil(pool.length / 5), i: 0 };
+      }
+      return dk;
+    };
+    D.deal = (tag, pool) => { const dk = D.deckOf(tag, pool); return dk.order[(dk.start + dk.i++) % dk.len]; };
     /* a catalogue key (or obj.* sprite) of a kind for this biome */
     D.key = (kind, famOverride) => {
       const f = famOverride || D.fam;
@@ -80,8 +104,10 @@
         const ok = OBJ[kind].filter((k) => S.has(k));
         if (ok.length) return D.pick(ok);
       }
-      let pool = PR.pool(kind, f);
+      let pool = PR.pool(kind, famOverride ? f : D.fams);
+      if (pool.length && !famOverride) return D.deal(kind, pool);
       if (!pool.length) pool = PR.pool(kind, D.alt);
+      if (!pool.length && SP.STRICT[biome]) return null; // the sky and the belly borrow nothing from the world below
       if (!pool.length && OBJ[kind]) pool = OBJ[kind].filter((k) => S.has(k));
       if (!pool.length) pool = PR.pool(kind, 'zwvhm');
       return pool.length ? D.pick(pool) : null;
@@ -92,20 +118,21 @@
       if (!first) return () => null;
       if (first.startsWith('obj.')) return () => D.key(kind);
       const sheet = first.split('.')[1];
-      const pool = PR.pool(kind, 'zwvhm').filter((k) => k.split('.')[1] === sheet);
+      const pool = PR.pool(kind, ALLF).filter((k) => k.split('.')[1] === sheet);
       return () => D.pick(pool);
     };
     D.reserve = (x, y, r) => D.reserved.push({ x, y, r });
     /* a building's footprint (box at the feet x, y) keeps clear of every spot the stage needs */
     D.clearOf = (x, y, box) => ![L.entrance, L.exit].concat(L.packs, L.chests, L.shrines, L.spawners, L.waypoints).some((q) => q && Math.abs(q.x - x) < box.hw + 24 && q.y < y + 24 && q.y > y - box.hh * 2 - 24);
     /* is a footprint free: floor under it, clear of reserved spots and other solid props */
-    D.free = (x, y, hw, hh, solid) => {
+    D.free = (x, y, hw, hh, solid, join) => {
       const m = 4;
       for (let ty = Math.floor((y - hh * 2 - m) / TS); ty <= Math.floor((y + m) / TS); ty++) for (let tx = Math.floor((x - hw - m) / TS); tx <= Math.floor((x + hw + m) / TS); tx++) if (L.solid(tx, ty)) return false;
       for (const q of D.reserved) if (U.dist(x, y, q.x, q.y) < q.r + Math.max(hw, hh)) return false;
       if (!solid) return true;
       for (const p of L.props) {
         if (p.dead || !p.solid) continue;
+        if (join && p.join === join) continue; // the pieces of one wall touch on purpose
         const pw = p.box ? p.box.hw : p.cr || 10, ph = p.box ? p.box.hh * 2 : (p.cr || 10) * 1.2;
         // a hero's feet (about 10 px) must fit between two solid pieces: a narrower gap traps them, pushed from one into the other
         if (Math.abs(p.x - x) < pw + hw + 12 && Math.abs(p.y - y) < Math.max(ph, hh * 2) + 12) return false;
@@ -124,7 +151,8 @@
         const kind = Object.keys(OBJ).find((k) => OBJ[k].includes(key)) || 'rock';
         const sp = S.get(key);
         const tree = kind === 'tree' || kind === 'darktree' || kind === 'deadtree';
-        const box = kind === 'shrub' || kind === 'flower' ? null : { hw: Math.round(sp.w * (tree ? 0.14 : 0.38)), hh: tree ? 4 : Math.max(4, Math.round(sp.h * 0.14)) };
+        const soft = kind === 'shrub' || kind === 'flower'; // grass and flowers are walked through, a real bush is not (PLAN.md 20)
+        const box = soft ? (sp.h >= 17 ? { hw: Math.max(4, Math.round(sp.w * 0.25)), hh: 3 } : null) : { hw: Math.round(sp.w * (tree ? 0.14 : 0.38)), hh: tree ? 4 : Math.max(4, Math.round(sp.h * 0.14)) };
         if (!o.force && !D.free(x, y, box ? box.hw : 6, box ? box.hh : 3, !!box)) return null;
         CH.Arenas.addProp(L.props, key, x, y, box ? { solid: true, box, cy: -box.hh + 1, jumpable: !tree && sp.h < 40, elevation: 10, destructible: !tree, hp: 45, resourceType: 'stone' } : { solid: false });
         const p = L.props[L.props.length - 1];
@@ -134,22 +162,27 @@
       }
       const info = PR.info(key);
       if (!info || info.skip) return null;
-      const name = PR.sprite(key, o.scale);
+      let name = PR.sprite(key, o.scale);
       if (!name) return null;
       // flat pieces are painted into the floor
       if (FLAT[info.kind]) {
-        const fr = S.get(name).frames[0];
+        let fr = S.get(name).frames[0];
+        if (!o.force) { // no giant splats (a big one is shrunk to a stain's size), no square swatches pasted on the floor (PLAN.md 20, 21)
+          const ds = PR.decalScale(key, info.kind, fr);
+          if (!ds) return null;
+          if (ds < 1) { name = PR.sprite(key, (o.scale || 1) * ds); if (!name) return null; fr = S.get(name).frames[0]; }
+        }
         if (!o.force) for (const q of D.reserved) if (q.hard && U.dist(x, y, q.x, q.y) < q.r) return null;
         L.decals.push({ key, img: fr, x, y: y - Math.round(fr.height / 2), a: o.a || 0.95, fx: o.flip || (D.r() < 0.5 && MIRROR[info.kind] === 1), fy: false });
         return L.decals[L.decals.length - 1];
       }
       const box = PR.boxFor(name, info.kind);
       const solid = !!box;
-      if (!o.force && !D.free(x, y, box ? box.hw : 5, box ? box.hh : 3, solid)) return null;
+      if (!o.force && !D.free(x, y, box ? box.hw : 5, box ? box.hh : 3, solid, o.join)) return null;
       const sp = S.get(name);
       CH.Arenas.addProp(L.props, name, x, y, {
         kind: info.tree ? 'tree' : undefined, solid, box, cy: box ? -box.hh + 1 : -3, cat: info.kind,
-        jumpable: !!info.j && sp.h <= 46, elevation: Math.min(14, Math.round(sp.h * 0.35)),
+        jumpable: (!!info.j || (!!PR.TALL[info.kind] && sp.h <= 30)) && sp.h <= 46, elevation: Math.min(14, Math.round(sp.h * 0.35)),
         destructible: !!info.d, hp: info.hp || 40, resourceType: info.res || 'stone', resourceAmt: 2,
         swayable: !!info.sway,
       });
@@ -157,15 +190,46 @@
       p.sheet = key;
       p.sp = true;
       if (info.tree) { p.kind = 'tree'; p.choppable = true; p.swayable = true; }
-      if (info.l && CH.Sheets) { // lights glow with their own colour and cast shadows (js/fires.js, js/postfx.js)
+      if (info.l && key.startsWith('anim.')) { p.glow = info.kind === 'heart' ? '#ff3a52' : '#9fe8ff'; p.lr = 60 + Math.min(40, sp.h); p.phase = D.r(); } // an animated light: the heart, the floaters
+      else if (info.l && CH.Sheets) { // lights glow with their own colour and cast shadows (js/fires.js, js/postfx.js)
         CH.Sheets.sprite(key);
         const inf = CH.Sheets.info[key];
         if (inf) { p.glow = inf.glow; p.lr = 60 + Math.min(40, sp.h); p.phase = D.r(); }
       }
       if (info.fx) p.additive = true;
+      const an = PR.animOf && PR.animOf(key);
+      if (an) { p.fps = an.fps; p.phase = D.r(); } // an animated piece: a weed sways, a heart beats (js/render.js)
       if (o.flip) p.flip = true;
+      if (o.join) p.join = o.join;
       D.placed.push(p);
       return p;
+    };
+    /* a piece of a kind and a shape from one sheet: 'run' (a long fence or wall segment), 'post' (a single upright) */
+    const shapeOf = (key) => { const nm = key.startsWith('obj.') ? key : PR.sprite(key); if (!nm || !S.has(nm)) return 0; const sp = S.get(nm); return sp.w / Math.max(1, sp.h); };
+    D.shaped = (kind, shape, sheetOf) => {
+      const first = sheetOf || D.key(kind);
+      if (!first) return () => null;
+      const sheet = first.split('.')[1];
+      const pool = first.startsWith('obj.') ? [first] : PR.pool(kind, ALLF).filter((k) => k.split('.')[1] === sheet);
+      const fit = pool.filter((k) => (shape === 'run' ? shapeOf(k) >= 1.45 : shape === 'post' ? shapeOf(k) <= 0.75 : true));
+      const list = fit.length ? fit : pool;
+      return () => D.pick(list);
+    };
+    /* a straight wall of touching pieces from x0 to x1 at feet y (one group: they may touch), skipping a gate gap */
+    D.wall = (pick, x0, x1, y, gate) => {
+      const join = 'w' + (D.joins = (D.joins || 0) + 1);
+      let x = x0, n = 0;
+      for (let guard = 0; x < x1 && guard < 40; guard++) {
+        const key = pick();
+        if (!key) break;
+        const nm = key.startsWith('obj.') ? key : PR.sprite(key);
+        const w = nm && S.has(nm) ? S.get(nm).w : 30;
+        const mx = x + w / 2;
+        if (gate && Math.abs(mx - gate.x) < gate.w / 2 + w / 2 - 4) { x = gate.x + gate.w / 2; continue; }
+        if (D.put(key, mx, y, { join })) n++;
+        x += w - 3;
+      }
+      return n;
     };
     /* place near (x, y): tries a few spots in a ring */
     D.near = (key, x, y, rmax, o) => {
@@ -229,38 +293,60 @@
     D.near(D.key('signpost'), at.x - 34, at.y + 30, 20);
     D.light(at.x - 40, at.y - 10);
   };
-  /* an enemy camp around a breach or a sleeping pack: a ring with two gaps, a fire, piles, banners, bones */
+  /* an enemy camp round a breach or a sleeping pack (PLAN.md 20, request 1): built as one place, facing south like the
+     art. A patch of trodden earth; a stockade of one sheet's pieces (a straight back wall of long segments, side walls
+     of posts, a front with a gate between two torches); the breach in the middle with the war banner behind it; tents
+     in the back corners; a fire in front of the breach with seats round it; supplies in one front corner, a cage or a
+     rack in the other; bones and the camp's victims outside the gate. Each biome has its own materials. */
+  const CAMP = {
+    c: { wall: ['fence'], post: ['fence', 'spike'], tent: ['hut'], seat: ['log', 'stump', 'bench'], totem: ['banner', 'spike', 'pole'], side: ['cage', 'signpost'], dead: 'corpse' },
+    f: { wall: ['fence'], post: ['fence', 'spike'], tent: ['hut'], seat: ['log', 'bench', 'stump'], totem: ['banner', 'pole'], side: ['stall', 'table'], dead: 'bones' },
+    g: { wall: ['fence'], post: ['fence', 'pole'], tent: ['stall'], seat: ['bench', 'crate'], totem: ['banner', 'lamp'], side: ['cage', 'table'], dead: 'corpse' },
+    z: { wall: ['barricade', 'sandbag'], post: ['barricade', 'cone'], tent: ['carv', 'car'], seat: ['tires', 'crate'], totem: ['sign', 'pole'], side: ['dumpster', 'machine'], dead: 'corpse' },
+    w: { wall: ['fence', 'barricade'], post: ['spikes', 'barricade'], tent: ['carv'], seat: ['tires', 'crate'], totem: ['sign', 'pole'], side: ['machine', 'reactor'], dead: 'corpse' },
+    v: { wall: ['spikes', 'fence'], post: ['spike'], tent: ['anvil'], seat: ['rock', 'log'], totem: ['banner', 'obelisk'], side: ['cage', 'cauldron'], dead: 'skeleton' },
+    a: { wall: ['barricade', 'fence'], post: ['spikes', 'pillar'], tent: ['table', 'shelf'], seat: ['crate', 'barrel'], totem: ['banner', 'statue'], side: ['cage', 'coffin'], dead: 'skeleton' },
+    r: { wall: ['fence', 'barricade'], post: ['pillar', 'spikes'], tent: ['table', 'stall'], seat: ['bench', 'crate'], totem: ['banner', 'statue'], side: ['cage', 'anvil'], dead: 'skeleton' },
+    h: { wall: ['spikes', 'fence'], post: ['spikes'], tent: ['bed', 'table'], seat: ['chair', 'crate'], totem: ['banner', 'statue'], side: ['cage', 'machine'], dead: 'scrawl' },
+    m: { wall: ['fence', 'spikes'], post: ['spikes', 'fence'], tent: ['hut', 'stall'], seat: ['log', 'stump'], totem: ['banner', 'pole'], side: ['cage', 'anvil'], dead: 'skeleton' },
+  };
+  const firstKey = (D, kinds) => { for (const k of kinds) { const key = D.key(k); if (key) return key; } return null; };
   SCENE.camp = (D, A, at, o) => {
-    const cx = at.x, cy = at.y;
-    const R = Math.min(A.rx, A.ry * 1.3, 120);
-    const ring = D.fam === 'f' ? ['fence', 'spike'] : D.fam === 'h' ? ['spikes', 'fence'] : D.fam === 'z' ? ['barricade', 'sandbag', 'fence', 'wire'] : D.fam === 'w' ? ['barricade', 'fence', 'spikes', 'sandbag'] : ['spikes', 'spikes', 'fence'];
-    const ringKey = D.kit(D.pick(ring));
-    const gap0 = D.r() * 6.283;
-    const segs = Math.max(6, Math.round((R * 6.283) / 46));
-    for (let i = 0; i < segs; i++) {
-      const a = (i / segs) * 6.283;
-      const g1 = Math.abs(U.angDiff(a, gap0)), g2 = Math.abs(U.angDiff(a, gap0 + Math.PI));
-      if (g1 < 0.5 || g2 < 0.5) continue; // two ways in
-      const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R * 0.72;
-      if (!inA(A, x, y)) continue;
-      D.put(ringKey(), x, y);
-    }
-    // banners at the gaps
-    for (const a of [gap0, gap0 + Math.PI]) {
-      for (const s of [-0.62, 0.62]) D.put(D.key('banner') || D.key('torch'), cx + Math.cos(a + s) * R, cy + Math.sin(a + s) * R * 0.72);
-    }
-    // the fire off-centre (the breach itself sits in the middle), piles at the sides, bones and corpses about
-    const fa = gap0 + Math.PI / 2;
-    if (!o || !o.noFire) D.fire(cx + Math.cos(fa) * R * 0.45, cy + Math.sin(fa) * R * 0.32);
-    D.pile(cx + Math.cos(fa + Math.PI) * R * 0.5, cy + Math.sin(fa + Math.PI) * R * 0.35, null, 4);
-    D.pile(cx + Math.cos(fa + 2.2) * R * 0.55, cy + Math.sin(fa + 2.2) * R * 0.4, ['sack', 'barrel', 'crate'], 3);
-    for (let i = 0; i < 3; i++) D.put(D.key('pack'), cx + Math.cos(fa + 0.6 + i * 0.5) * R * 0.3, cy + Math.sin(fa + 0.6 + i * 0.5) * R * 0.24);
-    D.near(D.key('cage') || D.key('anvil'), cx + Math.cos(fa - 1.6) * R * 0.55, cy + Math.sin(fa - 1.6) * R * 0.4, 16);
-    D.scatter('bones', cx, cy, R * 0.8, 4);
-    D.scatter('ashes', cx, cy, R * 0.6, 1);
-    D.scatter(D.fam === 'h' ? 'scrawl' : D.fam === 'm' || D.fam === 'v' ? 'skeleton' : 'corpse', cx, cy, R * 0.8, 2);
-    D.scatter('debris', cx, cy, R, 3);
-    return { x: cx, y: cy, r: R };
+    const C = CAMP[D.fam] || CAMP.m;
+    const cx = Math.round(at.x), cy = Math.round(at.y);
+    const hw = Math.round(Math.min(A.rx * 0.9, 118)), back = Math.round(Math.min(A.ry * 0.78, 74)), front = Math.round(Math.min(A.ry * 0.82, 70));
+    const yb = cy - back, yf = cy + front, gate = { x: cx, w: 58 };
+    // the trodden ground of the camp, painted into the floor
+    (D.L.grounds = D.L.grounds || []).push({ x: cx, y: cy + 6, rx: hw + 26, ry: Math.round((back + front) / 2) + 22, seed: cx * 7 + cy });
+    // the stockade: back, sides of posts, the front either side of the gate
+    const wallKey = firstKey(D, C.wall);
+    const run = D.shaped(wallKey ? PR.kindOf(wallKey) : C.wall[0], 'run', wallKey);
+    const post = D.shaped(firstKey(D, C.post) ? PR.kindOf(firstKey(D, C.post)) : C.post[0], 'post', wallKey && D.r() < 0.6 ? wallKey : null);
+    D.wall(run, cx - hw, cx + hw, yb);
+    const pj = 'p' + (D.joins = (D.joins || 0) + 1);
+    for (const s of [-1, 1]) for (let y = yb + 14; y < yf - 6; y += 13) D.put(post(), cx + s * hw, y, { join: pj });
+    D.wall(run, cx - hw, cx + hw, yf, gate);
+    for (const s of [-1, 1]) D.put(D.key('torch') || D.key('lamp') || D.key('brazier'), cx + s * (gate.w / 2 + 6), yf + 4);
+    // the war banner behind the breach, the tents in the back corners
+    D.near(firstKey(D, C.totem), cx, yb + 20, 10);
+    const tent = firstKey(D, C.tent);
+    if (tent) for (const s of [-1, 1]) D.near(tent, cx + s * (hw - 34), yb + 30, 10);
+    // the fire in front of the breach, seats round it
+    const fy = cy + Math.min(46, front - 22);
+    if (!o || !o.noFire) D.fire(cx, fy);
+    D.put(D.key('ashes'), cx + 18, fy + 10);
+    const seat = firstKey(D, C.seat);
+    if (seat) for (const [dx, dy] of [[-30, 2], [30, 2], [0, 22]]) D.put(seat, cx + dx, fy + dy);
+    // supplies in one front corner, the camp's cage or rack in the other
+    const sL = D.r() < 0.5 ? -1 : 1;
+    D.pile(cx + sL * (hw - 30), yf - 24, ['crate', 'barrel', 'sack', 'crate'], 4);
+    D.near(firstKey(D, C.side) || D.key('cage') || D.key('anvil'), cx - sL * (hw - 30), yf - 26, 12);
+    for (let i = 0; i < 2; i++) D.put(D.key('pack'), cx - sL * (hw - 50 - i * 14), yf - 12);
+    // what is left of their victims, outside the gate and along the walls
+    D.scatter('bones', cx, yf + 26, 40, 3);
+    D.scatter(C.dead, cx, yf + 30, 50, 2);
+    D.scatter('debris', cx, cy, hw * 0.8, 3);
+    return { x: cx, y: cy, r: Math.min(hw, (back + front) / 2 + 10) };
   };
   /* a breach nest where camps do not fit the biome: growths, crystals, pools, corpses */
   SCENE.nest = (D, A, at) => {
@@ -605,6 +691,34 @@
     D.near(D.key('pillar'), A.x, A.y - A.ry * 0.5, 20);
   };
   /* gates at the ends, and a last check that every piece of the packs gets a chance (one of each sheet's kinds) */
+  /* a drowned room (Catacombs, Crypt; PLAN.md 21): a sea beast's bones half sunk in the floor, coral, weed and
+     anemones grown over the stones, shells and sand washed into the corners */
+  SCENE.drowned = (D, A) => {
+    const big = D.r() < 0.5 ? 'leviathan' : 'kraken';
+    if (A.rx > 90) D.near(D.key(big) || D.key('carcass'), A.x, A.y - A.ry * 0.15, 30);
+    for (let i = 0; i < 5; i++) { const a = D.r() * 6.283; D.near(D.key(D.pick(['coral', 'coral', 'urchin', 'rock'])), A.x + Math.cos(a) * A.rx * 0.7, A.y + Math.sin(a) * A.ry * 0.6, 20); }
+    D.scatter('anemone', A.x, A.y, Math.min(A.rx, 120), 6);
+    D.scatter('weed', A.x, A.y, Math.min(A.rx, 120), 5);
+    D.scatter('tentacle', A.x, A.y - A.ry * 0.3, Math.min(A.rx, 90), 2);
+    D.scatter('patch', A.x, A.y, A.rx, 6);
+    D.scatter('bonepile', A.x, A.y, A.rx * 0.8, 2);
+  };
+  /* a boneyard (Dead Wood, Catacombs, Gaslight, Crypt): rows of dug-up graves and coffins, a beast's carcass, heaps of
+     bones, web-strung trees and the pale plants that grow on the dead */
+  SCENE.boneyard = (D, A) => {
+    const rows = Math.max(1, Math.min(3, Math.floor(A.ry / 40)));
+    for (let r = 0; r < rows; r++) {
+      const y = A.y - A.ry * 0.55 + r * 46;
+      for (let x = A.x - A.rx * 0.7; x < A.x + A.rx * 0.7; x += 34 + D.r() * 14) D.put(D.key(D.pick(['opengrave', 'opengrave', 'grave', 'coffin'])), x, y);
+    }
+    if (A.rx > 100) D.near(D.key('carcass'), A.x + (D.r() - 0.5) * A.rx * 0.6, A.y + A.ry * 0.4, 26);
+    for (const s of [-1, 1]) D.near(D.key('deadtree'), A.x + s * A.rx * 0.85, A.y - A.ry * 0.7, 18);
+    D.scatter('bonepile', A.x, A.y + A.ry * 0.3, A.rx * 0.8, 3);
+    D.scatter('mushroom', A.x, A.y, A.rx, 3);
+    D.scatter('shrub', A.x, A.y, A.rx, 3);
+    D.scatter('bones', A.x, A.y, A.rx, 4);
+    D.put(D.key('chasm'), A.x + (D.r() - 0.5) * A.rx, A.y + A.ry * 0.5);
+  };
   function dungeons(D, L) {
     const doors = PR.pool('door', D.fam === 'r' ? 'a' : 'a');
     if (doors.length) { L.exit.gate = D.pick(doors); L.entrance.gate = D.pick(doors); }
@@ -660,7 +774,7 @@
     built[id] = { name, w: c.width, h: c.height, keys: front.concat(over.filter(Boolean), [slate], dormer ? [dormer] : [], chim ? [chim] : []), door: 3 + doorAt * cw + cw / 2 - c.width / 2 };
     return built[id];
   }
-  SCENE.townhouse = (D, A) => {
+  SCENE.townhouse = (D, A, at, o) => {
     const th = townhouseSprite(D);
     const box = th && { hw: Math.round(th.w * 0.45), hh: Math.round(th.h * 0.32) }; // the roof leans back over the street behind
     let x = 0, y = 0, room = false;
@@ -669,9 +783,12 @@
     if (th) for (const [ox, oy] of tries) {
       x = Math.round(A.x + ox * A.rx);
       y = Math.round(A.y + oy * A.ry + box.hh);
-      if (D.free(x, y, box.hw, box.hh, true) && D.clearOf(x, y, box)) { room = true; break; }
+      if (D.free(x, y, box.hw, box.hh, !(o && o.clear)) && D.clearOf(x, y, box)) { room = true; break; }
     }
-    if (!room) return SCENE.gstreet(D, A);
+    if (room && o && o.clear) { // make room: the scenery standing on its footprint goes
+      for (let i = D.L.props.length - 1; i >= 0; i--) { const q = D.L.props[i]; if (q.sp && !q.kits && Math.abs(q.x - x) < box.hw + 20 && q.y > y - box.hh * 2 - 20 && q.y < y + 20) D.L.props.splice(i, 1); }
+    }
+    if (!room) return o && o.only ? null : SCENE.gstreet(D, A);
     CH.Arenas.addProp(D.L.props, th.name, x, y, { solid: true, box, cy: -box.hh + 1, cat: 'house', jumpable: false, elevation: 30, destructible: false });
     const p = D.L.props[D.L.props.length - 1];
     p.sp = true;
@@ -842,6 +959,116 @@
     if (L.trail && paths.length) for (let ty = 0; ty < L.th; ty += 3) for (let tx = 0; tx < L.tw; tx += 3) if (L.trail[L.idx(tx, ty)] === 2 && D.r() < 0.3) D.put(D.pick(paths), tx * TS + 16, ty * TS + 20, { a: 0.9 });
   }
 
+  /* ------------------------------------------------------------------ landmarks (PLAN.md 20, request 7) */
+  /* every stage has one place worth walking to: a monument of its biome in the biggest quiet room, built before the
+     rooms are dressed so it has the room to itself, with a lore stone in front of it that the interact button reads
+     (js/interact.js). The Dead Wood's is its giant twisted tree. */
+  const anyKey = (D, kind) => D.key(kind) || (() => { const pool = PR.pool(kind, 'acfgrzwvhm'); return pool.length ? D.pick(pool) : null; })();
+  const LANDMARK = {
+    a: { name: 'THE BONE THRONE', build(D, A) {
+      D.put(anyKey(D, 'throne'), A.x, A.y - 30);
+      for (const s of [-1, 1]) { D.put(anyKey(D, 'statue'), A.x + s * 52, A.y - 36); D.put(D.key('banner'), A.x + s * 30, A.y - 52); D.put(D.key('brazier') || D.key('torch'), A.x + s * 78, A.y + 6); }
+      for (let i = 0; i < 7; i++) { const a = Math.PI * (0.1 + i * 0.133); D.put(D.key('candles'), A.x + Math.cos(a) * 54, A.y - 8 + Math.sin(a) * 26); }
+      D.scatter('bones', A.x, A.y - 4, 60, 6);
+      D.scatter('skeleton', A.x, A.y + 10, 70, 2);
+    } },
+    g: { name: 'THE FOUNTAIN SQUARE', build(D, A) {
+      D.put(anyKey(D, 'well') || anyKey(D, 'statue'), A.x, A.y - 18);
+      D.put(anyKey(D, 'statue'), A.x, A.y - 50);
+      for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) D.put(D.key('lamp'), A.x + sx * 70, A.y - 18 + sy * 36);
+      for (const s of [-1, 1]) D.put(D.key('bench'), A.x + s * 46, A.y + 22);
+      D.scatter('patch', A.x, A.y, 60, 2);
+    } },
+    z: { name: 'THE PILE-UP', build(D, A) {
+      for (let i = 0; i < 4; i++) D.near(anyKey(D, i % 2 ? 'carv' : 'car'), A.x - 70 + i * 46, A.y - 30 + (i % 2) * 22, 12);
+      for (const s of [-1, 1]) { D.put(D.key('flood') || D.key('lamp'), A.x + s * 96, A.y - 40); D.put(D.key('barricade'), A.x + s * 60, A.y + 30); }
+      D.scatter('cone', A.x, A.y + 20, 70, 4);
+      D.scatter('debris', A.x, A.y, 90, 6);
+      D.scatter('tires', A.x, A.y, 80, 2);
+    } },
+    h: { name: 'THE WARD', build(D, A) {
+      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) D.put(anyKey(D, 'bed'), A.x + s * 58, A.y - 46 + i * 34);
+      D.put(anyKey(D, 'statue'), A.x, A.y - 40);
+      for (const s of [-1, 1]) D.put(D.key('cage') || D.key('machine'), A.x + s * 96, A.y);
+      D.scatter('candles', A.x, A.y - 10, 40, 3);
+      D.scatter('scrawl', A.x, A.y + 10, 70, 3);
+    } },
+    w: { name: 'THE REACTOR', build(D, A) {
+      D.put(anyKey(D, 'reactor'), A.x, A.y - 24);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; D.put(i % 2 ? anyKey(D, 'crystal') : anyKey(D, 'toxbarrel'), A.x + Math.cos(a) * 70, A.y - 10 + Math.sin(a) * 40); }
+      D.scatter('pipestand', A.x, A.y, 90, 3);
+      D.scatter('plate', A.x, A.y + 10, 50, 2);
+    } },
+    f: { name: 'THE ICE SHRINE', build(D, A) {
+      D.put(anyKey(D, 'statue'), A.x, A.y - 30);
+      for (let i = 0; i < 6; i++) { const a = Math.PI * (1.1 + i * 0.16); D.put(anyKey(D, 'crystal'), A.x + Math.cos(a) * 64, A.y - 10 + Math.sin(a) * 34); }
+      for (const s of [-1, 1]) D.put(D.key('brazier'), A.x + s * 40, A.y + 10);
+      D.scatter('plate', A.x, A.y, 40, 2);
+    } },
+    v: { name: 'THE FORGE OF ASH', build(D, A) {
+      D.put(anyKey(D, 'machine') || anyKey(D, 'altar'), A.x, A.y - 34);
+      for (const s of [-1, 1]) { D.put(anyKey(D, 'anvil'), A.x + s * 40, A.y - 4); D.put(anyKey(D, 'cauldron'), A.x + s * 72, A.y - 30); D.put(D.key('brazier'), A.x + s * 90, A.y + 14); }
+      for (let i = 0; i < 6; i++) { const a = Math.PI * (0.05 + i * 0.18); D.put(anyKey(D, 'lavarock'), A.x + Math.cos(a) * 100, A.y + 20 + Math.sin(a) * 30); }
+      D.scatter('ashes', A.x, A.y, 60, 2);
+    } },
+    r: { name: 'THE HALL OF KINGS', build(D, A) {
+      D.put(anyKey(D, 'throne'), A.x, A.y - 40);
+      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) D.put(D.key('pillar') || D.key('statue'), A.x + s * 70, A.y - 50 + i * 40);
+      for (const s of [-1, 1]) D.put(D.key('brazier'), A.x + s * 30, A.y - 20);
+      D.scatter('rug', A.x, A.y + 10, 10, 1);
+    } },
+    m: { name: 'THE OLD WATCH', build(D, A) {
+      SCENE.ruin(D, A);
+      D.put(D.key('statue') || D.key('obelisk'), A.x, A.y - 10);
+    } },
+  };
+  LANDMARK.c = { name: 'THE GIANT TREE' }; // built by giantTree()
+  const LORE = {
+    a: ['Whoever sat here ruled the dead. The dead were not impressed. They never are.', 'A plaque reads: RESERVED. Below it, in fresher scratches: NOT FOR LONG.'],
+    g: ['The fountain was a gift to the city from a grateful cult. Nobody asked what it was grateful for.', 'Toss a coin in for luck. Something in the water says thank you. In your voice.'],
+    z: ['Everybody tried to leave the city at once. Traffic, it turns out, is the real apocalypse.', 'A note under a wiper: "Back in 5 min. Do not eat." The handwriting deteriorates.'],
+    h: ['The patients were promised a cure. The cure was promised patients. Everyone was disappointed.', 'Chart, bed 3: "Insists reality has a bug. Recommend more bugs." Signed, illegibly, by a bug.'],
+    w: ['The reactor still hums a lullaby. It is the only thing out here that ever sang.', 'WARNING stencilled over WARNING stencilled over a smiley face somebody kept repainting.'],
+    f: ['The ice remembers a queen who froze her own heart to stop it breaking. It broke anyway, just colder.', 'Offerings at the shrine: three mittens, a fish, and a very apologetic letter to the cold.'],
+    v: ['The smiths of ash forged a sword that could cut a promise. They did not trust each other after that.', 'Hammer marks on the anvil spell a word over and over. The word is MORE.'],
+    r: ['The kings of the Crimson Castle were crowned in blood and buried in debt. The debt is still collecting.', 'An empty throne is a question. This one has been waiting a long time for a bad answer.'],
+    c: ['The giant tree was planted by the first settlers. It ate the second settlers. The third ones built further away.', 'Carved in the bark, many times: TURN BACK. Under it, newer: OR DO NOT, I AM A TREE.'],
+    m: ['The old watch tower kept the valley safe until the valley stopped wanting to be kept.', 'Somebody counted the days on the stones in here. They stopped at a number nobody wants to say out loud.'],
+  };
+  SP.LANDMARK = LANDMARK;
+  /* the Crypt's other landmark, every other stage: the lich rising from its pit (Undead Land Objects, PLAN.md 21) */
+  const LICH = { name: "THE LICH'S PIT", build(D, A) {
+    D.put(D.key('lich'), A.x, A.y - 10, { force: true });
+    D.put(D.key('chasm'), A.x - 70, A.y + 20);
+    for (const s of [-1, 1]) { D.put(D.key('bonepile'), A.x + s * 84, A.y - 20); D.put(D.key('candles'), A.x + s * 56, A.y + 26); }
+    D.scatter('bones', A.x, A.y, 90, 6);
+    D.scatter('opengrave', A.x, A.y + 30, 110, 3);
+  } };
+  function landmark(D, L) {
+    const fam = LANDMARK[D.fam] ? D.fam : 'm';
+    const def = fam === 'h' && D.step % 2 === 1 && PR.pool('lich', 'u').length ? LICH : LANDMARK[fam];
+    let at = null;
+    if (fam === 'c') { // the Dead Wood: the giant tree is the landmark; the lore stone stands before it
+      const tree = L.props.find((p) => p.sheet === 'kit.cf_giant_tree');
+      if (tree) at = { x: tree.x + 36, y: tree.y + 26 };
+    } else {
+      const quiet = L.rooms.filter((rm) => rm.tag !== 'start' && rm.tag !== 'exit' && rm.tag !== 'hall' && rm.tag !== 'town' && !L.spawners.some((s) => s.room === rm.id));
+      quiet.sort((a, b) => (b.r ? b.r * b.r * 3 : b.w * b.h) - (a.r ? a.r * a.r * 3 : a.w * a.h));
+      const rm = quiet[0];
+      if (!rm) return;
+      const A = area(L, rm);
+      if (A.rx < 80 || A.ry < 60) return;
+      rm.landmark = true;
+      def.build(D, A);
+      at = { x: A.x, y: A.y + Math.min(A.ry * 0.6, 52) };
+    }
+    if (!at) return;
+    const stone = D.put(anyKey(D, 'sign') || anyKey(D, 'plaque') || anyKey(D, 'signpost') || anyKey(D, 'grave'), at.x, at.y) || D.near(anyKey(D, 'signpost') || anyKey(D, 'grave'), at.x, at.y, 26);
+    const x = stone ? stone.x : at.x, y = stone ? stone.y : at.y;
+    const lines = LORE[fam] || LORE.m;
+    L.lore = [{ x, y, name: def.name, lines: [lines[Math.floor(D.r() * lines.length) % lines.length]] }];
+  }
+
   /* the giant twisted tree in the biggest quiet room (before the rooms are dressed); after them: warning signs by the
      secret walls, the trail's debris, and the gates at the ends */
   function giantTree(D, L) {
@@ -919,6 +1146,7 @@
     L.chunks.clear();
     // rooms
     if (D.fam === 'c') giantTree(D, L); // the landmark first, while its room is empty
+    if (!L.bossHall) landmark(D, L);
     const scenes = SCENES[biome] || SCENES.dungeon;
     let si = Math.floor(D.r() * scenes.length);
     const camps = [];
@@ -929,6 +1157,7 @@
       if (rm.tag === 'hall') { SCENE.bosshall(D, A); continue; } // an act boss's hall (js/worldmap.js)
       const sp = L.spawners.find((s) => s.room === rm.id);
       const pk = L.packs.find((q) => q.room === rm.id);
+      if (rm.landmark) { if (pk) pk.camp = { x: pk.x, y: pk.y, r: 80 }; continue; } // the landmark has its room to itself
       if (sp) {
         const nestBiome = biome === 'glitch' || biome === 'office';
         const c = (nestBiome ? SCENE.nest : SCENE.camp)(D, A, sp, { noFire: false });
@@ -948,6 +1177,17 @@
       if (made && name === 'camp') camps.push(made);
       if (pk) pk.camp = { x: pk.x, y: pk.y, r: Math.min(A.rx, 90) };
     }
+    // every Gaslight stage has its townhouse: when no room was free for it, the roomiest room that will hold one gets it
+    if (D.fam === 'g' && !L.townhouses) {
+      const big = L.rooms.filter((rm) => rm.tag !== 'start' && rm.tag !== 'exit' && rm.tag !== 'town').map((rm) => area(L, rm)).sort((a, b) => b.rx * b.ry - a.rx * a.ry);
+      for (const A of big) { SCENE.townhouse(D, A, null, { only: true }); if (L.townhouses) break; }
+      // every room a breach's camp or the landmark's: it stands on the open street between them, off the route
+      for (let ty = 6; ty < L.th - 4 && !L.townhouses; ty += 5) for (let tx = 6; tx < L.tw - 6 && !L.townhouses; tx += 5) {
+        if (L.solid(tx, ty) || (L.route && L.route[L.idx(tx, ty)])) continue;
+        SCENE.townhouse(D, { x: (tx + 0.5) * TS, y: (ty + 0.5) * TS, rx: 24, ry: 24 }, null, { only: true });
+      }
+      for (const A of big) { if (L.townhouses) break; SCENE.townhouse(D, A, null, { only: true, clear: true }); }
+    }
     // lights along the route, a signpost where it leaves the start, braziers flanking the exit
     for (let i = 8; i < path.length - 6; i += 9) {
       const [tx, ty] = path[i], [nx, ny] = path[Math.min(path.length - 1, i + 1)];
@@ -964,9 +1204,16 @@
     if (D.fam === 'f') frozen(D, L);
     if (D.fam === 'g') gaslight(D, L);
     if (D.fam === 'a' || D.fam === 'r') dungeons(D, L);
+    if (SP.after && SP.after[biome]) SP.after[biome](D, L); // the sky road's tower, the belly's heart (js/sky.js)
+    const t0 = performance.now();
     fields(D, L);
     edges(D, L);
+    const t1 = performance.now();
+    sweep(D, L);
+    const t2 = performance.now();
     keepReachable(L);
+    L.dressMs = { fields: Math.round(t1 - t0), sweep: Math.round(t2 - t1), keep: Math.round(performance.now() - t2) }; // where the time goes (t25)
+    if (!L.bossHall) LG.puddles(L, D.r); // last: puddles keep off everything that stands (PLAN.md 20)
     CH.Props.invalidate();
     return L;
   };
@@ -999,6 +1246,7 @@
   };
   function fields(D, L) {
     const sets = FIELD[D.biome] || FIELD.dungeon;
+    if (!sets.length) return;
     const inRoom = (x, y) => L.rooms.some((rm) => U.dist(x, y, rm.cx, rm.cy) < (rm.r ? rm.r * TS : Math.max(rm.w, rm.h) * TS * 0.55));
     const step = 7;
     for (let ty = 2; ty < L.th - 2; ty += step) for (let tx = 2; tx < L.tw - 2; tx += step) {
@@ -1034,6 +1282,50 @@
     }
   }
 
+  /* the sweep (PLAN.md 21, request 3): this stage's fifth of every pool of its families that the scenes did not use
+     is placed now, each kind in a group of its own (a row of graves, a heap of crates, stains on a floor) in a room of
+     its own, so every piece of the packs shows somewhere in the biome's five stages */
+  const NOSWEEP = { face: 1, ground: 1, skip: 1, particle: 1, roof: 1, bridge: 1, cloud: 1, dragon: 1, ladder: 1, falls: 1, portal: 1, landmark: 1, lich: 1, door: 1, window: 1, corner: 1, mawdoor: 1, hang: 1, throne: 1, heart: 1, worm: 1 };
+  SP.NOSWEEP = NOSWEEP;
+  function sweep(D, L, force) {
+    if (!force && (L.bossHall || L.interior)) return;
+    const used = new Set();
+    for (const p of L.props) if (p.sheet) used.add(p.sheet);
+    for (const d of L.decals) if (d.key) used.add(d.key);
+    const walls = new Set(CH.Walls ? CH.Walls.keysOf(D.biome) : []);
+    const spots = L.rooms.filter((rm) => !rm.landmark && rm.tag !== 'start' && rm.tag !== 'exit' && (force || rm.tag !== 'hall') && rm.tag !== 'town').map((rm) => area(L, rm));
+    if (!spots.length) return;
+    let si = Math.floor(D.r() * spots.length);
+    const onRoute = (px, py) => L.route && L.route[L.idx(Math.floor(px / TS), Math.floor(py / TS))];
+    // a swept piece that stands keeps two tiles from every wall (one in a tight room): it never plugs a doorway or a
+    // corridor, and if it still cuts a way keepReachable takes it out first
+    const open2 = (px, py, m) => { const tx = Math.floor(px / TS), ty = Math.floor(py / TS); for (let oy = -m; oy <= 1; oy++) for (let ox = -m; ox <= m; ox++) if (L.solid(tx + ox, ty + oy)) return false; return true; };
+    for (const kind of PR.kinds(D.fams)) {
+      if (NOSWEEP[kind] || (PR.KIND[kind] && PR.KIND[kind].skip)) continue;
+      const pool = PR.pool(kind, D.fams);
+      if (!pool.length) continue;
+      const dk = D.deckOf(kind, pool), share = SP.SINGLE[D.biome] ? dk.len : Math.ceil(dk.len / 5); // a biome of one stage shows all of it there
+      const owe = [];
+      for (let i = 0; i < share; i++) { const k = dk.order[(dk.start + i) % dk.len]; if (!used.has(k) && !walls.has(k) && !owe.includes(k)) owe.push(k); }
+      if (!owe.length) continue;
+      const flat = !!FLAT[kind] || !(PR.KIND[kind] && PR.KIND[kind].box);
+      for (let j = 0; j < owe.length; j += 6) { // groups of up to six
+        const A = spots[si++ % spots.length];
+        const gx = A.x + (D.r() - 0.5) * A.rx * 1.2, gy = A.y + (D.r() - 0.5) * A.ry * 1.1;
+        const row = !flat && D.r() < 0.5;
+        owe.slice(j, j + 6).forEach((k, i) => {
+          const x = row ? gx + (i - 2.5) * 30 : gx;
+          for (let t = 0; t < 20; t++) {
+            const a = D.r() * 6.283, d = row ? (t % 10) * 6 : 10 + (t % 10) * 9;
+            const px = x + Math.cos(a) * d, py = gy + Math.sin(a) * d * 0.75;
+            if (!flat && (onRoute(px, py) || !open2(px, py, t < 10 ? 2 : 1))) continue;
+            const p = D.put(k, px, py);
+            if (p) { used.add(k); p.swept = true; break; }
+          }
+        });
+      }
+    }
+  }
   /* solid scenery must not wall off anything the run needs: walk the flow field from the entrance and drop the
      set-piece props nearest to anything unreachable, until everything is */
   function keepReachable(L) {
@@ -1062,7 +1354,7 @@
       let best = null, bd = 1e9;
       for (const p of L.props) {
         if (!p.sp || !p.solid || p.dead) continue;
-        const d = Math.min(U.dist(p.x, p.y, bad.x, bad.y), U.dist(p.x, p.y, cut.x, cut.y) - (p.box ? p.box.hw : 0)) + (p.kits ? 400 : 0); // a built cabin or townhouse goes last
+        const d = Math.min(U.dist(p.x, p.y, bad.x, bad.y), U.dist(p.x, p.y, cut.x, cut.y) - (p.box ? p.box.hw : 0)) + (p.kits ? 400 : 0) - (p.swept ? 300 : 0); // a built cabin or townhouse goes last, a swept piece first
         if (d < bd) { bd = d; best = p; }
       }
       if (!best) break;
@@ -1124,4 +1416,7 @@
   SP.SCENE = SCENE;
   SP.Dresser = Dresser;
   SP.area = area;
+  // for the stages of js/sky.js: their scenes, landmarks and lore join these
+  SP.FIELD = FIELD; SP.EDGE = EDGE;
+  SP.SCENE = SCENE; SP.SCENES = SCENES; SP.LANDMARK = LANDMARK; SP.LORE = LORE; SP.FAM = FAM; SP.ALT = ALT; SP.sweep = sweep;
 })(window.CH);

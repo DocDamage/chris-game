@@ -4,6 +4,7 @@ const { open } = require('./lib');
   const { browser, page, errs } = await open();
   const out = await page.evaluate(() => {
     const LG = CH.LevelGen, U = CH.U, r = { biomes: {}, slow: 0, bad: [] };
+    CH.Props.warm(true); // the game makes every piece's sprite in idle time after load (js/props.js); here, now
     const hash = (L) => { let h = 0; for (let i = 0; i < L.cells.length; i++) h = (h * 31 + L.cells[i]) | 0; return h; };
     for (const biome of ['dungeon', 'office', 'glitch', 'volcano', 'backyard', 'zombie', 'wasteland', 'frozen']) {
       const b = (r.biomes[biome] = { levels: 0, floorPct: [], unreach: 0, maxMs: 0, secrets: 0, sealed: 0, det: true, spawners: 0, packs: 0 });

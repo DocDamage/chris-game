@@ -314,6 +314,7 @@
     const L = new Level(sz[0], sz[1], biome);
     const layout = opts.layout || LAYOUT[biome] || 'dungeon';
     if (layout === 'outdoor') genOutdoor(L, R);
+    else if (layout === 'sky' && CH.Sky) CH.Sky.gen(L, R); // flying islands and bridges (js/sky.js)
     else genDungeon(L, R);
     L.layout = layout;
     const rooms = L.rooms;
@@ -378,7 +379,7 @@
     const shrineRooms = rooms.filter((r) => r !== start && r !== exitRoom).sort(() => R.f() - 0.5).slice(0, R.int(1, 2));
     L.shrines = shrineRooms.map((r, i) => { const p = L.randomNear(r.cx, r.cy, 40, 90, 18, R.f) || L.nearestOpen(r.cx, r.cy); return { x: p.x, y: p.y, used: false, id: i, kind: R.pick(['blood', 'elite', 'healing', 'speed']) }; });
 
-    height(L, R, stage, rooms, start, exitRoom);
+    if (layout !== 'sky') height(L, R, stage, rooms, start, exitRoom); // no cliffs on the islands: the void is their edge
     if (layout === 'dungeon' || opts.secrets || ['zombie', 'deadwood', 'gaslight', 'frozen'].includes(biome)) secretRooms(L, R, stage >= 2 ? R.int(1, 2) : 1);
     if (CH.Secrets) CH.Secrets.seal(L, R, stage); // some secrets wait behind an ability from a later act (PLAN.md 18, K8)
     if (biome === 'zombie' && L.secrets[0]) L.secrets[0].kind = 'garage'; // the locked garage of the Outbreak City (needs the key a named unique carries)
@@ -401,19 +402,64 @@
         }
       }
     }
-    // puddles of water / blood / toxic goo / lava (the shader makes them reflect); never on top of anything we placed
-    const PK = { catacombs: ['water', 'blood', 'blood'], castle: ['blood', 'blood', 'lava'], gaslight: ['water', 'water', 'blood'], deadwood: ['water', 'water', 'toxic'], backyard: ['water'], office: ['water'], glitch: ['toxic'], zombie: ['water', 'toxic'], wasteland: ['toxic', 'water'], volcano: ['lava', 'lava', 'water'], dungeon: ['water', 'blood'], frozen: ['water'] };
-    const pk = PK[biome] || ['water'];
-    const np = R.int(5, 9);
-    for (let i = 0, tries = 0; i < np && tries < np * 6; tries++) {
-      const rm = R.pick(rooms);
-      const q = L.randomNear(rm.cx, rm.cy, 10, Math.max(60, Math.min((rm.w || 10) * TS * 0.4, 220)), 36, R.f);
-      if (!q || reserved.some((o) => U.dist(q.x, q.y, o.x, o.y) < 80)) continue;
-      const rx = R.int(22, 56);
-      L.puddles.push({ x: q.x, y: q.y, rx, ry: Math.round(rx * (0.5 + R.f() * 0.25)), kind: R.pick(pk) });
-      i++;
-    }
+    // puddles come last, once the set pieces stand (js/setpieces.js calls LG.puddles at the end of its dressing)
+    if (!(CH.SetPieces && CH.SetPieces.on)) LG.puddles(L, R.f);
     L.revealStart = () => L.reveal(L.entrance.x, L.entrance.y, 9);
     return L;
+  };
+
+  /* puddles of water / blood / toxic goo / lava (PLAN.md 20, request 2). One lies only on open floor: all of it on
+     floor cells (no spilling up a wall, over a pit or a rim), clear of solid props, buildings, painted inlays and the
+     stage's spots, and apart from every other puddle; now and then a small one or two beside it, as rain leaves them.
+     Lava and goo keep off the trodden route. The Frozen Kingdom has its ice instead. */
+  const PK = { catacombs: ['water', 'blood', 'water'], castle: ['blood', 'water', 'lava'], gaslight: ['water', 'water', 'blood'], deadwood: ['water', 'water', 'toxic'], backyard: ['water'], office: ['water'], glitch: ['toxic'], zombie: ['water', 'toxic', 'water'], wasteland: ['toxic', 'water'], volcano: ['lava', 'lava', 'water'], dungeon: ['water', 'blood'], frozen: [] };
+  LG.puddles = function (L, rnd) {
+    L.puddles = [];
+    const pk = PK[L.biome] || ['water'];
+    if (!pk.length || !L.rooms || !L.rooms.length) return L.puddles;
+    const spots = [L.entrance, L.exit].concat(L.waypoints || [], L.spawners || [], L.chests || [], L.shrines || [], L.packs || []).filter(Boolean);
+    const solids = (L.props || []).filter((p) => !p.dead && (p.solid || p.enter));
+    const decals = (L.decals || []).filter((d) => d.img && d.img.width * d.img.height > 40 * 40); // inlays and rugs, not litter
+    const fits = (x, y, rx, ry, kind) => {
+      for (let yy = y - ry - 4; yy <= y + ry + 4; yy += 6) for (let xx = x - rx - 4; xx <= x + rx + 4; xx += 6) {
+        if (((xx - x) / (rx + 4)) ** 2 + ((yy - y) / (ry + 4)) ** 2 > 1) continue;
+        const tx = Math.floor(xx / TS), ty = Math.floor(yy / TS);
+        if (L.cell(tx, ty) !== 0) return false;
+        if (kind !== 'water' && kind !== 'blood' && L.route && L.route[L.idx(tx, ty)]) return false;
+      }
+      for (let k = 0; k < 24; k++) { const an = (k / 24) * Math.PI * 2; if (L.cell(Math.floor((x + Math.cos(an) * (rx + 2)) / TS), Math.floor((y + Math.sin(an) * (ry + 2)) / TS)) !== 0) return false; } // the rim itself (a wall corner can fall between the grid's points)
+      for (const s of spots) if (Math.abs(s.x - x) < rx + 34 && Math.abs(s.y - y) < ry + 30) return false;
+      for (const p of solids) {
+        const hw = p.box ? p.box.hw : p.cr || 10, hh = p.box ? p.box.hh * 2 + 6 : (p.cr || 10) + 6;
+        if (Math.abs(p.x - x) < rx + hw + 6 && p.y > y - ry - 8 && p.y - hh < y + ry + 6) return false;
+      }
+      for (const d of decals) if (Math.abs(d.x - x) < rx + d.img.width / 2 && Math.abs(d.y - y) < ry + d.img.height / 2) return false;
+      for (const q of L.puddles) if (((q.x - x) / (q.rx + rx + 10)) ** 2 + ((q.y - y) / (q.ry + ry + 8)) ** 2 < 1) return false;
+      return true;
+    };
+    const np = 5 + Math.floor(rnd() * 5);
+    for (let i = 0, tries = 0; i < np && tries < np * 40; tries++) {
+      let q;
+      if (tries % 2) { // anywhere on open floor (outdoor maps are mostly the ground between rooms)
+        const tx = 1 + Math.floor(rnd() * (L.tw - 2)), ty = 1 + Math.floor(rnd() * (L.th - 2));
+        q = L.cell(tx, ty) === 0 && L.isOpen((tx + 0.5) * TS, (ty + 0.5) * TS, 30) ? { x: (tx + 0.5) * TS, y: (ty + 0.5) * TS } : null;
+      } else {
+        const rm = L.rooms[Math.floor(rnd() * L.rooms.length)];
+        if (rm.tag === 'start' || rm.tag === 'town') continue;
+        q = L.randomNear(rm.cx, rm.cy, 0, Math.max(60, Math.min((rm.w || 10) * TS * 0.42, 220)), 30, rnd);
+      }
+      if (!q) continue;
+      const kind = pk[Math.floor(rnd() * pk.length)];
+      const rx = Math.round(20 + rnd() * 26), ry = Math.round(rx * (0.48 + rnd() * 0.2));
+      if (!fits(q.x, q.y, rx, ry, kind)) continue;
+      L.puddles.push({ x: Math.round(q.x), y: Math.round(q.y), rx, ry, kind });
+      i++;
+      // a small one or two at its side, as rain leaves them
+      if (kind === 'water' && rnd() < 0.55) for (let k = 0; k < 1 + Math.floor(rnd() * 2); k++) {
+        const a = rnd() * Math.PI * 2, sr = Math.round(6 + rnd() * 7), sx = Math.round(q.x + Math.cos(a) * (rx + sr + 5)), sy = Math.round(q.y + Math.sin(a) * (ry + sr * 0.6 + 4));
+        if (fits(sx, sy, sr, Math.round(sr * 0.6), kind)) L.puddles.push({ x: sx, y: sy, rx: sr, ry: Math.round(sr * 0.6), kind });
+      }
+    }
+    return L.puddles;
   };
 })(window.CH);

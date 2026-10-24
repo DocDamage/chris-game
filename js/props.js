@@ -129,6 +129,34 @@
     room: K(1, null), // a whole castle hall painted into the floor
     lava: K(1, null), // a lava inlay
     block: K(1, [0.86, 0.4], { res: 'stone' }), // a castle stone feature: plinths, steps, fountains, fireplaces
+    // the packs of 2026-10-24, second drop (PLAN.md 21): Undead Land Objects, Seabed, Flying Islands, Final Tower, Belly
+    carcass: K(1, [0.7, 0.32], { res: 'stone', hp: 120 }), // a beast's skeleton, a giant centipede's bones
+    bonepile: K(1, [0.74, 7], { j: 1, d: 1, res: 'stone' }),
+    opengrave: K(1, [0.8, 8], { j: 1, res: 'stone' }), // a dug-up grave with its heap of earth
+    lich: K(1, [0.62, 0.3], { res: 'stone' }), // the lich rising from its pit: a landmark
+    chasm: K(1, null), // a skull-lined hole in the ground, painted in the floor
+    leviathan: K(1, [0.6, 0.28], { res: 'stone' }), // a sea serpent's skeleton
+    kraken: K(1, [0.55, 0.28], { res: 'stone' }),
+    tentacle: K(1, [0.5, 6], { d: 1, res: 'wood', sway: 1 }),
+    urchin: K(1, [0.7, 6], { j: 1, hurt: 1 }),
+    coral: K(1, [0.6, 6], { j: 1, d: 1, res: 'stone' }),
+    anemone: K(1, null, { sway: 1 }),
+    weed: K(1, null, { sway: 1 }),
+    tuft: K(1, null, { sway: 1 }),
+    ruin: K(1, [0.85, 0.32], { res: 'stone' }), // a broken colonnade on an island
+    floater: K(1, null, { l: 1 }), // rocks and flowers floating over the islands
+    cloud: K(1, null, { skip: 1 }), // the sky's own (js/sky.js)
+    dragon: K(1, null, { skip: 1 }),
+    ladder: K(1, null, { skip: 1 }),
+    falls: K(1, null, { skip: 1 }),
+    vein: K(1, null), // a vein on the gut floor
+    pustule: K(1, [0.7, 6], { j: 1, d: 1, res: 'stone' }),
+    heart: K(1, [0.6, 0.3], { l: 1 }), // the beating heart of the beast
+    cell: K(1, [0.6, 6], { d: 1, res: 'stone' }), // a cell creature quivering on the gut floor
+    worm: K(1, [0.5, 0.3], {}),
+    mawdoor: K(1, null, { gate: 1 }),
+    tiles: K(1, null, { skip: 1 }), // a pack's autotile blocks: the source of its floor swatches, not a prop
+    tower: K(1, null, { skip: 1 }),
   };
   PR.KIND = KIND;
 
@@ -271,7 +299,11 @@
     fk20: { barrel: '0,2,17', sack: '1', crate: '3,8', pole: '4,16', cauldron: '5', table: '6', bench: '7,9,10', well: '11,13', crystal: '12', signpost: '14', lamp: '15,18-20,33,34', brazier: '21', obelisk: '22', door: '23', smallstatue: '24,25', grave: '26', banner: '27,28,35', fence: '29,30', rock: '31', tree: '32' },
   };
   PR.KCAT = KCAT;
-  const KFAM = { cf: 'c', fk: 'f', hv: 'g', da: 'a', gc: 'r' };
+  const KFAM = { cf: 'c', fk: 'f', hv: 'g', da: 'a', gc: 'r', ul: 'u', sb: 's', fi: 'i', ft: 't', mb: 'b' };
+  /* animated pieces (anim.<name>, tools/pack-lands.js): the family from the name's prefix */
+  const AFAM = { fi: 'i', mb: 'b', ft: 't', sb: 's' };
+  const animOf = {}; // 'anim.mb_heart' -> { n, fw, fh, kind, fps }
+  PR.animOf = (key) => { build(); return animOf[key] || null; };
   const parse = (s) => {
     const out = [];
     for (const part of s.split(',')) {
@@ -337,18 +369,40 @@
         ((byKind[kind] = byKind[kind] || {})[f] = byKind[kind][f] || []).push(key);
       });
     }
+    // the second drop (tools/pack-lands.js): kinds per piece, and the animations
+    const LD = (CH.Assets.meta && CH.Assets.meta.lands) || {};
+    for (const id of Object.keys(LD.sheets || {})) {
+      const m = LD.sheets[id];
+      if (!m.kinds) continue;
+      const f = KFAM[id.slice(0, 2)];
+      m.kinds.forEach((kind, i) => {
+        const key = 'kit.' + id + '.' + i;
+        if (!kind || kindOf[key] || !CH.Assets.images[key]) return;
+        kindOf[key] = kind;
+        ((byKind[kind] = byKind[kind] || {})[f] = byKind[kind][f] || []).push(key);
+      });
+    }
+    for (const name of Object.keys(LD.anims || {})) {
+      const a = LD.anims[name], key = 'anim.' + name, f = AFAM[name.slice(0, 2)];
+      if (!f || !CH.Assets.images[key + '.0']) continue;
+      animOf[key] = a;
+      kindOf[key] = a.kind;
+      ((byKind[a.kind] = byKind[a.kind] || {})[f] = byKind[a.kind][f] || []).push(key);
+    }
     // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
     const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door', hv_eye_portal: 'door', hv_pentagram: 'decal', hv_skull_arch: 'door' };
     for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { const f = KFAM[k.slice(0, 2)]; kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {})[f] = byKind.portal[f] || []).push('kit.' + k); }
   }
   PR.kindOf = (key) => { build(); return kindOf[key] || null; };
+  /* the kinds that have pieces in any of the given families */
+  PR.kinds = (fams) => { build(); return Object.keys(byKind).filter((k) => [...fams].some((f) => byKind[k][f] && byKind[k][f].length)); };
   /* every piece of a kind in the given families ('zw', 'hm' ...) */
   PR.pool = (kind, fams) => {
     build();
     const b = byKind[kind];
     if (!b) return [];
     let out = [];
-    for (const f of fams || 'zwvhm') if (b[f]) out = out.concat(b[f]);
+    for (const f of new Set(fams || 'zwvhm')) if (b[f]) out = out.concat(b[f]);
     return out;
   };
 
@@ -360,6 +414,23 @@
     const s = Math.round((key.startsWith('kit.') ? 1 : k.s) * (mul || 1) * 100) / 100; // kit pieces are cut at game scale
     const id = key + '@' + s;
     if (scaled[id]) return scaled[id];
+    const an = animOf[key];
+    if (an) { // an animated piece: all its frames in one sprite (drawn by frame, js/render.js)
+      const fr = [];
+      for (let i = 0; i < an.n; i++) {
+        const im = CH.Assets.images[key + '.' + i];
+        if (!im) continue;
+        const c = document.createElement('canvas');
+        c.width = im.width; c.height = im.height;
+        c.getContext('2d').drawImage(im, 0, 0);
+        fr.push(s === 1 ? c : S.scaleFrame(c, s));
+      }
+      if (!fr.length) return null;
+      const name = 'pc' + Object.keys(scaled).length;
+      S.fromFrames(name, fr, { anchor: 'feet' });
+      scaled[id] = name;
+      return name;
+    }
     const im = CH.Assets.images[key];
     if (!im) return null;
     const name = 'pc' + Object.keys(scaled).length;
@@ -372,6 +443,18 @@
     scaled[id] = name;
     return name;
   };
+  /* every piece's sprite made ahead of need, a few per tick in idle time after load: the older sheets' pieces are
+     scaled by Scale2x (js/sprites.js scaleFrame), and since each stage deals new pieces (PLAN.md 21) the first stage of a
+     biome would otherwise make them all at once. warm(true) does it all now (tests). */
+  let warmList = null;
+  PR.warm = function (all) {
+    build();
+    if (!warmList) { warmList = []; for (const k of Object.keys(byKind)) for (const f of Object.keys(byKind[k])) warmList.push(...byKind[k][f]); }
+    const n = all ? warmList.length : 12;
+    for (let i = 0; i < n && warmList.length; i++) PR.sprite(warmList.pop());
+    return warmList.length;
+  };
+  setTimeout(function tick() { if (!CH.Assets || !CH.Assets.ready) return setTimeout(tick, 500); if (PR.warm(false) > 0) setTimeout(tick, 16); }, 1500);
   PR.info = function (key) {
     const kind = PR.kindOf(key);
     return kind ? Object.assign({ kind }, KIND[kind]) : null;
@@ -438,8 +521,53 @@
     return (x - px) * (x - px) + (y - py) * (y - py) < m * m;
   };
   /* the box of a piece drawn with sprite `name` and catalogue kind `kind` */
+  /* a floor decal that belongs on the floor (PLAN.md 20, request 7): stains, bones and scrawls stay smaller than a
+     tile and a half (a splat as big as a car was pasted all over the castle), and nothing that is a filled square (a
+     tile or swatch cut as a decal reads as a hole in the floor). Inlays (rooms, rugs, lava, pools, plates) are meant
+     to be big and square. */
+  const SMALL = { decal: 50, scrawl: 50, corpse: 56, bones: 44, skeleton: 48, debris: 40, ashes: 44, patch: 56 };
+  /* how much of a piece is solid paint (0-1), read once per piece from its decoded source image on one reused
+     canvas (reading back a drawn sprite canvas costs milliseconds each: PLAN.md 21) */
+  const fills = new Map();
+  let probe = null;
+  function fillOf(key, im) {
+    if (fills.has(key)) return fills.get(key);
+    const src = CH.Assets.images[key] || im;
+    if (!probe) { probe = document.createElement('canvas'); probe.g = probe.getContext('2d', { willReadFrequently: true }); }
+    probe.width = src.width; probe.height = src.height;
+    probe.g.drawImage(src, 0, 0);
+    const d = probe.g.getImageData(0, 0, src.width, src.height).data;
+    let solid = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 200) solid++;
+    const f = solid / Math.max(1, src.width * src.height);
+    fills.set(key, f);
+    return f;
+  }
+  /* the scale a floor decal is drawn at: 1, smaller for a big splat (so the pack's big stains still show, at the size
+     of a stain), 0 for a filled square */
+  PR.decalScale = function (key, kind, im) {
+    if (!SMALL[kind] || !im) return 1;
+    if (PR.goodDecal(key, kind, im)) return 1;
+    const big = Math.max(im.width, im.height);
+    if (big <= SMALL[kind]) return 0; // small enough: it failed for being a filled square
+    return fillOf(key, im) > 0.82 ? 0 : Math.round((SMALL[kind] / big) * 100) / 100; // a filled square, scaled or not, stays out
+  };
+  PR.goodDecal = function (key, kind, im) {
+    if (!SMALL[kind] || !im) return true;
+    if (Math.max(im.width, im.height) > SMALL[kind]) return false;
+    return !(im.width >= 20 && im.height >= 20 && fillOf(key, im) > 0.82);
+  };
+  /* kinds that are walk-through only while small: past STAND px tall a bush, a giant mushroom, a standing lantern, a
+     candelabra or a heap of supplies is in the way like anything else (PLAN.md 20, request 6) */
+  const STAND = 17;
+  const TALL = { anemone: [0.5, 5], weed: [0.36, 5], tuft: [0.4, 5], shrub: [0.5, 6], mushroom: [0.42, 6], lantern: [0.34, 5], candles: [0.5, 5], item: [0.7, 6], pack: [0.72, 6], flower: [0.45, 5] };
+  PR.TALL = TALL;
   PR.boxFor = function (name, kind) {
     const k = KIND[kind];
+    if (k && !k.box && TALL[kind] && S.has(name) && S.get(name).h >= STAND) {
+      const sp = S.get(name), t = TALL[kind];
+      return { hw: Math.max(4, Math.round((sp.w * t[0]) / 2)), hh: Math.max(3, Math.round(t[1] / 2)) };
+    }
     if (!k || !k.box) return null;
     const sp = S.get(name);
     const w = sp.w, h = sp.h;

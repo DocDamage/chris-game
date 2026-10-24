@@ -143,7 +143,7 @@
   };
 
   /* the machine now opens a menu instead of rolling the dice */
-  G.interact = function (who) {
+  G.interact = Shop.useMachine = function (who) {
     const m = G.machine;
     const p = who || G.player;
     if (!m || p.dead || G.state !== 'playing') return;

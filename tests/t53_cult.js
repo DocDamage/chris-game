@@ -35,6 +35,7 @@ const { open } = require('./lib');
     const door = H.cultDoor;
     p.x = door.x; p.y = door.y - 12 + 4; // standing in the doorway
     CH.stepFrame(1 / 30);
+    G.interact(p); // the door opens with the button (PLAN.md 20)
     const L = G.level;
     const people = L.npcs ? L.npcs.map((n) => n.id) : [];
     const art = L.npcs ? L.npcs.every((n) => CH.Clinic.has(n)) : false;

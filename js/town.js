@@ -196,6 +196,8 @@
 
   const D = () => CH.Dialogue;
   const color = (p) => (UIK.on ? G.players.indexOf(p) : 0);
+  Town.talk = (n, p) => talk(n, p); // js/interact.js
+  Town.waypointMenu = (w, p) => waypointMenu(w, p);
 
   function talk(n, p) {
     if (Town.talkTo && Town.talkTo[n.id]) return Town.talkTo[n.id](n, p); // people with their own module (js/clinic.js)

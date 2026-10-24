@@ -18,6 +18,17 @@ const { NAV } = require('./navbot');
     G._scriptTesting = true;
     const L = G.level, TS = 32, p = G.player;
     const crate = (x, y, hw, hh) => G.arena.props.find((q) => q.solid && !q.dead && q.box && q.box.hw === hw && q.box.hh === hh && Math.abs(q.x + (q.cx || 0) - x) < 6 && Math.abs(q.y + (q.cy || 0) - y) < 6);
+    if (!(crate(2095, 1753, 7, 4) && crate(2104, 1774, 6, 5))) {
+      // the stage's dressing deals other pieces since PLAN.md 21: put the two crates of the bug back where they stood
+      // (the map, its hives and its field are the same), with nothing else around them
+      __clear({ props: { x: 2100, y: 1765, r: 90 } });
+      for (const [x, y, hw, hh] of [[2095, 1753, 7, 4], [2104, 1774, 6, 5]]) {
+        CH.Arenas.addProp(G.arena.props, 'crate', x, y + hh - 1, { solid: true, box: { hw, hh }, cy: -hh + 1, jumpable: true });
+        G.arena.props[G.arena.props.length - 1].sp = true;
+      }
+      L.flows.clear();
+      CH.Props.invalidate();
+    }
     out.crates = !!crate(2095, 1753, 7, 4) && !!crate(2104, 1774, 6, 5);
     if (!out.crates) return out;
     // the field toward the hive's side of the map routes around the lower crate's tile

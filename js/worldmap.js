@@ -73,6 +73,9 @@
     if (!e.isBoss || !L || !L.bossHall || L.opened) return;
     L.opened = true;
     L.exit.open = true;
-    G.banner('THE WAY ON IS OPEN', 'Find the far door', 2.2);
+    L.reveal(L.exit.x, L.exit.y, 4);
+    // the stage does not end here: gather the loot, then go through the far door (js/interact.js)
+    if (L.stage >= WM.LAST) G.banner('THE WORLD IS SAVED', 'Take your loot, then walk through the far door', 3.2);
+    else G.banner('THE WAY ON IS OPEN', 'Take your loot, then go through the far door', 2.6);
   });
 })(window.CH);

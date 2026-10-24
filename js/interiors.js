@@ -122,22 +122,17 @@
     if (CH.Character) CH.Character.save();
   };
 
-  /* the doors: walking into one goes in, walking back to the room's door comes out */
+  /* the doors: the interact button goes in (js/interact.js); walking back out of the room's door, or the button, comes out */
   G.on('step', function () {
     const L = G.level;
     if (!L || G.state !== 'playing') return;
     if (IN.outside && !L.interior) { IN.outside = null; return; } // left some other way (died, a town portal)
     if (L.interior && L.door && IN.outside) {
       for (const p of G.players) if (!p.dead && U.dist(p.x, p.y + 12, L.door.x, L.door.y) < 22 && (p.vy > 0 || p.inp && p.inp.moveY > 0)) { IN.leave(); return; }
-      return;
-    }
-    if (L.isTown || !L.props) return;
-    for (const b of L.props) {
-      if (!b.enter || b.dead) continue;
-      const d = b.door || { x: b.x, y: b.y + 4 };
-      for (const p of G.players) if (!p.dead && Math.abs(p.x - d.x) < 14 && p.y + 12 > d.y - 6 && p.y + 12 < d.y + 14 && p.vy < 0) { IN.enter(b, p); return; }
     }
   });
+  IN.NAME = { house: 'TOWNHOUSE', hut: 'FROZEN HOUSE' };
+  IN.nameOf = (b) => IN.NAME[b.enter] || 'CABIN';
   /* the door inside, and a hint at the doors outside */
   CH.Hooks.world.push((ctx, cam) => {
     const L = G.level;
@@ -152,11 +147,20 @@
     if (L.isTown || !L.props) return;
     const p = G.player;
     if (!p) return;
+    // a warm light spills from under the doors you can open (the prompt itself is js/interact.js)
     for (const b of L.props) {
       if (!b.enter || b.dead) continue;
       const d = b.door || { x: b.x, y: b.y + 4 };
-      if (U.dist(p.x, p.y, d.x, d.y) > 70) continue;
-      CH.Font.draw(ctx, 'ENTER', Math.round(d.x - cam.x), Math.round(d.y - cam.y) - 30, '#fee761', 1, true);
+      const dd = U.dist(p.x, p.y, d.x, d.y);
+      if (dd > 140) continue;
+      const x = Math.round(d.x - cam.x), y = Math.round(d.y - cam.y);
+      const gr = ctx.createRadialGradient(x, y, 1, x, y, 22);
+      gr.addColorStop(0, 'rgba(255,214,120,' + (0.32 * (1 - dd / 140)) + ')');
+      gr.addColorStop(1, 'rgba(255,214,120,0)');
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = gr;
+      ctx.fillRect(x - 22, y - 12, 44, 24);
+      ctx.globalCompositeOperation = 'source-over';
     }
   });
   G.on('newRun:before', function () { IN.outside = null; });

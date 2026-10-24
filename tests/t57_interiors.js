@@ -20,8 +20,11 @@ const { open } = require('./lib');
     const out = { building: !!b, kind: b && b.enter };
     if (!b) return out;
     const enemies0 = G.enemies.length;
-    // walk up into the door
-    const walkIn = () => { p.x = b.door.x; p.y = b.door.y + 4 - 12; p.vy = -60; for (let i = 0; i < 3 && !G.level.interior; i++) { p.vy = -60; CH.stepFrame(1 / 30); } };
+    // walking into the door no longer goes in; the interact button does (PLAN.md 20)
+    p.x = b.door.x; p.y = b.door.y + 4 - 12; p.vy = -60;
+    for (let i = 0; i < 3; i++) { p.vy = -60; CH.stepFrame(1 / 30); }
+    out.walkedIn = !!G.level.interior;
+    const walkIn = () => { p.x = b.door.x; p.y = b.door.y + 4; CH.stepFrame(1 / 30); G.interact(p); };
     walkIn();
     const L = G.level;
     out.inside = !!L.interior;
@@ -47,7 +50,7 @@ const { open } = require('./lib');
   });
   await page.screenshot({ path: __dirname + '/interior.png' });
   ok('a Dead Wood stage has a building with a door', r.building && r.kind === 'cabin', r);
-  ok('walking into the door goes inside: a furnished room with a chest', r.inside && r.furnished > 8 && r.chest, r);
+  ok('the interact button at the door goes inside (walking into it does not): a furnished room with a chest', !r.walkedIn && r.inside && r.furnished > 8 && r.chest, r);
   ok('walking back out puts you at the door of the same stage', r.outside && r.atDoor, r);
   ok('an opened chest stays opened in that building', r.again, r);
 

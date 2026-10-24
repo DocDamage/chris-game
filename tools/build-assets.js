@@ -445,6 +445,9 @@ const kitPack = require('./pack-kits').packKits();
 Object.assign(propPack.img, kitPack.img);
 meta.kits = kitPack.meta;
 meta.npcs = kitPack.npcs;
+const landPack = require('./pack-lands').packLands(); // the second drop of 2026-10-24 (PLAN.md 21)
+Object.assign(propPack.img, landPack.img);
+meta.lands = landPack.meta;
 meta.props = propPack.meta;
 const sizes = splitBundles({ img: Object.assign({}, img, sidekickPack.img, uiPack.img, propPack.img), sfx, loops, music, meta });
 const mb = (n) => (n / 1048576).toFixed(2) + ' MB';

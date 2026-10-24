@@ -145,8 +145,86 @@
     Audio.sfx('confirm');
     G.newRun(null);
   }
+  /* the Sanctuary theme (d3.css, PLAN.md 20): the hero stands on a lit dais at the left, the roster runs down the right,
+     PLAY sits at the bottom, as in Diablo III's hero select; creating a hero lists the classes in the roster's place */
+  const d3 = () => document.body.classList.contains('d3');
+  const portraitOf = (id) => { const im = CH.Assets.images['hero.' + id + '.rot_s']; return im ? im.src : ''; };
+  const where = (s) => {
+    const W = s.world, WM = CH.WorldMap;
+    if (!W || !W.deepest || !WM) return 'Not yet set out';
+    const n = Math.max(1, Math.min(WM.LAST, W.at || W.deepest));
+    return 'Act ' + ['I', 'II', 'III', 'IV'][WM.area(n).act - 1] + ' · ' + WM.label(n).replace(/\b(\w)(\w*)/g, (m, a, b) => a + b.toLowerCase());
+  };
+  function renderChar3() {
+    const all = Storage.slots();
+    const s = all[hs.i];
+    const full = all.length >= Storage.MAX_SLOTS;
+    const rows = all.map((q, i) => {
+      const h = heroes().find((x) => x.id === q.hero) || heroes()[0];
+      return `<button class="hs3-row${i === hs.i ? ' sel' : ''}" data-i="${i}"><img src="${portraitOf(h.id)}" alt=""><span><b>${esc(q.name)}</b><small>Level ${q.char.level} ${esc(h.name.split(',')[0])}${q.hardcore ? ' · Hardcore' : ''}</small></span></button>`;
+    }).join('') + `<button class="hs3-row new${!s ? ' sel' : ''}" data-i="${all.length}"><span><b>+ Create new hero</b><small>${all.length} / ${Storage.MAX_SLOTS} heroes</small></span></button>`;
+    const h = s ? heroes().find((x) => x.id === s.hero) || heroes()[0] : null;
+    const stage = s
+      ? `<div class="hs3-beam"></div><div class="hs3-dais"></div><img class="hs-turn" id="hs-turn" alt=""><div class="hs3-name jp-name">${esc(s.name)}</div><div class="hs3-class">Level ${s.char.level} ${esc(h.name)}${s.hardcore ? ' · <span class="hc">Hardcore</span>' : ''}</div><div class="hs3-blurb">${esc(where(s))}<br>Played ${hm(s.played)} · ${s.char.gold} gold</div>`
+      : `<div class="hs3-beam"></div><div class="hs3-dais"></div><div class="hs3-name jp-name">A new hero</div><div class="hs3-blurb">${full ? 'Every place on the roster is taken. Delete a hero to make room.' : 'Choose a class, name them, and take them through the world. Hardcore heroes are gone for good when they fall.'}</div>`;
+    hs.host.innerHTML =
+      `<div class="hs3-wrap"><div class="hs3-stage">${stage}</div><div class="hs3-side hs3"><div class="hs3-head">Heroes</div>${rows}</div>` +
+      `<div class="hs3-bar">${s ? '<button class="btn small" id="hs-del">DELETE</button>' : ''}<button class="btn primary" id="hs-pick" ${!s && full ? 'disabled' : ''}>${s ? 'PLAY' : 'CREATE'}</button><button class="btn small" id="hs-back">BACK</button></div></div>`;
+    hs.host.querySelectorAll('.hs3-row').forEach((b) => { b.onclick = () => { const i = +b.dataset.i; if (i === hs.i) return; hs.i = i; Audio.sfx('hover'); render(); }; b.ondblclick = () => $('hs-pick').click(); });
+    $('hs-pick').onclick = () => {
+      if (!s) { if (full) return; Audio.sfx('page'); hs.mode = 'create'; $('hs-title').textContent = 'NEW CHARACTER'; hs.i = 0; render(); return; }
+      Storage.useSlot(hs.i); play();
+    };
+    if (s) {
+      let sure = false;
+      $('hs-del').onclick = () => {
+        if (!sure) { sure = true; $('hs-del').textContent = 'SURE?'; Audio.sfx('nope'); return; }
+        Storage.deleteSlot(hs.i);
+        Audio.sfx('back');
+        hs.i = Math.min(hs.i, Storage.slots().length);
+        render();
+      };
+      turntable(h.id);
+    }
+    $('hs-back').onclick = closeHeroes;
+    const first = $('hs-pick');
+    if (first && first.focus) first.focus({ preventScroll: true });
+  }
+  function renderHero3() {
+    const h = heroes()[hs.i];
+    const M = CH.Meta;
+    const unlocked = Storage.isUnlocked(h.id);
+    const lv = M && unlocked ? M.masteryLevel(h.id) : 0;
+    const sk = CH.SK ? CH.SK.DEFS[CH.SK.chosen(h.id)] : null;
+    const skim = sk ? CH.Assets.images['sk.' + CH.SK.chosen(h.id) + '.rot_s'] : null;
+    const rows = heroes().map((q, i) => {
+      const open = Storage.isUnlocked(q.id);
+      return `<button class="hs3-row${i === hs.i ? ' sel' : ''}${open ? '' : ' locked'}" data-i="${i}"><img src="${portraitOf(q.id)}" alt=""><span><b>${open ? esc(q.name.split(',')[0]) : '???'}</b><small>${open ? esc(q.specialName || '') : 'Locked'}</small></span></button>`;
+    }).join('');
+    hs.host.innerHTML =
+      `<div class="hs3-wrap"><div class="hs3-stage"><div class="hs3-beam"></div><div class="hs3-dais"></div><img class="hs-turn${unlocked ? '' : ' locked'}" id="hs-turn" alt="">` +
+      `<div class="hs3-name jp-name">${unlocked ? esc(h.name) : '???'}</div><div class="hs3-class">${unlocked ? esc(h.specialName || '') + (lv ? ' · Mastery ' + lv + '/5' : '') : 'Locked'}</div>` +
+      `<div class="hs3-blurb">${unlocked ? esc(h.blurb || '') : esc(h.hint || '')}</div>` +
+      (sk && unlocked ? `<div class="hs3-companion">${skim ? `<img src="${skim.src}" alt="">` : ''}<span>Companion: ${esc(sk.name)}</span></div>` : '') +
+      (unlocked ? `<div class="hs3-form"><input class="hs-name" id="hs-name" maxlength="16" placeholder="${esc(h.name.split(',')[0])}" autocomplete="off"><label class="hs-hc"><input type="checkbox" id="hs-hc"> Hardcore</label></div>` : '') +
+      `</div><div class="hs3-side hs3"><div class="hs3-head">Choose a class</div>${rows}</div>` +
+      `<div class="hs3-bar"><button class="btn primary" id="hs-pick" ${unlocked ? '' : 'disabled'}>CREATE</button><button class="btn small" id="hs-back">BACK</button></div></div>`;
+    hs.host.querySelectorAll('.hs3-row').forEach((b) => { b.onclick = () => { const i = +b.dataset.i; if (i === hs.i) return; hs.i = i; Audio.sfx('hover'); render(); }; });
+    $('hs-pick').onclick = () => {
+      if (!unlocked) return;
+      const slot = Storage.createSlot({ hero: h.id, name: ($('hs-name') && $('hs-name').value) || '', hardcore: !!($('hs-hc') && $('hs-hc').checked) });
+      if (!slot) { Audio.sfx('nope'); return; }
+      play();
+    };
+    $('hs-back').onclick = () => { Audio.sfx('back'); hs.mode = 'chars'; $('hs-title').textContent = 'CHARACTERS'; hs.i = Storage.slots().length; render(); };
+    turntable(h.id);
+    const first = $('hs-pick');
+    if (first && first.focus) first.focus({ preventScroll: true });
+  }
+
   /* a character's page, or the last page: a new character */
   function renderChar() {
+    if (d3()) return renderChar3();
     const all = Storage.slots();
     const s = all[hs.i];
     if (!s) {
@@ -181,6 +259,7 @@
     if (first && first.focus) first.focus({ preventScroll: true });
   }
   function renderHero() {
+    if (d3()) return renderHero3();
     const h = heroes()[hs.i];
     const M = CH.Meta;
     const unlocked = Storage.isUnlocked(h.id);

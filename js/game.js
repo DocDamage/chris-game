@@ -503,7 +503,9 @@
     // boss kinds share names with regular enemies ('chicken'), so bosses are requested explicitly
     const e = o.boss ? CH.Bosses.create(G, type, x, y, o) : CH.Enemies.create(G, type, x, y, o);
     G.enemies.push(e);
-    if (!FX.vfx('vfx.p7.12', x, y - 2, { scale: 0.55, fps: 22 })) FX.burst(x, y, { n: 6, colors: 'glitch', speed: 60, life: 0.4 });
+    // it comes through a front-facing portal (drawn behind it by js/enemies.js); bosses make their own entrance
+    if (o.boss || !CH.Vortex) FX.burst(x, y, { n: 6, colors: 'glitch', speed: 60, life: 0.4 });
+    else e.portal = { born: G.time, hold: o.spawnTime !== undefined ? o.spawnTime : 0.5, pal: CH.Vortex.biome(G.level ? G.level.biome : G.arena && G.arena.id) };
     return e;
   };
 
@@ -1043,7 +1045,8 @@
       pk.vx = pk.vy = 0;
       pk.boss = b;
     }
-    if (isFinal && !G.won) {
+    const hallDoor = G.level && G.level.bossHall && CH.WorldMap && CH.WorldMap.on(); // a character's world: the hall's door leads to the victory (js/interact.js)
+    if (isFinal && !G.won && !hallDoor) {
       G.won = true;
       G.victoryPending = true;
       G.after(1.6, () => G.victory());

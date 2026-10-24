@@ -283,7 +283,10 @@
     }
 
     if (prop.additive) ctx.globalCompositeOperation = 'lighter';
-    CH.Sprites.draw(ctx, prop.sprite, 0, 0, prop.flip ? { flip: true } : undefined);
+    if (prop.fps) { // an animated piece (js/props.js): its frames in turn, each prop out of step with the next
+      const sp = CH.Sprites.get(prop.sprite), n = sp && sp.frames ? sp.frames.length : 1;
+      CH.Sprites.draw(ctx, prop.sprite, 0, 0, { flip: !!prop.flip, frame: Math.floor(G.wall * prop.fps + (prop.phase || 0) * 17) % n });
+    } else CH.Sprites.draw(ctx, prop.sprite, 0, 0, prop.flip ? { flip: true } : undefined);
     ctx.restore();
   }
 

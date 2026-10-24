@@ -64,6 +64,7 @@
       const b = document.createElement('button');
       b.className = 'jb-tab';
       b.title = t.name;
+      b.innerHTML = '<img alt="" src="' + UIK.url('0 - Sprites/Tab icons/Style 2/' + (i + 1) + '.png') + '"><span>' + t.name + '</span>'; // the Sanctuary theme shows them as labelled tabs (d3.css)
       b.setAttribute('aria-label', t.name);
       b.style.top = 'calc(var(--p) * ' + (GEO.tabY[i] - GEO.tabH / 2) + ')';
       b.addEventListener('click', () => J.go(i, 0));
@@ -421,9 +422,11 @@
   const frameUrl = () => UIK.cUrl(J.color, 'Content/Holders/40.png');
   const tipHtml = (it, p) => {
     const I = CH.Items;
-    let h = I.describe(it).map((l) => `<div style="color:${l.c === '#ffffff' ? '#2a1a14' : l.c === '#b9b4c8' ? '#5a4a3a' : l.c === '#ffe14a' ? '#8a6a00' : l.c === '#6a9bff' ? '#2a4a9a' : l.c}">${esc(l.t)}</div>`).join('');
+    const dark = document.body.classList.contains('d3');
+    const ink = (c) => (dark ? (c === '#b9b4c8' ? '#8a7a60' : c) : c === '#ffffff' ? '#2a1a14' : c === '#b9b4c8' ? '#5a4a3a' : c === '#ffe14a' ? '#8a6a00' : c === '#6a9bff' ? '#2a4a9a' : c);
+    let h = I.describe(it).map((l) => `<div style="color:${ink(l.c)}">${esc(l.t)}</div>`).join('');
     const cmp = I.compare(it, p);
-    if (cmp.length) h += '<div class="jp-dim" style="margin-top:calc(var(--p)*3)">vs. equipped:</div>' + cmp.map((c) => `<div style="color:${c.d > 0 ? '#2a7a2a' : '#9a2a2a'}">${c.d > 0 ? '+' : '-'}${esc(c.label)}</div>`).join('');
+    if (cmp.length) h += '<div class="jp-dim" style="margin-top:calc(var(--p)*3)">vs. equipped:</div>' + cmp.map((c) => `<div style="color:${c.d > 0 ? (dark ? '#8fd07a' : '#2a7a2a') : dark ? '#e0503a' : '#9a2a2a'}">${c.d > 0 ? '+' : '-'}${esc(c.label)}</div>`).join('');
     return h;
   };
 
@@ -438,19 +441,37 @@
         let cells = '';
         for (let i = 0; i < I.BAG_SIZE; i++) {
           const it = bag[i];
-          cells += `<button class="ig-cell${it && it === sel ? ' sel' : ''}" data-i="${i}" style="background-image:url(${frameUrl()})">${it ? `<img src="${slotImg(it)}" alt="" style="filter:drop-shadow(0 0 calc(var(--p)*1.5) ${I.RARITY[it.rarity].color})">` : ''}</button>`;
+          cells += `<button class="ig-cell${it && it === sel ? ' sel' : ''}" data-i="${i}"${it ? ' data-r="' + it.rarity + '"' : ''} style="background-image:url(${frameUrl()})">${it ? `<img src="${slotImg(it)}" alt="" style="filter:drop-shadow(0 0 calc(var(--p)*1.5) ${I.RARITY[it.rarity].color})">` : ''}</button>`;
         }
         const belt = G.player ? I.belt(G.player) : [];
         let bl = '';
         for (let i = 0; i < 4; i++) { const b = belt[i]; bl += `<span class="ig-belt" style="background-image:url(${frameUrl()})">${b ? `<img src="${UIK.url('0 - Sprites/items/' + I.CONSUMABLES[b.id].pack + '.png')}" alt=""><i>${b.n}</i>` : ''}</span>`; }
         const bin = UIK.cUrl('brown', '') || '';
+        // one sheet, as in Diablo III (PLAN.md 20): the hero and what they wear on the left, the bag on the right, a
+        // tooltip that floats over the other half for whatever the pointer is on
+        const hero = heroOf(p);
+        const eqd = G.player ? I.equippedOf(G.player) : I.equippedOf({ hero });
+        const pos = { helm: [50, 2], chest: [14, 26], gloves: [86, 26], ring: [86, 54], legs: [14, 54], boots: [50, 80] };
+        let doll = '';
+        for (const sl of I.SLOTS) { const it = eqd[sl]; doll += `<button class="pd-slot" data-slot="${sl}"${it ? ' data-r="' + it.rarity + '"' : ''} title="${SLOT_T[sl]}" style="left:${pos[sl][0]}%;top:${pos[sl][1]}%"><img src="${slotImg(it, sl)}" alt="" style="${it ? '' : 'opacity:.4'}"></button>`; }
         h.innerHTML =
-          `<div class="jp spread"><div class="jp-col" style="flex:1.1"><div class="ig-grid">${cells}</div><div class="jp-dim">${bag.length} / ${I.BAG_SIZE} &nbsp; BELT:</div><div>${bl}</div></div>` +
-          `<div class="jp-col"><div class="ig-tip">${sel ? tipHtml(sel, p) : '<span class="jp-dim">Select an item. Gold drops, magic items glow blue, rare yellow, legendary orange, sets green.</span>'}</div>` +
-          `<div class="row-btns"><button class="btn small" id="ig-eq" ${sel ? '' : 'disabled'}>EQUIP</button><button class="btn small danger" id="ig-salv" ${sel ? '' : 'disabled'}>RECYCLE</button><img id="ig-bin" class="ig-bin" alt="" src="${UIK.url('0 - Sprites/Recycle Bin/1.png')}"></div></div></div>`;
+          `<div class="jp spread ig-sheet"><div class="jp-col" style="flex:0.95"><div class="pd"><img class="pd-hero" src="${portrait(hero.id)}" alt="">${doll}</div></div>` +
+          `<div class="jp-col"><div class="ig-grid">${cells}</div><div class="ig-under"><span class="jp-dim">${bag.length} / ${I.BAG_SIZE}</span><span class="jp-dim">BELT</span>${bl}</div>` +
+          `<div class="row-btns"><button class="btn small" id="ig-eq" ${sel ? '' : 'disabled'}>EQUIP</button><button class="btn small danger" id="ig-salv" ${sel ? '' : 'disabled'}>RECYCLE</button><img id="ig-bin" class="ig-bin" alt="" src="${UIK.url('0 - Sprites/Recycle Bin/1.png')}"></div></div></div>` +
+          `<div class="ig-tip ig-float" id="ig-float"${sel ? '' : ' hidden'}>${sel ? tipHtml(sel, p) : ''}</div>`;
+        const tip = h.querySelector('#ig-float');
+        const show = (it, side) => { if (!it) { tip.hidden = !sel; if (sel) { tip.innerHTML = tipHtml(sel, p); tip.dataset.side = 'l'; } return; } tip.innerHTML = tipHtml(it, p); tip.dataset.side = side; tip.hidden = false; };
+        tip.dataset.side = 'l';
         h.querySelectorAll('.ig-cell').forEach((b) => {
           b.onclick = () => { sel = bag[+b.dataset.i] || null; Audio.sfx('hover'); draw(); };
           b.ondblclick = () => { if (sel && G.player) { I.equip(G.player, sel); sel = null; draw(); } };
+          b.onmouseenter = () => show(bag[+b.dataset.i], 'l');
+          b.onmouseleave = () => show(null);
+        });
+        h.querySelectorAll('.pd-slot').forEach((b) => {
+          b.onmouseenter = () => show(eqd[b.dataset.slot], 'r');
+          b.onmouseleave = () => show(null);
+          b.onclick = () => { if (G.player && I.unequip(G.player, b.dataset.slot)) { Audio.sfx('back'); draw(); } else Audio.sfx('nope'); };
         });
         const eq = h.querySelector('#ig-eq'), sv = h.querySelector('#ig-salv');
         if (eq) eq.onclick = () => { if (sel && (G.player || true)) { const pl = G.player || { hero: heroOf(null), stats: {}, buffs: {} }; if (G.player) I.equip(pl, sel); else { /* menu: gear belongs to the chosen hero */ I.equip(G.players[0] || pl, sel); } sel = null; draw(); } };
@@ -480,7 +501,7 @@
       let slots = '';
       for (const sl of I.SLOTS) {
         const it = eqd[sl];
-        slots += `<button class="pd-slot" data-slot="${sl}" title="${SLOT_T[sl]}" style="left:${pos[sl][0]}%;top:${pos[sl][1]}%;background-image:url(${frameUrl()})"><img src="${slotImg(it, sl)}" alt="" style="${it ? 'filter:drop-shadow(0 0 calc(var(--p)*1.5) ' + I.RARITY[it.rarity].color + ')' : 'opacity:.55'}"></button>`;
+        slots += `<button class="pd-slot" data-slot="${sl}"${it ? ' data-r="' + it.rarity + '"' : ''} title="${SLOT_T[sl]}" style="left:${pos[sl][0]}%;top:${pos[sl][1]}%;background-image:url(${frameUrl()})"><img src="${slotImg(it, sl)}" alt="" style="${it ? 'filter:drop-shadow(0 0 calc(var(--p)*1.5) ' + I.RARITY[it.rarity].color + ')' : 'opacity:.55'}"></button>`;
       }
       const w = p && p.weapons ? p.weapons : [];
       const wl = w.map((x) => esc((B.weapons[x.id || x] || {}).name || x.id || x)).join('<br>');

@@ -35,7 +35,7 @@
   UIK.anim = (el, urls, fps, opts) => {
     opts = opts || {};
     // tests set window.__uikInstant so book animations finish immediately
-    if (window.__uikInstant) {
+    if (window.__uikInstant || document.body.classList.contains('d3')) {
       if (urls.length) el.src = urls[urls.length - 1];
       if (opts.onDone && !opts.loop) opts.onDone();
       return { stop() {} };

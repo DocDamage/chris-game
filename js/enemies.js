@@ -1184,6 +1184,8 @@
     let bob = 0;
     if (!L.fly && Math.abs(e.dvx) + Math.abs(e.dvy) > 8 && !art) bob = -Math.abs(Math.sin(e.age * 9)) * 1.2;
     const gy = L.foot * sc;
+    // the portal it came through, behind it (js/game.js spawnEnemy); monsters that were already here have none
+    if (e.portal && !e.spawnSilent && !CH.Vortex.spawnDraw(ctx, x, y + gy, U.clamp(L.h * sc * 0.55, 9, 24), g.time - e.portal.born, e.portal.hold, e.portal.pal)) e.portal = null;
     shadow(ctx, x, y + gy, Math.round(L.shadow * sc * (L.fly ? 0.75 : 1)));
     let dx = 0;
     let dy = 0;
@@ -1196,11 +1198,12 @@
     const flip = art ? (e.drawRow ? false : e.face < 0) : L.faceRight ? e.face < 0 : false;
     const flash = e.state === 'stunned' ? 0.35 + 0.35 * Math.sin(e.age * 30) : e.flash;
     const big = g.mods.bigHead;
+    const grow = spawnK < 1 && !e.spawnSilent ? 0.72 + 0.28 * Math.max(0, spawnK) : 1; // stepping out of its portal
     const opts = {
       frame,
       flip,
-      sx: sc * (1 + sq * 0.2) * (art && big ? 1.3 : 1),
-      sy: sc * (1 - sq * 0.2) * (art && big ? 1.3 : 1),
+      sx: sc * (1 + sq * 0.2) * (art && big ? 1.3 : 1) * grow,
+      sy: sc * (1 - sq * 0.2) * (art && big ? 1.3 : 1) * grow,
       flash: Math.max(0, flash),
       alpha: spawnK < 1 ? 0.3 + spawnK * 0.7 : 1,
       gold: e.isElite ? (Math.floor(e.age * 6) % 2 ? '#fee761' : '#feae34') : null,

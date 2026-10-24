@@ -7,3 +7,4 @@ tests/*.png
 .baseline/
 tests/logs/
 tools/out/
+tests/tour/

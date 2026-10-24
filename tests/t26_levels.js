@@ -61,10 +61,12 @@ const { open } = require('./lib');
     step(5);
     r.closed = R.hivesClosed();
     r.exitOpen = L.exit.open === true;
-    // walk to the exit: the stage completes and the next one starts
+    // go through the exit: the stage completes and the next one starts
     const wave0 = G.wave;
     R.teleport(L.exit.x, L.exit.y);
-    step(3);
+    step(1);
+    G.interact(G.player); // the exit is a door (PLAN.md 20)
+    step(2);
     r.clearState = G.waveState;
     step(30 * 8);
     r.next = G.wave === wave0 + 1 && G.level && G.level !== L;
@@ -73,7 +75,7 @@ const { open } = require('./lib');
     const origPath = G.pathArena; G.pathArena = () => 'dungeon';
     let sec = null, tries = 0;
     while (!sec && tries++ < 8) {
-      for (let k = 0; k < 6 && !sec; k++) { X.startRun({}, null); G._scriptTesting = true; god(); if (G.level.secrets.length) sec = G.level.secrets[0]; }
+      for (let k = 0; k < 6 && !sec; k++) { X.startRun({}, null); G._scriptTesting = true; god(); sec = G.level.secrets.find((q) => G.level.cell(q.crack.x, q.crack.y) === CH.Level.CRACKED) || null; } // a cracked wall, not a seal that wants an ability
     }
     r.secretMade = !!sec;
     if (sec) {

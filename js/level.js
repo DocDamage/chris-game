@@ -26,7 +26,7 @@
     // The Catacombs (PLAN.md 19, W2): the Dungeon Asset Pack's flagstones (grey, mossy, brown, purple and blue runes),
     // walls with its brick faces, arches and banners
     catacombs: {
-      floor: 'kit', sheet: 'tile.rock', tint: '#4a4652', wall: '#0c0b10', top: '#24222b', edge: '#06050a', faces: 'face:a',
+      floor: 'kit', sheet: 'tile.rock', tint: '#4a4652', wall: '#0c0b10', top: '#24222b', edge: '#06050a', faces: 'face:a', extra: ['da1'],
       mats: {
         dirt: { base: ['da1.0', 'da1.1', 'da1.2'], acc: ['da1.3', 'da1.4', 'da1.5', 'da1.6', 'da1.7', 'da1.8'] },
         moss: { base: ['da1.9', 'da1.10'], acc: ['da1.11', 'da1.12', 'da1.13', 'da1.14', 'da1.15', 'da1.16', 'da1.17'] },
@@ -41,7 +41,7 @@
     castle: { floor: 'kit', sheet: 'tile.rock', tint: '#4a3a44', wall: '#0e090c', top: '#2c1f26', edge: '#070406', faces: 'strip:r', mats: 'auto:gc' },
     // the Gaslight District (PLAN.md 18, K4): cobbled streets (kit.hv1), slab pavements (kit.hv2), grates; city walls
     gaslight: {
-      floor: 'kit', sheet: 'wall.zombie', ftint: null, tint: '#6a5e78', wall: '#14121a', top: '#2a2533', edge: '#09080d', trail: 'kit.hv2.0',
+      floor: 'kit', sheet: 'wall.zombie', ftint: null, tint: '#6a5e78', wall: '#14121a', top: '#2a2533', edge: '#09080d', trail: 'kit.hv2.0', extra: ['hv1', 'hv2'],
       mats: {
         dirt: { base: ['hv1.0', 'hv1.1', 'hv1.2'], acc: ['hv1.3', 'hv1.4', 'hv1.5', 'hv1.10', 'hv1.11', 'hv1.12', 'hv1.13'] },
         moss: { base: ['hv1.14', 'hv1.15'], acc: ['hv1.16', 'hv1.18', 'hv1.19', 'hv1.6', 'hv1.8'] },
@@ -54,7 +54,7 @@
     // the Frozen Kingdom (PLAN.md 18, K3): its snow swatches (kit.fk1) in patches of powder, frost, cracked ice, cobbles,
     // crystals and dark ice; a cobbled road
     frozen: {
-      floor: 'kit', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256', trail: 'kit.fk1.5',
+      floor: 'kit', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256', trail: 'kit.fk1.5', extra: ['fk1', 'fk2', 'fk3'],
       mats: {
         dirt: { base: ['fk1.0'], acc: ['fk1.1', 'fk1.2', 'fk1.7'] },
         moss: { base: ['fk1.6'], acc: ['fk1.3', 'fk1.9'] },
@@ -67,7 +67,7 @@
     // The Dead Wood (PLAN.md 18, K2): Creepy Forest ground swatches (kit.cf1 / kit.cf2) in patches of dirt, moss and roots,
     // bounded by the rock cliff darkened to a wet, mossy brown; a cobbled path
     deadwood: {
-      floor: 'kit', sheet: 'tile.rock', tint: '#5d5a4a', wall: '#1d1f17', top: '#34352a', edge: '#0f100b', trail: 'kit.cf1.16',
+      floor: 'kit', sheet: 'tile.rock', tint: '#5d5a4a', wall: '#1d1f17', top: '#34352a', edge: '#0f100b', trail: 'kit.cf1.16', extra: ['cf1', 'cf2'],
       // per material: base swatches of one tone (most tiles) and accents (about one tile in six), so patches read as
       // patches and not as a checkerboard
       mats: {
@@ -103,11 +103,108 @@
     c.getContext('2d').drawImage(c0, x1, y1, c.width, c.height, 0, 0, c.width, c.height);
     return (seams[key] = c);
   }
+  /* a material's stamps: crops of its ground swatches (inside their framed rim), feathered round the edge and flipped
+     four ways, and the swatches' mean colour to lay under them (Level.paintKitFloor) */
+  const stampSets = new Map();
+  let stampId = 0;
+  const idOf = (im) => im.__sid || (im.__sid = ++stampId);
+  function stampsOf(list) {
+    const key = list.map(idOf).join('|');
+    let T = stampSets.get(key);
+    if (T) return T;
+    const stamps = [];
+    let r = 0, gg = 0, b = 0, n = 0;
+    const S = 20;
+    const probe = document.createElement('canvas');
+    probe.width = probe.height = 32;
+    const pg = probe.getContext('2d', { willReadFrequently: true });
+    list.forEach((im, li) => {
+      pg.clearRect(0, 0, 32, 32);
+      pg.drawImage(im, 0, 0, 32, 32);
+      const d = pg.getImageData(4, 4, 24, 24).data;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+      for (const [ox, oy] of [[4, 4], [8, 4], [4, 8], [8, 8], [6, 6]]) for (let f = 0; f < 4; f++) {
+        const c = document.createElement('canvas');
+        c.width = c.height = S;
+        const g = c.getContext('2d');
+        g.save();
+        g.translate(f & 1 ? S : 0, f & 2 ? S : 0);
+        g.scale(f & 1 ? -1 : 1, f & 2 ? -1 : 1);
+        g.drawImage(im, ox * (im.width / 32), oy * (im.height / 32), S * (im.width / 32), S * (im.height / 32), 0, 0, S, S);
+        g.restore();
+        const gr = g.createRadialGradient(S / 2, S / 2, S * 0.24, S / 2, S / 2, S * 0.5);
+        gr.addColorStop(0, 'rgba(0,0,0,1)');
+        gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.globalCompositeOperation = 'destination-in';
+        g.fillStyle = gr;
+        g.fillRect(0, 0, S, S);
+        stamps.push(c);
+      }
+    });
+    T = { stamps, mean: 'rgb(' + Math.round(r / n) + ',' + Math.round(gg / n) + ',' + Math.round(b / n) + ')' };
+    stampSets.set(key, T);
+    return T;
+  }
+  /* an accent swatch with its edge faded out, so it sinks into the ground round it */
+  const feathers = new Map();
+  function feathered(im) {
+    let c = feathers.get(im);
+    if (c) return c;
+    c = document.createElement('canvas');
+    c.width = im.width;
+    c.height = im.height;
+    const g = c.getContext('2d');
+    g.drawImage(im, 0, 0);
+    const gr = g.createRadialGradient(im.width / 2, im.height / 2, im.width * 0.22, im.width / 2, im.height / 2, im.width * 0.5);
+    gr.addColorStop(0, 'rgba(0,0,0,1)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalCompositeOperation = 'destination-in';
+    g.fillStyle = gr;
+    g.fillRect(0, 0, im.width, im.height);
+    feathers.set(im, c);
+    return c;
+  }
+  const scratches = {};
+  function scratch(w, h, key) {
+    const k = (key || 's') + w + 'x' + h;
+    if (!scratches[k]) { const c = document.createElement('canvas'); c.width = w; c.height = h; scratches[k] = c; }
+    return scratches[k];
+  }
   const tinted = {};
   /* the face pieces of a family ('face:a' -> the Dungeon Asset Pack's faces, 'strip:r' -> the castle's wall strips) */
   function facesOf(spec) {
     const [how, fam] = spec.split(':');
     return CH.Props ? CH.Props.pool(how === 'strip' ? 'wall' : 'face', fam).filter((k) => CH.Assets.images[k] && CH.Assets.images[k].width >= TS) : [];
+  }
+  /* every ground swatch of a biome's packs that its materials do not list joins, as an accent, the material whose
+     swatches it is closest to in colour (PLAN.md 21: every piece of the packs is used) */
+  function extraGround(st) {
+    st._extra = true;
+    const K = (CH.Assets.meta && CH.Assets.meta.kits) || {}, IM = CH.Assets.images;
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    const mean = (key) => { const im = IM['kit.' + key]; if (!im) return null; x.clearRect(0, 0, 32, 32); x.drawImage(im, 0, 0, 32, 32); const d = x.getImageData(0, 0, 32, 32).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } return [r / 1024, g / 1024, b / 1024]; };
+    const listed = new Set();
+    const means = {};
+    for (const m of Object.keys(st.mats)) {
+      st.mats[m].base.concat(st.mats[m].acc).forEach((k) => listed.add(k));
+      const ms = st.mats[m].base.map(mean).filter(Boolean);
+      if (ms.length) means[m] = [0, 1, 2].map((j) => ms.reduce((a, q) => a + q[j], 0) / ms.length);
+    }
+    for (const id of st.extra) {
+      const m = K[id];
+      if (!m) continue;
+      for (let i = 0; i < m.n; i++) {
+        const key = id + '.' + i;
+        if (listed.has(key) || !((m.kinds && m.kinds[i] === 'ground') || m.roles[i] === 'ground')) continue;
+        const q = mean(key);
+        if (!q) continue;
+        let best = null, bd = 1e9;
+        for (const [mat, mm] of Object.entries(means)) { const d = (q[0] - mm[0]) ** 2 + (q[1] - mm[1]) ** 2 + (q[2] - mm[2]) ** 2; if (d < bd) { bd = d; best = mat; } }
+        if (best) st.mats[best].acc.push(key);
+      }
+    }
   }
   /* floor materials from a pack's 32 px tiles sorted by colour ('gc': the castle): grey stone is the dirt, dark stone the
      roots, pale stone the stone, red the rust; the moss is more grey and the swamp more dark */
@@ -453,6 +550,8 @@
       const x0 = cx * size, y0 = cy * size;
       this.paintFloor(g, st, x0, y0, size);
       if (this.trail) this.paintTrail(g, x0, y0, size);
+      if (this.grounds) this.paintGrounds(g, x0, y0, size);
+      if (this.skyBridge && CH.Sky) CH.Sky.paintBridges(this, g, x0, y0, size); // planks over the void (js/sky.js)
       // (bridges are drawn after the cells: the pit under them is painted first)
       if (this.decals) for (const d of this.decals) { // floor decals from the sliced sheets
         const im = d.img || CH.Assets.images[d.key]; // set pieces bring the piece already at catalogue scale
@@ -485,7 +584,8 @@
             continue;
           }
           this.paintWall(g, st, gx, gy, px, py);
-          if (st.faces && !this.solid(gx, gy + 1)) this.paintFaces(g, st, gx, gy, px, py);
+          // the Dungeon Asset Pack's walls in every direction (js/walls.js); the old faces where a biome has none
+          if (!(CH.Walls && CH.Walls.paint(this, g, st, gx, gy, px, py)) && st.faces && !this.solid(gx, gy + 1)) this.paintFaces(g, st, gx, gy, px, py);
           if (v === CRACKED) {
             g.strokeStyle = '#000000aa';
             g.lineWidth = 1;
@@ -495,6 +595,8 @@
           }
         }
       }
+      // the faces of the next chunk's top row reach up into this one
+      if (CH.Walls) for (let tx = 0; tx < CHUNK; tx++) CH.Walls.overhang(this, g, cx * CHUNK + tx, (cy + 1) * CHUNK, tx * TS, CHUNK * TS);
       this.paintBridges(g, x0, y0, size);
       this.chunks.set(key, c);
       return c;
@@ -502,6 +604,7 @@
     /* this level's own few tiles of each material, from a long list (the castle's): its floor looks of one piece */
     matsFor(st) {
       if (this._mats) return this._mats;
+      if (st.extra && !st._extra) extraGround(st);
       const M = st.mats;
       if (!M.big) return (this._mats = M);
       let s = (this.tw * 73856093) ^ (this.th * 19349663) ^ ((this.entrance ? this.entrance.x : 0) * 83492791);
@@ -624,23 +727,8 @@
         st.mats = autoMats(st.mats.slice(5));
         return this.paintFloor(g, st, x0, y0, size);
       } else if (st.floor === 'kit' && st.mats) {
-        // patches: two slow value-noise fields pick the material, a per-tile hash picks the swatch
-        const pick = (m, r) => { if (!m) return null; const list = r < 0.17 ? m.acc : m.base; return IM['kit.' + list[Math.floor((r < 0.17 ? r / 0.17 : (r - 0.17) / 0.83) * list.length) % list.length]]; };
-        const vn = (x, y, s, k) => { // smooth value noise, cell size s tiles
-          const fx = x / s, fy = y / s, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
-          const a = h(ix + k, iy), b = h(ix + 1 + k, iy), c = h(ix + k, iy + 1), d = h(ix + 1 + k, iy + 1);
-          const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
-          return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
-        };
-        const M = this.matsFor(st);
-        for (let y = 0; y < size; y += TS) for (let x = 0; x < size; x += TS) {
-          const tx = (x0 + x) / TS, ty = (y0 + y) / TS;
-          const n1 = vn(tx, ty, 10, 11), n2 = vn(tx, ty, 8, 97), r = h(tx, ty);
-          const mat = n2 > 0.78 ? 'rust' : n1 < 0.12 ? 'swamp' : n1 < 0.34 ? 'moss' : n1 > 0.72 ? 'roots' : n2 < 0.14 ? 'stone' : 'dirt';
-          const im = pick(M[mat], r) || pick(M.dirt, r);
-          if (im) g.drawImage(im, x, y, TS, TS);
-          else { g.fillStyle = st.top; g.fillRect(x, y, TS, TS); }
-        }
+        this.paintKitFloor(g, st, x0, y0, size, h);
+        return; // no tile grid: the ground is one piece (PLAN.md 20)
       } else if (st.floor === 'check') {
         for (let y = 0; y < size; y += 16) for (let x = 0; x < size; x += 16) { g.fillStyle = ((x0 + x) / 16 + (y0 + y) / 16) % 2 ? st.b : st.a; g.fillRect(x, y, 16, 16); }
       } else {
@@ -651,6 +739,141 @@
       // faint tile grid so the 32px structure reads
       g.fillStyle = 'rgba(0,0,0,0.05)';
       for (let i = 0; i < size; i += TS) { g.fillRect(i, 0, 1, size); g.fillRect(0, i, size, 1); }
+    }
+
+    /* the packs' ground swatches as one ground (PLAN.md 20, request 7). They are not seamless and each has a faint frame,
+       so a swatch per tile made a quilt. Now each material is one swatch, its frame cut off, tiled in mirror image
+       (seamless by construction); two slow noise fields pick the material per 4 px cell, with a ragged edge, so patches
+       of moss, roots or stone flow into each other; the accent swatches (bones, roots, flowers) are rare and feathered
+       into the ground; a wide, faint light and dark mottling hides the repeat. */
+    paintKitFloor(g, st, x0, y0, size, h) {
+      const IM = CH.Assets.images;
+      const M = this.matsFor(st);
+      const vn = (x, y, s, k) => { // smooth value noise, cell size s tiles
+        const fx = x / s, fy = y / s, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+        const a = h(ix + k, iy), b = h(ix + 1 + k, iy), c = h(ix + k, iy + 1), d = h(ix + 1 + k, iy + 1);
+        const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+        return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+      };
+      const MATS = ['dirt', 'moss', 'roots', 'rust', 'stone', 'swamp'];
+      // a material is its base swatches cut into feathered, flipped crops, scattered at random over their mean colour:
+      // ground with no repeat and no seams
+      const texOf = (m) => {
+        this._ktex = this._ktex || {};
+        if (this._ktex[m] !== undefined) return this._ktex[m];
+        const list = (M[m] && M[m].base || []).map((k) => IM['kit.' + k]).filter(Boolean);
+        return (this._ktex[m] = list.length ? stampsOf(list) : null);
+      };
+      const STEP = 11;
+      const paintMat = (gg, T, k) => {
+        gg.fillStyle = T.mean;
+        gg.fillRect(0, 0, size, size + 12);
+        for (let gy = Math.floor((y0 - 24) / STEP); gy <= Math.floor((y0 + size + 24) / STEP); gy++) for (let gx = Math.floor((x0 - 24) / STEP); gx <= Math.floor((x0 + size + 24) / STEP); gx++) {
+          const r = h(gx * 3 + k, gy * 5 - k);
+          const st2 = T.stamps[Math.floor(r * T.stamps.length) % T.stamps.length];
+          const jx = Math.round((h(gx + 11, gy + k) - 0.5) * 8), jy = Math.round((h(gy + 13, gx - k) - 0.5) * 8);
+          gg.drawImage(st2, gx * STEP + jx - x0 - (st2.width >> 1), gy * STEP + jy - y0 - (st2.height >> 1));
+        }
+      };
+      const matAt = (wx, wy) => { // world px -> material
+        const tx = wx / TS, ty = wy / TS;
+        const j = (h(Math.floor(wx / 4), Math.floor(wy / 4) + 7) - 0.5) * 0.05; // a ragged edge
+        const n1 = vn(tx, ty, 10, 11) + j, n2 = vn(tx, ty, 8, 97) - j;
+        return n2 > 0.78 ? 3 : n1 < 0.12 ? 5 : n1 < 0.34 ? 1 : n1 > 0.72 ? 2 : n2 < 0.14 ? 4 : 0;
+      };
+      // the materials of every 4 px cell of this chunk
+      const C = size / 4, cells = new Uint8Array(C * C), seen = new Set();
+      for (let cy = 0; cy < C; cy++) for (let cx = 0; cx < C; cx++) { const m = matAt(x0 + cx * 4 + 2, y0 + cy * 4 + 2); cells[cy * C + cx] = m; seen.add(m); }
+      const base = texOf('dirt') || texOf(MATS.find((m) => texOf(m)));
+      if (!base) { g.fillStyle = st.top; g.fillRect(0, 0, size, size); return; }
+      paintMat(g, base, 0);
+      const sc = scratch(size, size + 12), sg = sc.getContext('2d'), mk = scratch(C, C, 'mask'), mg = mk.getContext('2d');
+      for (const m of seen) {
+        const tex = texOf(MATS[m]);
+        if (!m || !tex) continue;
+        const id = mg.createImageData(C, C);
+        for (let i = 0; i < cells.length; i++) if (cells[i] === m) id.data[i * 4 + 3] = 255;
+        mg.putImageData(id, 0, 0);
+        sg.clearRect(0, 0, sc.width, sc.height);
+        paintMat(sg, tex, m * 17);
+        sg.globalCompositeOperation = 'destination-in';
+        sg.imageSmoothingEnabled = false;
+        sg.drawImage(mk, 0, 0, size, size);
+        sg.globalCompositeOperation = 'source-over';
+        g.drawImage(sc, 0, 0);
+      }
+      // accents, rare and soft-edged, only well inside their material
+      if (!(st.mats && st.mats.big)) for (let y = 0; y < size; y += TS) for (let x = 0; x < size; x += TS) {
+        const tx = (x0 + x) / TS, ty = (y0 + y) / TS, r = h(tx, ty);
+        if (r > 0.07) continue;
+        const m = cells[((y + 16) >> 2) * C + ((x + 16) >> 2)];
+        if (cells[(y >> 2) * C + (x >> 2)] !== m || cells[(Math.min(size - 1, y + TS - 1) >> 2) * C + (Math.min(size - 1, x + TS - 1) >> 2)] !== m) continue;
+        const acc = M[MATS[m]] && M[MATS[m]].acc;
+        const im = acc && acc.length ? IM['kit.' + acc[Math.floor((r / 0.07) * acc.length) % acc.length]] : null;
+        if (im) g.drawImage(feathered(im), x, y);
+      }
+      // a wide, faint mottling of light and shade
+      for (let y = 0; y < size; y += 8) for (let x = 0; x < size; x += 8) {
+        const v = vn((x0 + x) / TS, (y0 + y) / TS, 5, 31) - 0.5;
+        if (Math.abs(v) < 0.08) continue;
+        g.fillStyle = v > 0 ? 'rgba(255,240,210,' + (v * 0.09).toFixed(3) + ')' : 'rgba(0,0,0,' + (-v * 0.16).toFixed(3) + ')';
+        g.fillRect(x, y, 8, 8);
+      }
+    }
+
+    /* trodden ground (PLAN.md 20): a camp's earth, worn bare by feet, in the trail's own texture or a darker shade, a
+       wobbly outline with a soft rim and a scatter of pebbles. this.grounds = [{ x, y, rx, ry, seed }] */
+    paintGrounds(g, x0, y0, size) {
+      const IM = CH.Assets.images;
+      const h = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
+      const b = this.biome;
+      const tex = this.style.trail && IM[this.style.trail] ? IM[this.style.trail] : (b === 'backyard' || b === 'frozen') && IM['tile.dirt'] ? tintOf(IM['tile.dirt'], 'tile.dirt', b === 'frozen' ? '#b8c6d8' : null) : null;
+      for (const q of this.grounds) {
+        if (q.x + q.rx * 1.3 < x0 || q.x - q.rx * 1.3 > x0 + size || q.y + q.ry * 1.3 < y0 || q.y - q.ry * 1.3 > y0 + size + 12) continue;
+        const pts = [];
+        for (let i = 0; i < 28; i++) {
+          const a = (i / 28) * Math.PI * 2, k = 0.86 + 0.14 * Math.sin(a * 3 + q.seed) + 0.08 * (h(q.seed, i) - 0.5);
+          pts.push([q.x - x0 + Math.cos(a) * q.rx * k, q.y - y0 + Math.sin(a) * q.ry * k]);
+        }
+        const path = (s) => { g.beginPath(); pts.forEach(([x, y], i) => { const X = q.x - x0 + (x - (q.x - x0)) * s, Y = q.y - y0 + (y - (q.y - y0)) * s; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.closePath(); };
+        // a soft rim: two fainter rings outside, then the bare earth
+        for (const [s, a] of [[1.12, 0.1], [1.05, 0.14]]) { g.fillStyle = 'rgba(30,20,10,' + a + ')'; path(s); g.fill(); }
+        g.save();
+        path(1);
+        g.clip();
+        if (q.tiles) { // a paved patch: the given floor tiles laid at random (the Final Tower's plaza, js/sky.js)
+          if (!q._pave) {
+            const c = document.createElement('canvas');
+            c.width = c.height = 256;
+            const cg = c.getContext('2d');
+            const list = q.tiles.map((k) => IM[k]).filter(Boolean);
+            for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) if (list.length) cg.drawImage(list[(ty * 8 + tx + Math.floor(h(q.seed, ty) * list.length)) % list.length], tx * 32, ty * 32, 32, 32); // every plate laid, in a shifted order per row
+            q._pave = c;
+          }
+          g.fillStyle = g.createPattern(q._pave, 'repeat');
+          g.translate(-(x0 % 256), -(y0 % 256));
+          g.fillRect(-256, -256, size + 512, size + 512 + 12);
+          g.restore();
+          continue;
+        }
+        if (tex) {
+          g.globalAlpha = 0.9;
+          g.fillStyle = g.createPattern(tex, 'repeat');
+          g.translate(-(x0 % tex.width), -(y0 % tex.height));
+          g.fillRect(-tex.width, -tex.height, size + tex.width * 2, size + tex.height * 2 + 12);
+          g.translate(x0 % tex.width, y0 % tex.height);
+          g.globalAlpha = 1;
+        }
+        g.fillStyle = tex ? 'rgba(40,26,14,0.18)' : 'rgba(20,14,8,0.32)';
+        g.fillRect(0, 0, size, size + 12);
+        g.restore();
+        for (let i = 0; i < 40; i++) { // pebbles and scuffs
+          const a = h(q.seed + i, 3) * Math.PI * 2, d = Math.sqrt(h(i, q.seed)) * 0.92;
+          const x = Math.round(q.x - x0 + Math.cos(a) * q.rx * d), y = Math.round(q.y - y0 + Math.sin(a) * q.ry * d);
+          g.fillStyle = i % 3 ? 'rgba(0,0,0,0.18)' : 'rgba(255,240,210,0.12)';
+          g.fillRect(x, y, i % 4 ? 2 : 3, 1);
+        }
+      }
     }
 
     /* the way from the entrance to the exit, worn into the floor (js/setpieces.js marks it): a dirt track through

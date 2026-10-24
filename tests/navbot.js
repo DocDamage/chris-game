@@ -26,6 +26,8 @@ const NAV = () => {
     }
     if (!tgt) return;
     bot.nav.target = tgt;
+    // the exit is a door: at it, press interact (PLAN.md 20)
+    if (tgt === L.exit && Math.hypot(tgt.x - p.x, tgt.y - p.y) < 34) { I.held = {}; I.pressed.interact = true; return; }
     let threat = 0, nearHive = null;
     for (const e of G.enemies) {
       if (e.dead || e.state === 'spawn') continue;

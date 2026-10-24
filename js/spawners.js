@@ -133,12 +133,9 @@
     if (!CH.Sprites.has(name)) return false;
     const pulse = 0.22 + 0.12 * Math.sin(t * 5);
     const draw = (n, x, y) => CH.Sprites.draw(ctx, n, x, y + 8, { flash, tint: k.glow, tintA: pulse });
-    if (e.kind === 'gate') {
-      ctx.fillStyle = k.glow;
-      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 5);
-      ctx.fillRect(-12, -24, 24, 28);
-      ctx.globalAlpha = 1;
+    if (e.kind === 'gate') { // a hell gate: a red vortex between two pillars (it was a flat orange box)
       draw(name, -17, 0);
+      CH.Vortex.draw(ctx, 0, 6, 12, t, 'hell', { alpha: 0.95, lift: 16 });
       draw(name, 17, 0);
     } else if (e.kind === 'portal') {
       draw(name, 0, 4);
@@ -186,10 +183,7 @@
         ctx.fillRect(-16, -26, 8, 34);
         ctx.fillRect(8, -26, 8, 34);
         ctx.fillRect(-16, -30, 32, 8);
-        ctx.fillStyle = col(k.glow);
-        ctx.globalAlpha = 0.55 + 0.35 * Math.sin(t * 5);
-        ctx.fillRect(-8, -22, 16, 28);
-        ctx.globalAlpha = 1;
+        CH.Vortex.draw(ctx, 0, 6, 10, t, flash > 0.2 ? 'frost' : 'hell', { lift: 14 });
         break;
       }
       case 'camp': {

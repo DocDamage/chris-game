@@ -179,8 +179,12 @@
     // first-area hints
     if (hx.tut && !hx.tut.done) {
       const s = TUT[hx.tut.i];
-      Font.draw(ctx, 'HINT ' + (hx.tut.i + 1) + '/' + TUT.length, cx, 56, '#fee761', 1, true, 'center'); // under the weather icon
-      Font.draw(ctx, s.text, cx, 66, '#ffffff', 1, true, 'center');
+      // just above the action bar, out of the way of the banners (PLAN.md 20)
+      const hy = B.view.h - 60, tw = Font.width(s.text.toUpperCase(), 1) + 10;
+      ctx.fillStyle = 'rgba(12,7,16,0.72)';
+      ctx.fillRect(Math.round(cx - tw / 2), hy - 3, tw, 19);
+      Font.draw(ctx, 'HINT ' + (hx.tut.i + 1) + '/' + TUT.length, cx, hy, '#fee761', 1, false, 'center');
+      Font.draw(ctx, s.text, cx, hy + 8, '#ffffff', 1, false, 'center');
     }
   });
 

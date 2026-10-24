@@ -174,11 +174,11 @@ void main(){
       emis += uL1[i] * a.w * exp(-dot(q, q) / (a.z * a.z * 0.0035)) * pref * dk * 1.4;
     }
   }
-  col = col * light + glow + emis;
+  col = col * min(light, vec3(1.3)) + glow + emis; // capped: lights on snow burned it white (PLAN.md 20)
   // blizzard whiteout: you only see around your hero
   if (uBliz > 0.0) {
-    float v = smoothstep(70.0, 210.0, distance(px, uHero));
-    col = mix(col, vec3(0.88, 0.93, 0.97) * (0.8 + 0.2*noise(uv*vec2(14.0,8.0)+uTime*0.5)), v * 0.82 * uBliz);
+    float v = smoothstep(110.0, 260.0, distance(px, uHero));
+    col = mix(col, vec3(0.86, 0.91, 0.96) * (0.8 + 0.2*noise(uv*vec2(14.0,8.0)+uTime*0.5)), v * 0.5 * uBliz); // a squall, not a white screen
   }
   if (uFog > 0.0) {
     float n = noise(uv*vec2(5.0,3.0) + vec2(uTime*0.05, uTime*0.03)) * 0.6 + noise(uv*vec2(11.0,6.0) - uTime*0.06) * 0.4;

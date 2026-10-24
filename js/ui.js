@@ -731,7 +731,7 @@
 
   UI.toast = function (text) {
     const box = $('toasts');
-    while (box.children.length > 3) box.removeChild(box.firstChild);
+    while (box.children.length > 1) box.removeChild(box.firstChild); // two at most: they sit between the omen line and the banner
     const d = document.createElement('div');
     d.className = 'toast';
     d.textContent = text;

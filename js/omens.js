@@ -76,7 +76,7 @@
     }
     O.cur = o;
     O.apply(o, true);
-    G.ui.toast('OMEN: ' + d.name);
+    // (the banner says it; no toast on top of it)
     G.banner('OMEN: ' + d.name, d.text, 3.2);
     Audio.sfx('glitch');
   };
@@ -152,7 +152,10 @@
   CH.Hooks.screen.push((ctx) => {
     const o = O.cur;
     if (!o || G.state === 'menu' || !G.level || G.level.isTown) return;
-    CH.Font.draw(ctx, 'OMEN: ' + o.def.name + (o.grow ? '  ' + '!'.repeat(o.grow) : ''), B.view.w / 2, 30, o.def.colour, 1, true, 'center');
+    const s = 'OMEN: ' + o.def.name + (o.grow ? '  ' + '!'.repeat(o.grow) : ''), w = CH.Font.width(s, 1) + 10;
+    ctx.fillStyle = 'rgba(12,7,16,0.7)';
+    ctx.fillRect(Math.round(B.view.w / 2 - w / 2), 16, w, 10); // top centre, on a dark strip (PLAN.md 20)
+    CH.Font.draw(ctx, s, B.view.w / 2, 18, o.def.colour, 1, false, 'center');
   });
   /* the cause glows so it can be found */
   CH.Hooks.world.push((ctx, cam) => {

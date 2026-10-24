@@ -109,7 +109,7 @@ img.ico { image-rendering: pixelated; width: calc(var(--u) * 9); height: calc(va
 #bossintro .small { color: var(--red); font-size: calc(var(--u) * 6); letter-spacing: calc(var(--u) * 2); animation: tiredflash 0.25s steps(2) infinite; }
 #bossintro-name { font-size: calc(var(--u) * 15); color: #fff; text-shadow: 0 calc(var(--u) * 1.5) 0 var(--red), 0 0 calc(var(--u) * 5) var(--red); }
 @keyframes bossIn { 0% { transform: translateX(-60%); opacity: 0; } 12% { transform: none; opacity: 1; } 85% { transform: none; opacity: 1; } 100% { transform: translateX(60%); opacity: 0; } }
-#toasts { position: absolute; left: 0; right: 0; top: calc(var(--u) * 66); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.5); pointer-events: none; }
+#toasts { position: absolute; left: 0; right: 0; top: calc(var(--u) * 30); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.5); pointer-events: none; }
 .toast { background: rgba(27, 18, 38, 0.85); color: var(--gold); padding: calc(var(--u) * 1.5) calc(var(--u) * 4); border: calc(var(--u) * 0.8) solid var(--gold); animation: toastIn 2.6s ease both; font-size: calc(var(--u) * 5.5); }
 @keyframes toastIn { 0% { transform: translateY(calc(var(--u) * -4)); opacity: 0; } 10% { transform: none; opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 

@@ -206,8 +206,7 @@
       for (const p of G.players) if (!p.dead && U.dist(p.x, p.y, L.exit.x, L.exit.y) < 26) { K.leave(); return; }
       return;
     }
-    if (L && L.cultDoor) for (const p of G.players) if (!p.dead && U.dist(p.x, p.y + 12, L.cultDoor.x, L.cultDoor.y) < 22) { K.enter(); return; }
-    return prevUpdate(dt);
+    return prevUpdate(dt); // the purple door opens with the interact button (js/interact.js)
   };
   /* the way out, drawn as a dim doorway */
   const prevBg = CH.Arenas.drawBg;

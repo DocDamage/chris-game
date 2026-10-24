@@ -63,7 +63,8 @@
     const WM = CH.WorldMap, world = WM && WM.on();
     const dep = world ? Math.max(1, Math.round(WM.depth(n))) : n; // the generator scales by depth
     if (world) WM.genAct = WM.area(n).act;
-    const L = world && WM.area(n).boss ? WM.hall(biome, n) : LG.generate(biome, dep, rng);
+    // the last area is the sky road to the Final Tower (js/sky.js); the other act bosses wait in their halls
+    const L = world && n === WM.LAST && CH.Sky ? CH.Sky.approach(dep, rng) : world && WM.area(n).boss ? WM.hall(biome, n) : LG.generate(biome, dep, rng);
     WM && (WM.genAct = 0);
     L.stage = n;
     L.threat = 0;
@@ -181,15 +182,8 @@
     }
     proximity(L, dt);
     crackWalls(L);
-    // the exit
-    if (L.exit.open) {
-      for (const p of players()) {
-        if (U.dist(p.x, p.y, L.exit.x, L.exit.y) < 34) {
-          Run.complete();
-          return;
-        }
-      }
-    }
+    // the exit is a door: a hero goes through it with the interact button (js/interact.js), so a fight next to it
+    // never ends the stage by accident
     L.fx += dt;
     // a wiped party is handled by the shared death logic; nothing else to do here
   };
@@ -213,7 +207,7 @@
     FX.ring(pk.x, pk.y, 4, 30, '#e43b44', 0.35);
   }
 
-  /* waypoints, chests, shrines: things you walk up to */
+  /* waypoints light up as you pass; shrines and chests wait for the interact button (js/interact.js) */
   function proximity(L, dt) {
     for (const p of players()) {
       for (const w of L.waypoints) {
@@ -225,9 +219,6 @@
           G.healPlayer(p.maxHp * 0.15 / p.stats.healMult / G.diff.heal, p);
           if (CH.Run.onWaypoint) CH.Run.onWaypoint(w);
         }
-      }
-      for (const s of L.shrines) {
-        if (!s.used && U.dist(p.x, p.y, s.x, s.y) < 26) useShrine(L, s, p);
       }
     }
     // elite-shrine challenge: all summoned champions dead -> a big reward
@@ -243,6 +234,9 @@
     }
   }
 
+  const SHRINE = { blood: 'BLOOD SHRINE', elite: 'CHALLENGE SHRINE', lost: 'THE LOST SHRINE', healing: 'HEALING SHRINE', speed: 'SPEED SHRINE' };
+  Run.shrineName = (s) => SHRINE[s.kind] || 'SHRINE';
+  Run.useShrine = (s, p) => useShrine(G.level, s, p);
   function useShrine(L, s, p) {
     s.used = true;
     Audio.sfx('levelup');
@@ -359,18 +353,36 @@
     if (n.kind === 'machine') return origInteract(who);
     openChest(n.o, p);
   };
+  /* a chest rattles for a moment, its lid flies up in a burst of light and the loot fountains out (drawn by the ground
+     pass below: c.openT is when it was opened) */
+  Run.CHEST_DELAY = 0.28;
+  Run.openChest = openChest;
   function openChest(c, p) {
+    if (c.opened) return;
     c.opened = true;
+    c.openT = G.time;
+    Audio.sfx('door_open');
+    G.after(Run.CHEST_DELAY, () => { if (G.level && G.level.chests.includes(c)) payOut(c, p); });
+  }
+  function payOut(c, p) {
     Audio.sfx('buy');
     Audio.sfx('vend');
     G.shake(3, 0.2);
-    FX.burst(c.x, c.y, { n: 24, colors: ['#fee761', '#feae34', '#ffffff'], speed: 130, life: 0.7 });
+    FX.burst(c.x, c.y - 10, { n: 28, colors: ['#fee761', '#feae34', '#ffffff'], speed: 140, life: 0.8, up: 60 });
+    FX.ring(c.x, c.y, 4, 40, '#fee761', 0.45);
     G.addCoins(Math.round(14 + 6 * c.tier), c.x, c.y);
-    for (let i = 0; i < 2 + (c.secret ? 3 : 0); i++) G.dropPickup('coin', c.x + U.rand(-18, 18), c.y + U.rand(-18, 18), 3, {});
-    G.dropPickup('curio', c.x, c.y, 2 + (c.tier > 3 ? 1 : 0), { icon: 'pu.' + U.pick(CH.PowerUps ? CH.PowerUps.CURIO_ICONS : [259]), life: 30 });
+    const fling = (pk) => { if (!pk) return; const a = U.rand(Math.PI * 0.15, Math.PI * 0.85); const s = U.rand(70, 130); pk.vx = Math.cos(a) * s * (Math.random() < 0.5 ? -1 : 1); pk.vy = Math.sin(a) * s * 0.6; };
+    for (let i = 0; i < 3 + (c.secret ? 4 : 0); i++) fling(G.dropPickup('coin', c.x, c.y + 4, 3, {}));
+    fling(G.dropPickup('curio', c.x, c.y + 4, 2 + (c.tier > 3 ? 1 : 0), { icon: 'pu.' + U.pick(CH.PowerUps ? CH.PowerUps.CURIO_ICONS : [259]), life: 30 }));
     if (Math.random() < 0.35 + (c.secret ? 0.5 : 0)) G.dropLoot && G.dropLoot({ x: c.x, y: c.y, type: 'chicken', isElite: true, def: CH.Balance.enemies.chicken }, p);
+    // gear: half the chests, every hidden one (rare or better)
+    if (CH.Items && (c.secret || Math.random() < 0.5)) {
+      const luck = (p && p.stats && p.stats.luck) || 0;
+      const it = CH.Items.roll(Math.max(1, Math.round(G.tier()) + (c.secret ? 1 : 0)), c.secret ? { rarity: Math.random() < 0.25 ? 'legendary' : 'rare', luck } : { luck });
+      CH.Items.drop(c.x + U.rand(-10, 10), c.y + 8, it);
+    }
     if (CH.Run.onChest) CH.Run.onChest(c, p);
-    FX.text(c.x, c.y - 22, 'TREASURE!', '#fee761', 1);
+    FX.text(c.x, c.y - 26, 'TREASURE!', '#fee761', 1);
   }
 
   /* ------------------------------------------------------------------ integration with the old world code */
@@ -457,7 +469,7 @@
     const t = L.fx || 0;
     // exit: a stone pad with the castle sign, dim while sealed
     const ex = L.exit;
-    if (onScreen(ex) && seen(ex)) {
+    if (onScreen(ex) && seen(ex) && !ex.tower) { // (the sky road's exit is the tower's maw: js/sky.js)
       const x = sx(ex.x), y = sy(ex.y);
       ctx.fillStyle = ex.open ? 'rgba(254,231,97,0.22)' : 'rgba(0,0,0,0.3)';
       ctx.beginPath();
@@ -506,9 +518,23 @@
       const x = sx(c.x), y = sy(c.y);
       CH.Enemies.shadow(ctx, x, y + 8, 18);
       const chests = CH.Assets.images['obj.chests'];
+      const k = c.opened && c.openT !== undefined ? G.time - c.openT : 9; // seconds since it was opened
+      const rattle = k < Run.CHEST_DELAY;
+      if (!c.opened || k < 1.2) { // a glow that says "loot here", and the burst of light as the lid flies up
+        const a = !c.opened ? 0.18 + 0.08 * Math.sin(t * 3 + c.x) : rattle ? 0.3 : 0.9 * (1 - (k - Run.CHEST_DELAY) / (1.2 - Run.CHEST_DELAY));
+        const g = ctx.createRadialGradient(x, y - 6, 1, x, y - 6, rattle || !c.opened ? 26 : 44);
+        g.addColorStop(0, 'rgba(255,231,140,' + a + ')');
+        g.addColorStop(1, 'rgba(255,200,80,0)');
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = g;
+        ctx.fillRect(x - 46, y - 52, 92, 92);
+        if (c.opened && !rattle) { ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = '#fff3c0'; ctx.fillRect(x - 6, y - 60, 12, 50); ctx.globalAlpha = 1; } // a shaft of light out of the open lid
+        ctx.globalCompositeOperation = 'source-over';
+      }
       if (chests) { // the pack's chests: wood, steel, gold and the blue relic chest by tier; row 2 is the opened lid
         const col = c.secret ? 3 : c.tier >= 7 ? 3 : c.tier >= 5 ? 2 : c.tier >= 3 ? 1 : 0;
-        ctx.drawImage(chests, col * 36, c.opened ? 32 : 0, 36, 32, x - 18, y - 23, 36, 32);
+        const jx = rattle ? Math.round(Math.sin(k * 90) * 1.5) : 0;
+        ctx.drawImage(chests, col * 36, c.opened && !rattle ? 32 : 0, 36, 32, x - 18 + jx, y - 23 - (rattle && k > Run.CHEST_DELAY * 0.6 ? 1 : 0), 36, 32);
       }
     }
   };

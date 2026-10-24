@@ -87,7 +87,9 @@ const { open } = require('./lib');
     const b = G.isBossWave(49);
     const e = G.enemies.find((q) => q.isBoss && q.kind === b.kind) || G.spawnEnemy(b.kind, G.player.x + 200, G.player.y, { boss: true });
     G.killEnemy(e);
-    for (let i = 0; i < 80 && G.state !== 'victory'; i++) CH.stepFrame(1 / 30);
+    for (let i = 0; i < 80; i++) CH.stepFrame(1 / 30);
+    G.player.x = G.level.exit.x; G.player.y = G.level.exit.y; CH.stepFrame(1 / 30);
+    G.interact(G.player); // the hall's door leads to the victory (PLAN.md 20)
     const vic = { state: G.state, title: document.getElementById('vic-title').textContent, hideout: getComputedStyle(document.getElementById('btn-vic-hideout')).display, again: getComputedStyle(document.getElementById('btn-again')).display };
     document.getElementById('btn-vic-hideout').click();
     return { forks, vic, after: { state: G.state, town: !!(G.level && G.level.isTown), at: W.at, slot: !!St.slot() } };
