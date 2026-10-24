@@ -55,8 +55,8 @@ const { open } = require('./lib');
   // 3. the act bosses and Jesus
   r = await page.evaluate(() => {
     const G = CH.G, St = CH.Storage, W = St.slot().world;
-    G.startWave(3);
-    const b = G.isBossWave(3);
+    G.startWave(11);
+    const b = G.isBossWave(11);
     const e = G.enemies.find((q) => q.isBoss && q.kind === b.kind) || G.spawnEnemy(b.kind, G.player.x + 200, G.player.y, { boss: true });
     G.killEnemy(e);
     const hook = CH.Secrets.has('hook');

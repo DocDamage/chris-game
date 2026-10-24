@@ -462,7 +462,7 @@ Wicker Basket|pc|c
 
   Loot.dropFor = function (g, e) {
     if (Math.random() >= Loot.chance(e)) return;
-    const it = Loot.roll(e.type, { min: e.isElite ? 'u' : 'c', luck: 1 + Math.min(2, (g.wave || 1) * 0.06) });
+    const it = Loot.roll(e.type, { min: e.isElite ? 'u' : 'c', luck: 1 + Math.min(2, (g.tier() || 1) * 0.06) });
     Loot.drop(g, it, e.x, e.y);
   };
   Loot.bossDrops = function (g, b) {

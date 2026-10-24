@@ -49,7 +49,7 @@
   /* level generation (js/levelgen.js): seal some of the stage's secret rooms */
   SE.seal = function (L, R, stage) {
     L.gates = [];
-    const act = Math.min(4, Math.max(1, Math.ceil(stage / 3)));
+    const act = (CH.WorldMap && CH.WorldMap.genAct) || Math.min(4, Math.max(1, Math.ceil(stage / 3))); // the world map's act when one is being built
     const pool = LATER[act];
     L.secrets.forEach((s, i) => {
       if (i === 0 && R.f() < 0.35) return; // the first one is sometimes a plain cracked wall

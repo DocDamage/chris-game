@@ -335,7 +335,7 @@
     else if (e.isElite || e.affix) chance = 0.2 + luck * 0.1 + night;
     if (Math.random() > chance + night * 0.05) return;
     const n = boss ? 2 + (Math.random() < 0.5 ? 1 : 0) : 1;
-    for (let i = 0; i < n; i++) Items.drop(e.x + U.rand(-14, 14), e.y + U.rand(-10, 10), Items.roll(Math.max(1, G.wave), { luck, boss }));
+    for (let i = 0; i < n; i++) Items.drop(e.x + U.rand(-14, 14), e.y + U.rand(-10, 10), Items.roll(Math.max(1, Math.round(G.tier())), { luck, boss }));
   };
   G.on('kill', function (e) {
     const p = e.lastHitBy && e.lastHitBy.hero ? e.lastHitBy : G.player;
@@ -343,7 +343,7 @@
     for (const q of G.players) {
       if (q.dead) continue;
       if (Items.hasFx(q, 'killheal') && U.dist(q.x, q.y, e.x, e.y) < 240) q.hp = Math.min(q.maxHp, q.hp + 1);
-      if (Items.hasFx(q, 'greed') && Math.random() < 0.2) G.addCoins(2 + Math.floor(G.wave / 2), e.x, e.y);
+      if (Items.hasFx(q, 'greed') && Math.random() < 0.2) G.addCoins(2 + Math.floor(G.tier() / 2), e.x, e.y);
     }
   });
   G.on('damageEnemy', function (ev) {
@@ -427,7 +427,7 @@
   Items.shopGear = (p) => {
     const out = [];
     for (let i = 0; i < 3; i++) {
-      const it = Items.roll(Math.max(1, G.wave), { rarity: i === 0 ? 'rare' : Math.random() < 0.35 ? 'rare' : 'magic', luck: 0 });
+      const it = Items.roll(Math.max(1, Math.round(G.tier())), { rarity: i === 0 ? 'rare' : Math.random() < 0.35 ? 'rare' : 'magic', luck: 0 });
       out.push({ id: 'gear_' + it.uid, name: it.name, desc: Items.describe(it).slice(1).map((l) => l.t).join('\n'), price: Math.round(Items.sellValue(it) * 3.2), gear: it, icon: { gear: it }, rar: it.rarity, use: (q) => { if (!Items.addToBag(it)) { Items.drop(q.x, q.y, it); } }, once: true });
     }
     return out;

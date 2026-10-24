@@ -35,7 +35,7 @@ const { open } = require('./lib');
     St.createSlot({ hero: 'Mercenary', name: 'Yeti' });
     G._scriptTesting = true;
     G.newRun(null);
-    G.startWave(7);
+    G.startWave(CH.WorldMap.first('frozen'));
     const L = G.level, p = G.player;
     for (const e of G.enemies) e.dead = true;
     // walk on snow
@@ -50,7 +50,7 @@ const { open } = require('./lib');
     CH.stepFrame(1 / 30);
     return { biome: L.biome, act: CH.Quests.ACTS[2], prints, onIce: p.onIce, name: L.name };
   });
-  ok('act III of a world is the Frozen Kingdom', r.biome === 'frozen' && r.act === 'III. The Frozen Kingdom' && r.name === 'The Frozen Kingdom', r);
+  ok('act III of a world is the Frozen Kingdom', r.biome === 'frozen' && r.act === 'III. The Frozen North' && r.name === 'The Frozen Kingdom', r);
   ok('feet leave prints in the snow', r.prints >= 4, r);
   ok('frozen water is ice underfoot', r.onIce === true, r);
   await page.evaluate(() => { const G = CH.G, p = G.player; G.snapCamera(); G.render(); });

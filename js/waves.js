@@ -57,7 +57,7 @@
   const offFor = (key, idx) => (idx !== undefined ? idx : PATH_IDX[G.chosenPath && G.chosenPath[key]] || 0);
   const mk = (kind) => ({ kind, tier: 0 });
   wrap(G, 'isBossWave', function (orig, w, idx) {
-    if (G.endless) return orig.call(G, w);
+    if (G.endless || (CH.WorldMap && CH.WorldMap.on())) return orig.call(G, w); // a character's world has its own act bosses (js/worldmap.js)
     if (X.run.seed != null) {
       if (w === 3) return mk(pick(P3, 0));
       if (w === 5) return mk(pick(P5, offFor(4, idx)));
@@ -181,7 +181,7 @@
   W.openShop = function () {
     if (W.shop) return;
     const pool = U.shuffle(ITEMS.slice());
-    const w = Math.max(1, G.wave);
+    const w = Math.max(1, G.tier());
     const items = pool.slice(0, 3).map((it) => Object.assign({}, it, { cost: Math.round(it.cost * (1 + 0.06 * w)) }));
     W.shop = { items, sold: new Set(), prevState: G.state };
     G.state = 'branch';

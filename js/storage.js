@@ -244,7 +244,8 @@
   function cleanWorld(w) {
     w = w && typeof w === 'object' ? w : {};
     const ints = (a, max) => (Array.isArray(a) ? Array.from(new Set(a.filter((x) => Number.isInteger(x) && x >= 0 && x < max))).slice(0, max) : []);
-    const out = { seed: Math.floor(num(w.seed, 0, 0, 2147483646)), at: Math.floor(num(w.at, 0, 0, 99)), deepest: Math.floor(num(w.deepest, 0, 0, 99)), path: {}, areas: {} };
+    if (w.map !== 2) w = { abilities: w.abilities, cult: w.cult }; // the 49-area world map (PLAN.md 19, W3): an older world starts again
+    const out = { map: 2, seed: Math.floor(num(w.seed, 0, 0, 2147483646)), at: Math.floor(num(w.at, 0, 0, 99)), deepest: Math.floor(num(w.deepest, 0, 0, 99)), path: {}, areas: {} };
     if (!out.seed) out.seed = 1 + Math.floor(Math.random() * 2147483645);
     if (w.path && typeof w.path === 'object') for (const k of Object.keys(w.path).slice(0, 8)) if (/^[a-z0-9_]{1,16}$/i.test(k) && typeof w.path[k] === 'string' && w.path[k].length <= 24) out.path[k] = w.path[k];
     if (w.areas && typeof w.areas === 'object') for (const k of Object.keys(w.areas).slice(0, 99)) {

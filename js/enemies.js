@@ -109,7 +109,7 @@
       this.y = y;
       this.isElite = !!o.elite;
       this.isBoss = false;
-      const w = g.wave;
+      const w = g.tier ? g.tier() : g.wave;
       const hpScale = 1 + (w <= 10 ? B.waves.hpScale * (w - 1) : B.waves.hpScale * 9 + B.waves.endlessHpScale * (w - 10));
       this.maxHp = this.hp = Math.max(1, Math.round(b.hp * hpScale * g.diff.enemyHp * (g.coop ? B.coop.enemyHp : 1) * (this.isElite ? B.eliteHp : 1) * (o.hpMul || 1) * (vt ? vt.hp || 1 : 1)));
       this.dmg = g.edmg(b.dmg) * (this.isElite ? B.eliteDmg : 1) * (vt ? vt.dmg || 1 : 1);

@@ -99,7 +99,7 @@
   SK.spawnFor = function (owner, id) {
     const d = SK.DEFS[id];
     if (!d) return null;
-    const dep = Math.max(1, G.depth || G.wave || 1);
+    const dep = Math.max(1, G.tier() || 1);
     const hp = Math.round(d.hp * (1 + 0.14 * (dep - 1)));
     const s = {
       id, d, owner, x: owner.x - 24, y: owner.y + 6, hp, maxHp: hp, level: 1, xp: 0, kills: 0, r: d.r, face: 1,
@@ -125,7 +125,7 @@
   });
 
   const alive = (s) => s.state !== 'down';
-  const dmgOf = (s, mul) => s.d.dmg * (mul || 1) * (1 + 0.08 * (s.level - 1)) * (1 + 0.1 * (Math.max(1, G.depth || G.wave || 1) - 1)) * (s.owner.stats ? s.owner.stats.dmgMult : 1);
+  const dmgOf = (s, mul) => s.d.dmg * (mul || 1) * (1 + 0.08 * (s.level - 1)) * (1 + 0.1 * (Math.max(1, G.tier() || 1) - 1)) * (s.owner.stats ? s.owner.stats.dmgMult : 1);
 
   function nearestFor(s, range, from) {
     let best = null, bd = range * range;

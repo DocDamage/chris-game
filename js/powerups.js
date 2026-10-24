@@ -67,7 +67,7 @@
     if (kind === 'magnet') {
       g.vacuum = 4;
     } else if (kind === 'bomb') {
-      g.explode(p.x, p.y, 95, 70 * (1 + g.wave * 0.12), { owner: 'p', hitEnemies: true, colors: 'fire', knock: 280, clearProj: true });
+      g.explode(p.x, p.y, 95, 70 * (1 + g.tier() * 0.12), { owner: 'p', hitEnemies: true, colors: 'fire', knock: 280, clearProj: true });
       CH.Kit.impact('fire', p.x, p.y, 60);
       g.shake(6, 0.4);
     } else if (kind === 'chest') {

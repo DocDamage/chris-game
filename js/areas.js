@@ -75,7 +75,7 @@
       L.hives = (L.hives || []).filter((e) => !e.hive.dead);
       for (let i = G.enemies.length - 1; i >= 0; i--) if (G.enemies[i].isSpawner && G.enemies[i].hive && G.enemies[i].hive.dead) G.enemies.splice(i, 1);
     }
-    if (a.cleared || L.spawners.filter((s) => s.dead).length >= L.hivesNeeded) {
+    if (L.bossHall ? a.boss : a.cleared || L.spawners.filter((s) => s.dead).length >= L.hivesNeeded) { // a boss hall opens when its boss falls
       L.opened = true;
       L.exit.open = true;
     }
@@ -102,8 +102,7 @@
     G.runIndex = W.seed % 2520; // and so do its bosses
     G.bossHpMul = 1.3; // the balance pass (PLAN.md 18, K11): bots took act I and II bosses down in under a minute
     // the world's forks are fixed by its seed (the path prompts went with the runs: K0d)
-    if (W.path[4] !== 'gaslight') W.path[4] = 'gaslight'; // act II: the Gaslight District (PLAN.md 18, K4)
-    if (!W.path[7] || W.path[7] !== 'frozen') W.path[7] = 'frozen'; // act III: the Frozen Kingdom (PLAN.md 18, K3)
+    W.path = {}; // no forks: the world map (js/worldmap.js) names every area's biome
     if (G.chosenPath && !Object.keys(G.chosenPath).length) Object.assign(G.chosenPath, W.path);
     // a character who has been out before starts in the hideout
     if (A.loading) {
@@ -117,7 +116,7 @@
     // a boss already beaten: walk on to the next area
     const boss = G.isBossWave(ev.n);
     const st = W.areas[ev.n];
-    if (boss && st && st.boss && ev.n < B.waves.campaign) ev.n++;
+    if (boss && st && st.boss && ev.n < CH.WorldMap.LAST) ev.n++;
   });
   G.on('startWave', function (ev) {
     const W = A.world();
@@ -171,7 +170,7 @@
     if (!boss || boss.kind !== e.kind || e.tier) return;
     const W = A.world();
     if (W) (W.areas[G.wave] || (W.areas[G.wave] = { visits: 1 })).boss = true;
-    const act = A.ACT_BOSS[G.wave];
+    const act = W ? CH.WorldMap.area(G.wave).act : A.ACT_BOSS[G.wave]; // the act whose boss fell
     if (act && CH.Secrets) CH.Secrets.forAct(act); // the act's ability (js/secrets.js)
     const s = Storage.stats;
     if (act && act > (s.acts || 0)) {

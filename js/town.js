@@ -242,8 +242,12 @@
   function waypointTravel(n, p) {
     const wps = CH.Storage.data.diablo.waypoints || {};
     const stages = Object.keys(wps).map(Number).sort((a, b) => a - b);
-    const name = (s) => (s <= 3 ? 'DEAD WOOD' : s <= 6 ? 'GASLIGHT' : s <= 9 ? 'FROZEN' : 'BELOW');
-    const choices = stages.slice(-8).map((s) => ({ label: 'STAGE ' + s + ' ' + name(s), fn: () => { Town.pendingStage = s; Town.leave(); } })); // every area with a lit waypoint: go back (PLAN.md 18, K8)
+    // go back (PLAN.md 18, K8; 19, W3): the deepest lit waypoint of every biome
+    const WM = CH.WorldMap, world = WM && WM.on();
+    const best = {};
+    for (const s of stages) { const k = world ? WM.area(s).biome : 'stage' + s; if (!best[k] || s > best[k]) best[k] = s; }
+    const pick = Object.values(best).sort((a, b) => a - b).slice(-9);
+    const choices = pick.map((s) => ({ label: world ? WM.label(s) + ' (' + s + ')' : 'STAGE ' + s, fn: () => { Town.pendingStage = s; Town.leave(); } }));
     choices.push({ label: 'STAY', fn: () => {} });
     D().say({ who: n.name, portrait: 'npc:' + n.face, lines: [stages.length ? 'Where to? Only places you have been.' : 'Light a waypoint in the field first. Then I can send you back.'], choices: stages.length ? choices : [{ label: 'OK', fn: () => {} }], color: color(p) });
   }

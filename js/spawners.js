@@ -99,7 +99,7 @@
     const type = mobs[Math.min(mobs.length - 1, Math.floor(Math.random() * (lv + 1.2)))];
     const p = g.level ? g.level.randomNear(e.x, e.y, 30, 62, 14) : null;
     const pos = p || { x: e.x + U.rand(-40, 40), y: e.y + U.rand(-40, 40) };
-    const m = g.spawnEnemy(type, pos.x, pos.y, { elite: lv === 3 && Math.random() < 0.07 + 0.01 * Math.min(10, g.wave), variant: CH.Enemies.rollVariant(type, g.wave, g.arena ? g.arena.id : 'backyard'), spawnTime: 0.4 });
+    const m = g.spawnEnemy(type, pos.x, pos.y, { elite: lv === 3 && Math.random() < 0.07 + 0.01 * Math.min(10, g.tier()), variant: CH.Enemies.rollVariant(type, g.tier(), g.arena ? g.arena.id : 'backyard'), spawnTime: 0.4 });
     m.hive = e.hive;
     FX.ring(pos.x, pos.y, 3, 18, KIND[e.kind].glow, 0.3);
     if (Math.random() < 0.5) Audio.sfx('scan');
@@ -117,7 +117,7 @@
     // the minions of a dead hive panic and die with it
     for (const q of G.enemies) if (q.hive === e.hive && !q.dead && !q.isSpawner && !q.isBoss) q.hp = Math.min(q.hp, 1);
     // loot burst: coins, a power-up and a trophy chance
-    G.addCoins(Math.round(18 + 4 * G.wave), e.x, e.y);
+    G.addCoins(Math.round(18 + 4 * G.tier()), e.x, e.y);
     for (let i = 0; i < 5; i++) G.dropPickup('coin', e.x + U.rand(-24, 24), e.y + U.rand(-24, 24), 3, {});
     if (CH.PowerUps && CH.PowerUps.roll) G.dropPickup('curio', e.x, e.y, 2, { icon: 'pu.' + U.pick([259, 46, 170, 171]), life: 25 });
     CH.Upgrades.addXp(G, Math.round(B.xp.need(G.player.level) * 0.35), G.player);

@@ -36,7 +36,7 @@ const { open } = require('./lib');
     St.createSlot({ hero: 'Mercenary', name: 'Lamplighter' });
     G._scriptTesting = true;
     G.newRun(null);
-    G.startWave(4);
+    G.startWave(CH.WorldMap.first('gaslight'));
     const L = G.level, p = G.player;
     for (const e of G.enemies) e.dead = true;
     const house = L.props.find((q) => q.kits) || L.props[30];

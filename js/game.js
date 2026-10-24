@@ -164,7 +164,10 @@
     G.initDemo();
   };
 
-  G.edmg = (base) => base * G.diff.enemyDmg * (G.coop ? B.coop.enemyDmg : 1) * (1 + B.waves.dmgScale * Math.max(0, Math.min(G.wave, 10) - 1));
+  /* how deep the party is, for difficulty: the stage number, or in a character's world the depth of its area (1-10 over
+     49 areas, js/worldmap.js) */
+  G.tier = () => ((CH.WorldMap && CH.WorldMap.on()) ? CH.WorldMap.depth(G.wave) : G.wave);
+  G.edmg = (base) => base * G.diff.enemyDmg * (G.coop ? B.coop.enemyDmg : 1) * (1 + B.waves.dmgScale * Math.max(0, Math.min(G.tier(), 10) - 1));
 
   /* config: undefined = repeat the last setup, null = single player, {players:[{hero, src}, {hero, src}]} = co-op */
   G.newRun = (config) => G.call('newRun', { config }, (ev) => newRunCore(ev.config));
@@ -313,7 +316,7 @@
     return n;
   };
   G.bossAlive = () => G.enemies.some((e) => e.isBoss && !e.dead);
-  G.aliveCap = () => Math.round(B.waves.aliveCap(Math.max(1, G.wave)) * (G.diff === B.difficulty.casual ? 0.8 : 1) * (G.coop ? B.coop.aliveCap : 1));
+  G.aliveCap = () => Math.round(B.waves.aliveCap(Math.max(1, Math.round(G.tier()))) * (G.diff === B.difficulty.casual ? 0.8 : 1) * (G.coop ? B.coop.aliveCap : 1));
   G.remaining = () => G.queue.length + G.enemies.reduce((n, e) => n + (e.dead ? 0 : 1), 0);
   G.comboMult = () => 1 + Math.min(B.score.comboMax - 1, G.combo * B.score.comboStep);
   G.scoreMult = () => {
@@ -346,6 +349,11 @@
   const FINAL_BOSSES = ['bug', 'skull', 'daddy'];
   G.isBossWave = (w) => {
     const run = G.runIndex || 0;
+    if ((CH.WorldMap && CH.WorldMap.on())) { // a character's world: the act bosses stand at the end of each act (js/worldmap.js)
+      const a = CH.WorldMap.area(w);
+      if (!a || !a.boss || w > CH.WorldMap.LAST) return null;
+      w = [3, 5, 8, 10][a.act - 1];
+    }
     if (w <= B.waves.campaign) {
       if (w === 3) return { kind: ['frog', 'treant', 'bd', 'mage', 'knight', 'ooze'][run % 6], tier: 0 };
       if (w === 5) return { kind: ['ceo', 'beholder', 'moss', 'sporeeye'][run % 4], tier: 0 };
@@ -402,6 +410,7 @@
   };
 
   G.pathArena = function (n) {
+    if ((CH.WorldMap && CH.WorldMap.on())) return CH.WorldMap.area(n).biome; // the world map's biome for this area
     if (n <= 3) return 'deadwood'; // The Dead Wood (PLAN.md 18, K2); the act I boss arena is still the Valley Ruin backyard
     if (n <= 6) return (G.chosenPath && G.chosenPath[4]) || 'office';
     return (G.chosenPath && G.chosenPath[7]) || 'glitch';

@@ -12,8 +12,8 @@
   const wrap = X.wrap;
 
   const Q = (CH.Quests = {});
-  Q.ACTS = ['I. The Dead Wood', 'II. The Gaslight District', 'III. The Frozen Kingdom', 'IV. The Glitch'];
-  Q.actOf = (stage) => Math.min(4, Math.max(1, Math.ceil(stage / 3)));
+  Q.ACTS = ['I. The Dead Wood', 'II. The Gaslight District', 'III. The Frozen North', 'IV. The Crimson Castle'];
+  Q.actOf = (stage) => (CH.WorldMap && CH.WorldMap.on() ? CH.WorldMap.area(stage || 1).act : Math.min(4, Math.max(1, Math.ceil(stage / 3))));
 
   /* ev: the event name that advances the quest (all but 'lost' count per occurrence) */
   Q.LIST = [

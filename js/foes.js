@@ -180,7 +180,7 @@
     }
     if (m && m.id === 'elites' && !m.failed) {
       const c = G.partyCenter();
-      G.addCoins(Math.round(8 + G.wave * 2));
+      G.addCoins(Math.round(8 + G.tier() * 2));
       FX.text(c.x, c.y - 30, 'ELITE BONUS', '#fee761', 1);
     }
     F.esc = null;

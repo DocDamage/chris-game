@@ -59,32 +59,32 @@ const { open } = require('./lib');
     const G = CH.G, St = CH.Storage, W = St.slot().world;
     St.stats.acts = 0;
     St.data.unlocked = ['Mercenary'];
-    G.startWave(3);
+    G.startWave(11);
     const arena = { wave: G.wave, level: !!G.level };
-    const b = G.isBossWave(3);
+    const b = G.isBossWave(11);
     const e = G.enemies.find((q) => q.isBoss && q.kind === b.kind) || G.spawnEnemy(b.kind, G.player.x + 200, G.player.y, { boss: true });
     G.killEnemy(e);
-    const after = { boss: !!(W.areas[3] && W.areas[3].boss), acts: St.stats.acts, dread: St.isUnlocked('Dreadbloom'), vex: St.isUnlocked('Vexaria') };
+    const after = { boss: !!(W.areas[11] && W.areas[11].boss), acts: St.stats.acts, dread: St.isUnlocked('Dreadbloom'), vex: St.isUnlocked('Vexaria') };
     G.bossDying = null;
     G.victoryPending = false;
-    G.startWave(4); // the exit: after an act boss the next area starts from the hideout
+    G.startWave(12); // the exit: after an act boss the next area starts from the hideout
     const town = { inTown: CH.Town.inTown, pending: CH.Town.pendingStage };
     CH.Town.leave();
     const next = G.wave;
-    G.startWave(3); // back to the boss area (a waypoint, a fork)
+    G.startWave(11); // back to the boss area (a waypoint, a fork)
     return { arena, after, town, next, skipped: G.wave, level: !!G.level, deepest: W.deepest };
   });
-  ok('the act I boss fight happens in area 3', r.arena.wave === 3 && !r.arena.level, r);
+  ok('the act I boss fight happens in area 11, a hall (PLAN.md 19, W3)', r.arena.wave === 11 && r.arena.level, r);
   ok('beating it marks the area and unlocks Dreadbloom (not Vexaria yet)', r.after.boss && r.after.acts === 1 && r.after.dread && !r.after.vex, r);
-  ok('after the act boss the next area starts from the hideout', r.town.inTown && r.town.pending === 4 && r.next === 4, r);
-  ok('going back to a beaten boss walks on to the next area', r.skipped === 4 && r.level && r.deepest === 4, r);
+  ok('after the act boss the next area starts from the hideout', r.town.inTown && r.town.pending === 12 && r.next === 12, r);
+  ok('going back to a beaten boss walks on to the next area', r.skipped === 12 && r.level && r.deepest === 12, r);
 
   // 4b. the forks are the world's, no path screen; the final boss saves the world and the character plays on
   r = await page.evaluate(() => {
     const G = CH.G, St = CH.Storage, W = St.slot().world;
-    const forks = { a: W.path[4], b: W.path[7], chosen: G.chosenPath[4], arena: G.pathArena(5) };
-    G.startWave(10);
-    const b = G.isBossWave(10);
+    const forks = { a: G.pathArena(12), b: G.pathArena(33), c: G.pathArena(44) };
+    G.startWave(49);
+    const b = G.isBossWave(49);
     const e = G.enemies.find((q) => q.isBoss && q.kind === b.kind) || G.spawnEnemy(b.kind, G.player.x + 200, G.player.y, { boss: true });
     G.killEnemy(e);
     for (let i = 0; i < 80 && G.state !== 'victory'; i++) CH.stepFrame(1 / 30);
@@ -92,7 +92,7 @@ const { open } = require('./lib');
     document.getElementById('btn-vic-hideout').click();
     return { forks, vic, after: { state: G.state, town: !!(G.level && G.level.isTown), at: W.at, slot: !!St.slot() } };
   });
-  ok('the forks are fixed by the world (act II the Gaslight District, act III the Frozen Kingdom: PLAN.md 18, K3-K4)', r.forks.a === 'gaslight' && r.forks.b === 'frozen' && r.forks.chosen === r.forks.a && r.forks.arena === r.forks.a, r.forks);
+  ok('no forks: the world map names the biome of each area (PLAN.md 19, W3)', r.forks.a === 'gaslight' && r.forks.b === 'frozen' && r.forks.c === 'castle', r.forks);
   ok('the final boss saves the world: the character goes back to the hideout', r.vic.state === 'victory' && /WORLD IS SAVED/.test(r.vic.title) && r.vic.hideout !== 'none' && r.vic.again === 'none', r.vic);
   ok('BACK TO THE HIDEOUT plays on in the hideout, the portal leads to area 1', r.after.state === 'playing' && r.after.town && r.after.at === 1 && r.after.slot, r.after);
 

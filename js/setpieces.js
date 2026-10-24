@@ -530,6 +530,16 @@
     D.scatter('skeleton', A.x, A.y, A.rx * 0.6, 1);
     D.scatter('hang', A.x, A.y, A.rx * 0.7, 1);
   };
+  /* an act boss's hall (PLAN.md 19, W3): columns along the long walls, braziers at the corners and by the far door,
+     the biome's things against the walls; the middle stays open for the fight */
+  SCENE.bosshall = (D, A) => {
+    for (const s of [-1, 1]) for (let x = A.x - A.rx * 0.8; x <= A.x + A.rx * 0.8; x += 96) D.put(D.key('pillar') || D.key('statue'), x, A.y + s * A.ry * 0.82);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) D.put(D.key('brazier') || D.key('torch'), A.x + sx * A.rx * 0.92, A.y + sy * A.ry * 0.7);
+    for (const s of [-1, 1]) D.put(D.key('statue') || D.key('pillar'), A.x + s * 70, A.y - A.ry * 0.86);
+    D.scatter('decal', A.x, A.y, A.rx * 0.7, 4);
+    D.scatter('bones', A.x, A.y, A.rx * 0.8, 3);
+  };
+
   /* ------------------------------------------------------------------ the Catacombs and the Crimson Castle (PLAN.md 19, W2) */
   /* an ossuary: skeletons and bone piles along the back wall, skull heaps, a cage, candles, old blood */
   SCENE.ossuary = (D, A) => {
@@ -910,6 +920,7 @@
       if (rm.tag === 'town') continue;
       const A = area(L, rm);
       if (rm.tag === 'start') { SCENE.herocamp(D, A, L.entrance); continue; }
+      if (rm.tag === 'hall') { SCENE.bosshall(D, A); continue; } // an act boss's hall (js/worldmap.js)
       const sp = L.spawners.find((s) => s.room === rm.id);
       const pk = L.packs.find((q) => q.room === rm.id);
       if (sp) {

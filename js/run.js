@@ -28,6 +28,7 @@
   /* levels are used for every stage that is not a boss fight */
   Run.usesLevels = (n) => {
     if (!Run.levels) return false;
+    if ((CH.WorldMap && CH.WorldMap.on())) return true; // a character's world: boss areas are halls (js/worldmap.js)
     return !G.isBossWave(n);
   };
 
@@ -59,7 +60,11 @@
     if (G.runSeed === undefined || G.runSeed === null) G.runSeed = X.run && X.run.seed != null ? X.run.seed >>> 0 : (Math.random() * 2147483647) | 0;
     const biome = biomeFor(n);
     const rng = U.seeded((G.runSeed + n * 7919) >>> 0);
-    const L = LG.generate(biome, n, rng);
+    const WM = CH.WorldMap, world = WM && WM.on();
+    const dep = world ? Math.max(1, Math.round(WM.depth(n))) : n; // the generator scales by depth
+    if (world) WM.genAct = WM.area(n).act;
+    const L = world && WM.area(n).boss ? WM.hall(biome, n) : LG.generate(biome, dep, rng);
+    WM && (WM.genAct = 0);
     L.stage = n;
     L.threat = 0;
     L.threatT = 0;
@@ -95,7 +100,7 @@
     G.spawnT = 0;
     G.vacuum = 0;
     // hives
-    L.hives = L.spawners.map((def) => CH.Spawners.create(def, n));
+    L.hives = L.spawners.map((def) => CH.Spawners.create(def, dep));
     L.hivesNeeded = L.spawners.length >= 5 ? L.spawners.length - 1 : L.spawners.length;
     L.exit.open = false;
     // a vending machine in a mid-way room, from stage 2
@@ -115,8 +120,8 @@
     const UNI = ['Gordon the Gnome-Slayer', 'Big Dave', 'Mildred the Mild', 'Chop-Shop Chuck', 'Sir Reginald Fluffington', 'The Unpaid Intern', 'Lord Gluten', 'Karen of the Deep'];
     const lead = L.packs.filter((pk) => pk.leader)[0] || L.packs[Math.floor(rng() * L.packs.length)];
     if (lead) { lead.unique = UNI[Math.floor(rng() * UNI.length)]; lead.leader = true; if (L.biome === 'zombie') lead.unique = 'Chop-Shop Chuck'; }
-    const sub = 'Close the breaches (' + L.hivesNeeded + ') and find the exit.';
-    G.banner('STAGE ' + n, L.name.toUpperCase() + '  -  ' + sub, 3.2);
+    const sub = L.bossHall ? 'Something waits at the far end.' : 'Close the breaches (' + L.hivesNeeded + ') and find the exit.';
+    G.banner(world ? WM.label(n) : 'STAGE ' + n, L.name.toUpperCase() + '  -  ' + sub, 3.2);
     Run.cache = {};
   };
 
@@ -165,7 +170,7 @@
       }
     }
     // the threat clock: breaches left open too long breed faster (no turtling)
-    if (!L.opened) {
+    if (!L.opened && !L.bossHall) {
       L.threatT += dt;
       if (L.threatT > 75 && L.threat < 4) {
         L.threatT = 0;

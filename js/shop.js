@@ -17,7 +17,7 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   const Shop = (CH.Shop = { open: false, owner: null, cat: 'food', sel: 0, buyback: [], extraCats: [] });
-  const depth = () => Math.max(1, G.depth || G.wave || 1);
+  const depth = () => Math.max(1, G.tier() || 1);
   const rng = () => (CH.Waves && CH.Waves.rng ? CH.Waves.rng() : Math.random());
   const priceMul = () => (1 + 0.07 * (depth() - 1)) * ((G.diff && G.diff.shopMul) || 1);
 
