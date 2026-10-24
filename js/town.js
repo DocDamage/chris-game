@@ -104,7 +104,8 @@
     Town.saved = null;
     G.screenFlash(0.8, '#ffffff');
     Audio.sfx('door_open');
-    if (Town.pendingStage) { // after an act boss: start the next stage
+    if (!s && !Town.pendingStage && CH.Areas) Town.pendingStage = CH.Areas.resume(); // loaded in the hideout: back to the last area
+    if (Town.pendingStage) { // after an act boss (or loaded in the hideout): start that stage
       const n = Town.pendingStage;
       Town.pendingStage = 0;
       G.level = null;

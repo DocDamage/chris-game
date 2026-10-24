@@ -46,6 +46,7 @@
   /* write the first player's progress into the active slot */
   C.save = () => {
     if (!Storage.slot() || !G.players.length || !C.loaded) return Storage.save();
+    if (CH.Areas) CH.Areas.capture(); // what changed in the area (js/areas.js)
     const ok = Storage.setChar(C.snapshot(G.players[0]), played);
     played = 0;
     since = 0;

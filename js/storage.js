@@ -82,7 +82,7 @@
       padDeadzone: 0.2,
       keys: Object.assign({}, DEFAULT_KEYS),
     },
-    stats: { totalRuns: 0, totalKills: 0, bossesDefeated: 0, highestWave: 0, highScore: 0, totalPlayTime: 0, wins: 0, totalCoins: 0, deaths: 0, bestTime: 0 },
+    stats: { totalRuns: 0, totalKills: 0, bossesDefeated: 0, highestWave: 0, highScore: 0, totalPlayTime: 0, wins: 0, totalCoins: 0, deaths: 0, bestTime: 0, acts: 0 },
     resources: { wood: 0, scrap: 0, stone: 0 },
     shelter: { workbench: 0, bed: 0, storage: 0, radio: 0, barricades: 0, decor: {} },
     loot: {}, // mob-drop item id -> how many are in stock
@@ -182,7 +182,7 @@
      (PLAN.md 18, K0a). The game is no longer made of runs: each slot is one hero taken through the world.
        KEY3 = { version: 3, account: { settings, stats, unlocked, seen, meta }, slots: [slot], active: index or -1 }
        slot = { id, name, hero, hardcore, created, played, char: { level, xp, sp, skills, gold, weapons ... },
-                data: { resources, shelter, loot, diablo, sidekicks, meta } }
+                world: { seed, at, deepest, path, areas } (js/areas.js), data: { resources, shelter, loot, diablo, sidekicks, meta } }
      Storage.data keeps the shape every module reads (settings, stats, unlocked, seen, resources, shelter, loot, diablo,
      sidekicks, meta): built from the account and the active slot on load, split back into them on save. With no
      active slot (the menu, most tests, the debug start without the book) the character part goes to a nameless
@@ -234,6 +234,20 @@
     if (c.ws && typeof c.ws === 'object') for (const k of Object.keys(c.ws)) if (out.weapons.includes(k)) out.ws[k] = { level: Math.floor(num(c.ws[k] && c.ws[k].level, 1, 1, 20)) };
     return out;
   }
+  /* a character's world (js/areas.js): its seed, where they are, how deep they went, the forks taken, each area's state */
+  function cleanWorld(w) {
+    w = w && typeof w === 'object' ? w : {};
+    const ints = (a, max) => (Array.isArray(a) ? Array.from(new Set(a.filter((x) => Number.isInteger(x) && x >= 0 && x < max))).slice(0, max) : []);
+    const out = { seed: Math.floor(num(w.seed, 0, 0, 2147483646)), at: Math.floor(num(w.at, 0, 0, 99)), deepest: Math.floor(num(w.deepest, 0, 0, 99)), path: {}, areas: {} };
+    if (!out.seed) out.seed = 1 + Math.floor(Math.random() * 2147483645);
+    if (w.path && typeof w.path === 'object') for (const k of Object.keys(w.path).slice(0, 8)) if (/^[a-z0-9_]{1,16}$/i.test(k) && typeof w.path[k] === 'string' && w.path[k].length <= 24) out.path[k] = w.path[k];
+    if (w.areas && typeof w.areas === 'object') for (const k of Object.keys(w.areas).slice(0, 99)) {
+      const a = w.areas[k];
+      if (!/^[0-9]{1,2}$/.test(k) || !a || typeof a !== 'object') continue;
+      out.areas[k] = { biome: str(a.biome, '', 24), visits: Math.floor(num(a.visits, 0, 0, 1e6)), closed: ints(a.closed, 32), chests: ints(a.chests, 64), secrets: ints(a.secrets, 16), shrines: ints(a.shrines, 32), wps: ints(a.wps, 16), cleared: a.cleared === true, boss: a.boss === true };
+    }
+    return out;
+  }
   function cleanSlot(s, i) {
     if (!s || typeof s !== 'object') return null;
     const hero = typeof s.hero === 'string' && CH.Balance.heroes.some((h) => h.id === s.hero) ? s.hero : null;
@@ -249,6 +263,7 @@
       created: Math.floor(num(s.created, 0, 0, 1e13)),
       played: num(s.played, 0, 0, 1e9),
       char: cleanChar(s.char),
+      world: cleanWorld(s.world),
       data: checked.data,
     };
   }
@@ -331,7 +346,7 @@
       const hero = CH.Balance.heroes.some((h) => h.id === o.hero) ? o.hero : CH.Balance.heroes[0].id;
       const id = save3.slots.reduce((m, s) => Math.max(m, s.id), 0) + 1;
       const fresh = split(defaults()).data;
-      const slot = { id, name: str(o.name, '', 20).replace(/[<>&"]/g, '').trim() || CH.Balance.heroes.find((h) => h.id === hero).name.split(',')[0], hero, hardcore: o.hardcore === true, created: Date.now(), played: 0, char: cleanChar({}), data: fresh };
+      const slot = { id, name: str(o.name, '', 20).replace(/[<>&"]/g, '').trim() || CH.Balance.heroes.find((h) => h.id === hero).name.split(',')[0], hero, hardcore: o.hardcore === true, created: Date.now(), played: 0, char: cleanChar({}), world: cleanWorld({}), data: fresh };
       Storage.save(); // the current character's state first
       save3.slots.push(slot);
       Storage.useSlot(save3.slots.length - 1);

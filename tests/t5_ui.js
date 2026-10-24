@@ -12,7 +12,9 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   const errs = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message));
-  const state = () => page.evaluate(() => ({ s: CH.G.state, ui: CH.UI.active, wave: CH.G.wave, hp: CH.G.player && CH.G.player.hp, kills: CH.G.kills, ents: CH.G.enemies.length, proj: CH.G.projectiles.length, pk: CH.G.pickups.length, zones: CH.G.zones.length }));
+  const state = () => page.evaluate(() => ({ s: CH.G.state, ui: CH.UI.active, wave: CH.G.wave, hp: CH.G.player && CH.G.player.hp, kills: CH.G.kills, ents: CH.G.enemies.length, proj: CH.G.projectiles.length, pk: CH.G.pickups.length, zones: CH.G.zones.length, town: !!(CH.G.level && CH.G.level.isTown) }));
+  // a character who has been out starts again in the hideout (PLAN.md 18, K0b), a fresh one in stage 1
+  const start = (st) => st.wave === 1 || (st.wave === 0 && st.town);
 
   await page.goto(URL);
   await page.waitForFunction(() => window.CH && CH.G && CH.G.ui && document.getElementById('loading').classList.contains('done'), null, { timeout: 60000 });
@@ -108,7 +110,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.click('#confirm-yes');
   await page.waitForTimeout(300);
   const afterRestart = await state();
-  ok('restart gives a fresh run (wave 1, no leftovers)', afterRestart.s === 'playing' && afterRestart.wave === 1 && afterRestart.proj === 0 && afterRestart.pk === 0 && afterRestart.kills === 0, afterRestart);
+  ok('restart starts clean (stage 1 or the hideout, no leftovers)', afterRestart.s === 'playing' && start(afterRestart) && afterRestart.proj === 0 && afterRestart.pk === 0 && afterRestart.kills === 0, afterRestart);
 
   // levelling: skill points, no card screen; the tree opens with K and pauses the game (PLAN.md 15, request 7)
   await page.evaluate(() => { CH.Upgrades.addXp(CH.G, 500); });
@@ -151,7 +153,7 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.click('#btn-retry');
   await page.waitForTimeout(300);
   const afterRetry = await state();
-  ok('retry starts clean', afterRetry.s === 'playing' && afterRetry.proj === 0 && afterRetry.kills === 0 && afterRetry.wave === 1, afterRetry);
+  ok('retry starts clean', afterRetry.s === 'playing' && afterRetry.proj === 0 && afterRetry.kills === 0 && start(afterRetry), afterRetry);
 
   // abandon to menu with confirmation
   await page.keyboard.press('Escape');

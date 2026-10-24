@@ -29,8 +29,8 @@ const { open } = require('./lib');
     const h = CH.G.hooks(), n = (k) => (h[k] || []).length;
     return { newRun: [n('newRun:before'), n('newRun')], startWave: [n('startWave:before'), n('startWave')], damageEnemy: [n('damageEnemy:before'), n('damageEnemy')], hurtPlayer: [n('hurtPlayer:before'), n('hurtPlayer')], playerUpdate: [n('playerUpdate:before'), n('playerUpdate')] };
   });
-  ok('listeners: newRun 8 + 8, startWave 5 + 4 (js/character.js adds one each), damageEnemy 3 + 4, hurtPlayer 2 + 3, playerUpdate 6 + 5',
-    JSON.stringify(r) === JSON.stringify({ newRun: [8, 8], startWave: [5, 4], damageEnemy: [3, 4], hurtPlayer: [2, 3], playerUpdate: [6, 5] }), r);
+  ok('listeners: newRun 9 + 9, startWave 6 + 5 (js/character.js and js/areas.js add theirs), damageEnemy 3 + 4, hurtPlayer 2 + 3, playerUpdate 6 + 5',
+    JSON.stringify(r) === JSON.stringify({ newRun: [9, 9], startWave: [6, 5], damageEnemy: [3, 4], hurtPlayer: [2, 3], playerUpdate: [6, 5] }), r);
 
   // 3. shields, fear and training
   r = await page.evaluate(() => {

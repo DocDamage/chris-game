@@ -173,13 +173,13 @@ window.CH = window.CH || {};
         blurb: 'Balanced. Q: Overdrive - a shockwave, then 7s of haste and a shield.',
       },
       {
-        id: 'Dreadbloom', name: 'Dreadbloom Knight', hint: 'Reach wave 4', test: (s) => s.highestWave >= 4,
+        id: 'Dreadbloom', name: 'Dreadbloom Knight', hint: 'Defeat the boss of Act I', test: (s) => s.acts >= 1,
         mods: { hp: 30, speed: -0.06, dmg: 0.12, crit: 0 },
         special: 'thornnova', specialName: 'THORN NOVA', cooldown: 26, icon: 'ic_boom',
         blurb: 'Tanky and heavy-hitting. Q: Thorn Nova - a huge blood-thorn explosion.',
       },
       {
-        id: 'Vexaria', name: 'Vexaria, Blood Moon Knight', hint: 'Defeat a boss', test: (s) => s.bossesDefeated >= 1,
+        id: 'Vexaria', name: 'Vexaria, Blood Moon Knight', hint: 'Defeat the boss of Act II', test: (s) => s.acts >= 2,
         mods: { hp: -10, speed: 0.08, dmg: 0, crit: 0.1 },
         special: 'bloodmoon', specialName: 'BLOOD MOON', cooldown: 28, icon: 'ic_heart',
         blurb: 'Fast and crit-happy. Q: Blood Moon - drains every nearby enemy and heals you.',
