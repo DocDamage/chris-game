@@ -47,7 +47,9 @@ const { open } = require('./lib');
     const hero = { r: 5 }, golem = { r: 10 }, orc = { r: 12, look: { foot: 15 } }, imp = { r: 6, look: { foot: 6 } }, boss = { r: 30, isBoss: true, look: { foot: 20 } };
     out.feet = { hero: W.FEET.hero(hero), sidekick: W.FEET.sidekick(golem), orc: W.FEET.enemy(orc), imp: W.FEET.enemy(imp), boss: W.FEET.enemy(boss), pickup: W.FEET.pickup() };
     // a stand-in level: rock from x = 100 on
-    const G = CH.G, keep = G.level;
+    // (no arena props here: they would push the coin about too)
+    const G = CH.G, keep = G.level, keepProps = G.arena && G.arena.props;
+    if (G.arena) G.arena.props = [];
     G.level = { solidAt: (x) => x >= 100 };
     // a flung coin stops on the axis that hit the wall and keeps the other
     let c = { x: 104, y: 60, vx: 300, vy: 50 };
@@ -64,6 +66,7 @@ const { open } = require('./lib');
     W.bounceShot(G.level, s, 97, 97);
     out.corner = { vx: s.vx, vy: s.vy, wallBounce: s.wallBounce };
     G.level = keep;
+    if (G.arena) G.arena.props = keepProps;
     // shots against a prop's footprint
     const tall = { x: 300, y: 300, cr: 10 }, crate = { x: 300, y: 300, box: { hw: 8, hh: 6 } };
     out.shots = { roundHit: W.shotHits(tall, { x: 300, y: 290, r: 2 }), roundMiss: W.shotHits(tall, { x: 300, y: 280, r: 2 }), boxHit: W.shotHits(crate, { x: 300, y: 298, r: 2 }), boxMiss: W.shotHits(crate, { x: 320, y: 298, r: 2 }) };
