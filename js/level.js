@@ -21,6 +21,21 @@
     volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
     dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
     frozen: { floor: 'sheet', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256' },
+    // The Dead Wood (PLAN.md 18, K2): Creepy Forest ground swatches (kit.cf1 / kit.cf2) in patches of dirt, moss and roots,
+    // bounded by the rock cliff darkened to a wet, mossy brown; a cobbled path
+    deadwood: {
+      floor: 'kit', sheet: 'tile.rock', tint: '#5d5a4a', wall: '#1d1f17', top: '#34352a', edge: '#0f100b', trail: 'kit.cf1.16',
+      // per material: base swatches of one tone (most tiles) and accents (about one tile in six), so patches read as
+      // patches and not as a checkerboard
+      mats: {
+        dirt: { base: ['cf1.7', 'cf1.32', 'cf1.33'], acc: ['cf1.4', 'cf1.8', 'cf1.9', 'cf1.14', 'cf1.15', 'cf1.31', 'cf2.0', 'cf2.1', 'cf2.2', 'cf2.3', 'cf2.14', 'cf2.31', 'cf2.32'] },
+        moss: { base: ['cf2.7', 'cf2.15'], acc: ['cf2.4', 'cf2.8', 'cf2.9', 'cf2.10', 'cf2.11', 'cf2.12', 'cf2.13', 'cf2.16', 'cf2.21', 'cf2.23', 'cf2.24', 'cf2.34', 'cf1.5', 'cf1.6', 'cf1.12', 'cf1.13', 'cf1.29'] },
+        roots: { base: ['cf1.22', 'cf1.23', 'cf1.30'], acc: ['cf1.24', 'cf1.25', 'cf1.26', 'cf1.27', 'cf1.28', 'cf1.34', 'cf1.35', 'cf2.26', 'cf2.28', 'cf2.29', 'cf2.30', 'cf2.33'] },
+        rust: { base: ['cf1.0', 'cf1.1'], acc: ['cf1.2', 'cf1.3', 'cf2.6'] },
+        stone: { base: ['cf1.16', 'cf1.17'], acc: ['cf1.10', 'cf1.18', 'cf2.20'] },
+        swamp: { base: ['cf2.19'], acc: ['cf2.17', 'cf2.18', 'cf2.22', 'cf2.25', 'cf2.27'] },
+      },
+    },
   };
   Level_style_default();
   function Level_style_default() { STYLE.default = STYLE.dungeon; }
@@ -410,6 +425,24 @@
         g.fillStyle = pat;
         g.fillRect(0, 0, size + tex.width, size + tex.height);
         g.restore();
+      } else if (st.floor === 'kit' && st.mats) {
+        // patches: two slow value-noise fields pick the material, a per-tile hash picks the swatch
+        const pick = (m, r) => { if (!m) return null; const list = r < 0.17 ? m.acc : m.base; return IM['kit.' + list[Math.floor((r < 0.17 ? r / 0.17 : (r - 0.17) / 0.83) * list.length) % list.length]]; };
+        const vn = (x, y, s, k) => { // smooth value noise, cell size s tiles
+          const fx = x / s, fy = y / s, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+          const a = h(ix + k, iy), b = h(ix + 1 + k, iy), c = h(ix + k, iy + 1), d = h(ix + 1 + k, iy + 1);
+          const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+          return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+        };
+        const M = st.mats;
+        for (let y = 0; y < size; y += TS) for (let x = 0; x < size; x += TS) {
+          const tx = (x0 + x) / TS, ty = (y0 + y) / TS;
+          const n1 = vn(tx, ty, 10, 11), n2 = vn(tx, ty, 8, 97), r = h(tx, ty);
+          const mat = n2 > 0.78 ? 'rust' : n1 < 0.12 ? 'swamp' : n1 < 0.34 ? 'moss' : n1 > 0.72 ? 'roots' : n2 < 0.14 ? 'stone' : 'dirt';
+          const im = pick(M[mat], r) || pick(M.dirt, r);
+          if (im) g.drawImage(im, x, y, TS, TS);
+          else { g.fillStyle = st.top; g.fillRect(x, y, TS, TS); }
+        }
       } else if (st.floor === 'check') {
         for (let y = 0; y < size; y += 16) for (let x = 0; x < size; x += 16) { g.fillStyle = ((x0 + x) / 16 + (y0 + y) / 16) % 2 ? st.b : st.a; g.fillRect(x, y, 16, 16); }
       } else {
@@ -428,7 +461,7 @@
       const IM = CH.Assets.images;
       const h = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
       const b = this.biome;
-      const dirtIm = (b === 'backyard' || b === 'frozen') && IM['tile.dirt'] ? tintOf(IM['tile.dirt'], 'tile.dirt', b === 'frozen' ? '#b8c6d8' : null) : null;
+      const dirtIm = this.style.trail && IM[this.style.trail] ? IM[this.style.trail] : (b === 'backyard' || b === 'frozen') && IM['tile.dirt'] ? tintOf(IM['tile.dirt'], 'tile.dirt', b === 'frozen' ? '#b8c6d8' : null) : null;
       // a ribbon of overlapping discs, one per route tile, jittered by a tile hash so neighbouring chunks agree
       const tx0 = Math.floor(x0 / TS) - 1, ty0 = Math.floor(y0 / TS) - 1, n = size / TS + 2;
       const disc = [];

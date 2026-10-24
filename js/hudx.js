@@ -179,8 +179,8 @@
     // first-area hints
     if (hx.tut && !hx.tut.done) {
       const s = TUT[hx.tut.i];
-      Font.draw(ctx, 'HINT ' + (hx.tut.i + 1) + '/' + TUT.length, cx, 40, '#fee761', 1, true, 'center');
-      Font.draw(ctx, s.text, cx, 50, '#ffffff', 1, true, 'center');
+      Font.draw(ctx, 'HINT ' + (hx.tut.i + 1) + '/' + TUT.length, cx, 56, '#fee761', 1, true, 'center'); // under the weather icon
+      Font.draw(ctx, s.text, cx, 66, '#ffffff', 1, true, 'center');
     }
   });
 

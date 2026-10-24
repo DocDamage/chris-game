@@ -40,8 +40,8 @@
   ];
 
   /* semantic music / ambience choices (see tools/sounds.js for the files behind each key) */
-  const ARENA_MUSIC = { backyard: 'court', office: 'hall', glitch: 'secret' };
-  const ARENA_AMB = { backyard: 'amb_backyard', office: 'amb_office', glitch: 'amb_glitch' };
+  const ARENA_MUSIC = { deadwood: 'library', backyard: 'court', office: 'hall', glitch: 'secret' };
+  const ARENA_AMB = { deadwood: 'amb_wind', backyard: 'amb_backyard', office: 'amb_office', glitch: 'amb_glitch' };
   const BOSS_MUSIC = {
     frog: 'miniboss', bd: 'miniboss', ceo: 'miniboss', mage: 'miniboss', ooze: 'miniboss', treant: 'miniboss', knight: 'miniboss',
     chicken: 'dungeon', gol: 'dungeon', beholder: 'dungeon', moss: 'dungeon', sporeeye: 'dungeon',
@@ -54,7 +54,7 @@
     dragon: 'cre_roar', beholder: 'cre_hiss', mage: 'cre_trumpet', demon: 'cre_growl', ooze: 'cre_wet',
     treant: 'cre_growl', moss: 'rock', knight: 'cre_growl', yeti: 'cre_roar', daddy: 'cre_roar', skull: 'cre_hiss', dunewyrm: 'cre_roar', bloodwyrm: 'cre_roar', sporeeye: 'cre_wet', voideye: 'cre_hiss'
   };
-  const SURFACE = { backyard: 'step_grass', office: 'step_concrete', glitch: 'step_stone' };
+  const SURFACE = { deadwood: 'step_grass', backyard: 'step_grass', office: 'step_concrete', glitch: 'step_stone' };
 
   const defaultMods = () => ({ enemySpeed: 1, enemyScale: 1, kbMul: 1, bigHead: false, reverse: false, lowGrav: false, explosiveDeaths: false, disco: false, discoBeat: 0, scoreMul: 1 });
 
@@ -366,7 +366,7 @@
     const elite = B.waves.eliteChance(w);
     const arenaId = G.arena ? G.arena.id : 'backyard';
     const biomeMul = (type) => {
-      if (arenaId === 'backyard' && ['plant', 'spider', 'chicken'].includes(type)) return 1.6;
+      if ((arenaId === 'backyard' || arenaId === 'deadwood') && ['plant', 'spider', 'chicken'].includes(type)) return 1.6;
       if (arenaId === 'wasteland' && ['orc', 'goblin', 'cart', 'trashcan'].includes(type)) return 1.6;
       if (arenaId === 'volcano' && ['fridge', 'toaster', 'slime', 'orc', 'golem'].includes(type)) return 1.6;
       if (arenaId === 'dungeon' && ['spider', 'plant', 'office', 'influencer', 'golem'].includes(type)) return 1.6;
@@ -402,7 +402,7 @@
   };
 
   G.pathArena = function (n) {
-    if (n <= 3) return 'backyard';
+    if (n <= 3) return 'deadwood'; // The Dead Wood (PLAN.md 18, K2); the act I boss arena is still the Valley Ruin backyard
     if (n <= 6) return (G.chosenPath && G.chosenPath[4]) || 'office';
     return (G.chosenPath && G.chosenPath[7]) || 'glitch';
   };
@@ -410,7 +410,7 @@
   G.startWave = (n) => G.call('startWave', { n }, (ev) => startWaveCore(ev.n));
   function startWaveCore(n) {
     G.wave = n;
-    const changed = G.setArena(G.pathArena(n) || B.waves.arenaForWave(n));
+    const changed = G.setArena(CH.Arenas.arenaOf(G.pathArena(n) || B.waves.arenaForWave(n))); // wave and boss arenas of the newer biomes are older arenas
     if (changed) {
       G.zones.length = 0;
       G.projectiles.length = 0;

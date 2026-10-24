@@ -107,6 +107,15 @@
     flame: K(0.6, null, { l: 1, fx: 1 }),
     smoke: K(0.7, null, { fx: 1 }),
     skip: K(1, null, { skip: 1 }),
+    // kinds the newer kits brought (PLAN.md 18, K2)
+    crypt: K(1, [0.86, 0.4], { res: 'stone', hp: 140 }), // a mausoleum: its front half blocks
+    hut: K(1, [0.9, 0.42], { res: 'wood' }),
+    flower: K(0.6, null, { sway: 1 }),
+    coffin: K(0.6, [0.7, 7], { j: 1, d: 1, res: 'wood' }),
+    arch: K(1, null), // vine arches: walked through
+    portal: K(1, [0.8, 0.3], { l: 1, res: 'stone' }),
+    roof: K(1, null, { skip: 1 }), // cabin roofs are only used inside built cabins (js/setpieces.js)
+    landmark: K(1, [0.3, 10], { res: 'wood' }), // the giant twisted tree: one per Dead Wood stage, not choppable
   };
   PR.KIND = KIND;
 
@@ -182,6 +191,32 @@
     h_struct: { pillar: '0-2,11', wall: '3-10,12-15' },
   };
   PR.CAT = CAT;
+  /* the newer packs cut by tools/pack-kits.js ('kit.<sheet>.<n>', already at game scale), PLAN.md 18 K1/K2.
+     Family c = Creepy Forest. The ground swatches of cf1 / cf2 are floor tiles (js/level.js), not props. */
+  const KCAT = {
+    cf1: { boulder: '19', smallstatue: '20,21' },
+    cf2: { shrub: '5' },
+    cf3: { patch: '0-38' },
+    cf4: { fence: '0-40' },
+    cf5: { wall: '0-33,40,41', door: '34-39' },
+    cf6: { roof: '0-27' },
+    cf7: { door: '0-4,6,8,9', window: '5,7', debris: '10-25' },
+    cf8: { deadtree: '0-6', stump: '7,8,10,15', log: '9,11,12,16', debris: '13,14,24,26', boulder: '17', rock: '18-23,25', mushroom: '27,29', shrub: '28' },
+    cf9: { shrub: '0-2,22', arch: '3,5-7', bigtree: '4', stump: '8,10', mushroom: '9,12,13,21,23', growth: '11', debris: '14-17', rock: '18-20' },
+    cf10: { grave: '0-9,13-18,29-31,75,77', statue: '10-12', crypt: '19-24', patch: '25-28', door: '32-34,71', altar: '35,36,78', coffin: '37-41', debris: '42', bones: '43-47', smallstatue: '48-51', pillar: '52,73,74', candles: '53-58', flower: '59-64', decal: '65-67', fence: '68-70,72', obelisk: '76' },
+    cf11: { grave: '0-7,9-17,34-40', obelisk: '8', crypt: '18-24', altar: '25-27', coffin: '28-32', patch: '33', fence: '41', door: '42' },
+    cf12: { decal: '0-13,16-22,24-31', candles: '14,15,32-34', item: '23,35-43' },
+    cf13: { lantern: '0-9', torch: '10-16', lamp: '17-19', brazier: '20-25,39', campfire: '26,27', cauldron: '28', candles: '29-38' },
+    cf14: { sign: '0-26', signpost: '27-31,33-39,43,46,49', lamp: '32', grave: '40,59,60', spikes: '41,44,47', fence: '42,57', bones: '45,48,61', hang: '50-54,56', banner: '55', pole: '58' },
+    cf15: { bones: '0-3,10-36,45-53', skeleton: '4-9', spike: '37-39,43', pole: '40,41', fence: '42', candles: '44' },
+    cf16: { hang: '0-11,17', cage: '12-16,42-46', item: '18-38', trap: '39-41', pole: '47-49', table: '50', fence: '51' },
+    cf17: { well: '0-24,30-32,40-43', barrel: '25,26', pipestand: '27-29', plate: '33-37', pool: '38,39' },
+    cf18: { barrel: '0,2,6,7,9', bench: '1,5,20', carv: '3,4', sign: '8', chair: '10,11', table: '12', pole: '13,19', hut: '14', crate: '15,17', fence: '16,22', signpost: '18', stump: '21,23', debris: '24' },
+    cf19: { hang: '0-2,5', banner: '3,4,6', decal: '7', statue: '8,11', altar: '9,10,12,14,15', candles: '13,18,20', spike: '16,17', grave: '19' },
+    cf20: { portal: '0,1,4', statue: '2', altar: '3,7,13', campfire: '5', door: '6,8,10', pillar: '9', torch: '11,12' },
+  };
+  PR.KCAT = KCAT;
+  const KFAM = { cf: 'c', fk: 'f', hv: 'g' };
   const parse = (s) => {
     const out = [];
     for (const part of s.split(',')) {
@@ -222,6 +257,22 @@
         ((byKind[k] = byKind[k] || {}).m = byKind[k].m || []).push(key);
       }
     }
+    const MK = (CH.Assets.meta && CH.Assets.meta.kits) || {};
+    for (const id of Object.keys(KCAT)) {
+      const m = MK[id];
+      if (!m) continue;
+      const f = KFAM[id.slice(0, 2)];
+      for (const kind of Object.keys(KCAT[id])) for (const i of parse(KCAT[id][kind])) {
+        if (i >= m.n) continue;
+        const key = 'kit.' + id + '.' + i;
+        if (kindOf[key]) continue;
+        kindOf[key] = kind;
+        ((byKind[kind] = byKind[kind] || {})[f] = byKind[kind][f] || []).push(key);
+      }
+    }
+    // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
+    const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door' };
+    for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {}).c = byKind.portal.c || []).push('kit.' + k); }
   }
   PR.kindOf = (key) => { build(); return kindOf[key] || null; };
   /* every piece of a kind in the given families ('zw', 'hm' ...) */
@@ -239,7 +290,7 @@
   PR.sprite = function (key, mul) {
     const kind = PR.kindOf(key);
     const k = KIND[kind] || KIND.decal;
-    const s = Math.round(k.s * (mul || 1) * 100) / 100;
+    const s = Math.round((key.startsWith('kit.') ? 1 : k.s) * (mul || 1) * 100) / 100; // kit pieces are cut at game scale
     const id = key + '@' + s;
     if (scaled[id]) return scaled[id];
     const im = CH.Assets.images[key];

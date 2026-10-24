@@ -39,15 +39,15 @@ const { play } = require('./lib');
 
   // in game: arena music + ambience
   await play(page); await page.waitForTimeout(1500);
-  ok('backyard music + ambience', (await track()) === 'court' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_backyard', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });
+  ok('Dead Wood music + ambience (stage 1: PLAN.md 18, K2)', (await track()) === 'library' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_wind', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });
   // levelling up is a skill point now: no card screen, the arena music keeps playing
   await page.evaluate(() => CH.Upgrades.addXp(CH.G, 30)); await page.waitForTimeout(600);
-  ok('level-up keeps the arena music (skill point, no card screen)', (await track()) === 'court' && (await page.evaluate(() => CH.G.state)) === 'playing', await track());
+  ok('level-up keeps the arena music (skill point, no card screen)', (await track()) === 'library' && (await page.evaluate(() => CH.G.state)) === 'playing', await track());
   // chaos event music + ambience
   await page.evaluate(() => CH.Events.start(CH.G, CH.Events.byId.chickenrain)); await page.waitForTimeout(800);
   ok('chicken rain theme + rain ambience', (await track()) === 'rain' && (await page.evaluate(() => CH.Audio.ambName)) === 'amb_rain', { t: await track(), a: await page.evaluate(() => CH.Audio.ambName) });
   await page.evaluate(() => CH.Events.end(CH.G, true)); await page.waitForTimeout(800);
-  ok('event ends -> arena music', (await track()) === 'court', await track());
+  ok('event ends -> arena music', (await track()) === 'library', await track());
   // boss music per boss
   for (const [kind, want] of [['frog', 'miniboss'], ['gol', 'dungeon'], ['maw', 'superboss'], ['bug', 'finalboss']]) {
     await page.evaluate((kind) => { const G = CH.G; G.enemies.length = 0; G.queue.length = 0; G.spawnBoss(kind, 0); }, kind);

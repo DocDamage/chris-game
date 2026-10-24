@@ -201,6 +201,7 @@ void main(){
   /* per-biome grade: tint, saturation, contrast, vignette, haze, fog, and the sky (or ceiling) puddles mirror */
   const GRADE = {
     backyard: { tint: [1.03, 1.0, 0.95], sat: 1.12, con: 1.04, vig: 0.28, fog: 0, haze: 0, sky: [0.6, 0.72, 0.9] },
+    deadwood: { tint: [0.95, 1.02, 0.92], sat: 0.8, con: 1.08, vig: 0.42, fog: 0, haze: 0, sky: [0.36, 0.42, 0.38] },
     office: { tint: [0.94, 0.98, 1.06], sat: 0.82, con: 1.02, vig: 0.3, fog: 0, haze: 0, sky: [0.22, 0.23, 0.27] },
     glitch: { tint: [1.0, 0.92, 1.1], sat: 1.25, con: 1.1, vig: 0.4, fog: 0, haze: 0, glitch: 1, sky: [0.42, 0.3, 0.6] },
     zombie: { tint: [0.9, 0.98, 0.92], sat: 0.72, con: 1.06, vig: 0.4, fog: 0, haze: 0, sky: [0.45, 0.5, 0.48] },

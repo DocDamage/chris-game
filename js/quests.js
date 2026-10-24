@@ -12,7 +12,7 @@
   const wrap = X.wrap;
 
   const Q = (CH.Quests = {});
-  Q.ACTS = ['I. The Broken Backyard', 'II. Corporate Hell', 'III. The Deep', 'IV. The Glitch'];
+  Q.ACTS = ['I. The Dead Wood', 'II. Corporate Hell', 'III. The Deep', 'IV. The Glitch'];
   Q.actOf = (stage) => Math.min(4, Math.max(1, Math.ceil(stage / 3)));
 
   /* ev: the event name that advances the quest (all but 'lost' count per occurrence) */

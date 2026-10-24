@@ -26,11 +26,12 @@
   const LG = CH.LevelGen;
   const SP = (CH.SetPieces = { on: true });
 
-  const FAM = { backyard: 'm', frozen: 'm', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
-  const ALT = { backyard: 'v', frozen: 'v', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
+  const FAM = { deadwood: 'c', backyard: 'm', frozen: 'm', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
+  const ALT = { deadwood: 'm', backyard: 'v', frozen: 'v', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
   /* scenes each biome draws from (the first entries are the most common) */
   const SCENES = {
     backyard: ['grove', 'ruin', 'yard', 'graveyard', 'grove', 'camp'],
+    deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
     frozen: ['grove', 'ruin', 'graveyard', 'yard', 'camp'],
     zombie: ['street', 'wreck', 'yard', 'ruin', 'graveyard', 'camp'],
     wasteland: ['wreck', 'toxic', 'yard', 'ruin', 'camp'],
@@ -52,8 +53,8 @@
     pot: ['obj.jarBlue', 'obj.jarClay'],
     flower: ['obj.flowerPurple1', 'obj.flowerPurple2', 'obj.flowerBlue1', 'obj.flowerBlue2', 'obj.grassTuft'],
   };
-  const LIGHT_KIND = { m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
-  const FIRE = { backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
+  const LIGHT_KIND = { c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
+  const FIRE = { deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
   const MIRROR = { corpse: 1, bones: 1, skeleton: 1, debris: 1, patch: 1, ashes: 1, pool: 1 }; // decals with writing (blood "HELP", signs) are never mirrored
   const FLAT = { patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
@@ -308,7 +309,13 @@
   };
   SCENE.grove = (D, A) => {
     const nt = 4 + Math.floor(D.r() * 4);
-    for (let i = 0; i < nt; i++) { const a = D.r() * 6.283, d = A.rx * (0.3 + D.r() * 0.6); D.put(D.key(D.biome === 'frozen' ? D.pick(['deadtree', 'darktree', 'tree']) : D.pick(['tree', 'tree', 'deadtree'])), A.x + Math.cos(a) * d, A.y + Math.sin(a) * d * 0.7); }
+    const trees = D.biome === 'frozen' ? ['deadtree', 'darktree', 'tree'] : D.fam === 'c' ? ['deadtree', 'deadtree', 'deadtree', 'stump'] : ['tree', 'tree', 'deadtree'];
+    for (let i = 0; i < nt; i++) { const a = D.r() * 6.283, d = A.rx * (0.3 + D.r() * 0.6); D.put(D.key(D.pick(trees)), A.x + Math.cos(a) * d, A.y + Math.sin(a) * d * 0.7); }
+    if (D.fam === 'c') { // the Dead Wood: roots, a vine arch, a flowering bush
+      D.near(D.key('growth'), A.x + A.rx * 0.3, A.y - A.ry * 0.2, 30);
+      D.near(D.key('arch'), A.x - A.rx * 0.4, A.y + A.ry * 0.2, 30);
+      D.scatter('debris', A.x, A.y, A.rx * 0.7, 3);
+    }
     D.scatter('shrub', A.x, A.y, A.rx * 0.85, 6);
     D.scatter('rock', A.x, A.y, A.rx * 0.7, 3);
     D.near(D.key('log') || D.key('stump'), A.x, A.y, 30);
@@ -402,6 +409,150 @@
     D.scatter('spike', A.x, A.y, A.rx * 0.8, 2);
   };
 
+  /* ------------------------------------------------------------------ the Dead Wood (PLAN.md 18, K2) */
+  /* a forest cabin: Creepy Forest log panels with a door under a shingle roof, built into one picture (the panels and roofs
+     face south only, so a cabin is its front and its roof), with a fence, a woodpile, a lantern and a barrel about it */
+  const built = {};
+  function cabinSprite(D) {
+    const IM = CH.Assets.images;
+    const has = (k) => !!IM[k];
+    const walls = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map((i) => 'kit.cf5.' + i).filter(has);
+    const doors = [34, 35, 36, 37, 39].map((i) => 'kit.cf5.' + i).filter(has);
+    const roofs = [0, 1, 2, 3, 4, 7, 8, 9].map((i) => 'kit.cf6.' + i).filter(has);
+    const eaves = [13, 14, 16, 18].map((i) => 'kit.cf6.' + i).filter(has);
+    if (walls.length < 3 || !doors.length || !roofs.length) return null;
+    const n = D.r() < 0.5 ? 3 : 4;
+    const doorAt = 1 + Math.floor(D.r() * (n - 2));
+    const pick = [];
+    for (let i = 0; i < n; i++) pick.push(i === doorAt ? D.pick(doors) : D.pick(walls));
+    const roof = D.pick(roofs), eave = eaves.length ? D.pick(eaves) : null;
+    const id = pick.join() + roof + eave;
+    if (built[id]) return built[id];
+    const cw = 46, wallH = 46, roofH = 50;
+    const c = document.createElement('canvas');
+    c.width = cw * n + 8;
+    c.height = wallH + roofH;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    // the roof: shingle panels tiled over its rectangle, darker toward the ridge
+    const ri = IM[roof];
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, c.width, roofH + 6);
+    g.clip();
+    for (let y = roofH + 6 - ri.height; y > -ri.height; y -= ri.height - 6) for (let x = -((y / 7) | 0) % 12; x < c.width; x += ri.width - 4) g.drawImage(ri, x, y);
+    g.globalCompositeOperation = 'source-atop';
+    const gr = g.createLinearGradient(0, 0, 0, roofH);
+    gr.addColorStop(0, 'rgba(0,0,0,0.35)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, c.width, roofH + 6);
+    g.restore();
+    // the front: the panels and the door, standing on the ground line
+    for (let i = 0; i < n; i++) {
+      const im = IM[pick[i]];
+      const x = 4 + i * cw + Math.round((cw - im.width) / 2);
+      g.drawImage(im, x, c.height - im.height);
+    }
+    // the eave beam where the roof meets the front
+    if (eave) { const ei = IM[eave]; for (let x = 0; x < c.width; x += ei.width - 6) g.drawImage(ei, x, roofH - ei.height / 2 + 2); }
+    const name = 'cabin' + Object.keys(built).length;
+    S.fromFrames(name, [c], { anchor: 'feet' });
+    built[id] = { name, w: c.width, h: c.height, keys: pick.concat([roof], eave ? [eave] : []) };
+    return built[id];
+  }
+  SCENE.cabin = (D, A) => {
+    const cab = cabinSprite(D);
+    const box = cab && { hw: Math.round(cab.w * 0.47), hh: Math.round(cab.h * 0.42) };
+    let x = 0, y = 0, room = false;
+    // the first free spot of a few in the room (the route and the gameplay spots are reserved)
+    if (cab) for (const [ox, oy] of [[0, -0.1], [-0.35, -0.3], [0.35, -0.3], [-0.35, 0.25], [0.35, 0.25], [0, 0.35], [0, -0.45]]) {
+      x = Math.round(A.x + ox * A.rx);
+      y = Math.round(A.y + oy * A.ry + box.hh);
+      if (D.free(x, y, box.hw, box.hh, true)) { room = true; break; }
+    }
+    if (!room) return SCENE.grove(D, A);
+    CH.Arenas.addProp(D.L.props, cab.name, x, y, { solid: true, box, cy: -box.hh + 1, cat: 'hut', jumpable: false, elevation: 30, destructible: false });
+    const p = D.L.props[D.L.props.length - 1];
+    p.sp = true;
+    p.kits = cab.keys; // the pieces it is built of (t46_deadwood counts every sheet)
+    D.L.cabins = (D.L.cabins || 0) + 1;
+    D.placed.push(p);
+    // the yard: a fence to one side, the woodpile and a barrel at the other, a lantern by the door, a well in front
+    const side = D.r() < 0.5 ? -1 : 1;
+    const rotten = PR.pool('fence', 'c').filter((k) => k.startsWith('kit.cf4.')); // the Rotten Fence sheet
+    for (let i = 0; i < 3; i++) D.put(rotten.length ? D.pick(rotten) : D.key('fence'), x + side * (cab.w / 2 + 18 + i * 34), y + 10);
+    D.pile(x - side * (cab.w / 2 + 26), y - 6, ['log', 'log', 'barrel', 'stump'], 3);
+    D.put(D.key('lantern'), x + 20, y + 14);
+    D.near(D.key('well'), x - side * 30, y + 70, 30);
+    D.scatter('flower', x, y + 40, 50, 3);
+    D.scatter('debris', x, y + 30, 70, 2);
+  };
+  /* a ritual site: a circle painted in blood, candles round it, an altar, hooded statues, banners and sigils */
+  SCENE.ritual = (D, A) => {
+    const circles = PR.pool('decal', 'c').filter((k) => /^kit.cf12.[0-8]$/.test(k));
+    if (circles.length) D.put(D.pick(circles), A.x, A.y + 18, { scale: 1.6, a: 0.9 });
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * 6.283; D.put(D.key('candles'), A.x + Math.cos(a) * 46, A.y + 12 + Math.sin(a) * 30); }
+    D.put(D.key('altar'), A.x, A.y - 34);
+    for (const s of [-1, 1]) { D.put(D.key('smallstatue'), A.x + s * 64, A.y - 20); D.put(D.key('banner') || D.key('signpost'), A.x + s * 86, A.y - 44); }
+    D.put(D.key('hang'), A.x + (D.r() < 0.5 ? -1 : 1) * 96, A.y + 22);
+    if (D.r() < 0.4) D.near(D.key('portal'), A.x, A.y - 74, 20);
+    D.scatter('decal', A.x, A.y, A.rx * 0.7, 3);
+    D.scatter('item', A.x, A.y + 10, 40, 2);
+    D.scatter('bones', A.x, A.y, A.rx * 0.6, 2);
+  };
+  /* a clearing round an old well: troughs, a pump, benches, a cart, a lamp, flowers */
+  SCENE.well = (D, A) => {
+    D.put(D.key('well'), A.x, A.y);
+    D.near(D.key('pipestand'), A.x + 50, A.y - 10, 16);
+    D.near(D.key('well'), A.x - 56, A.y + 14, 16); // a trough or a basin
+    for (const s of [-1, 1]) D.near(D.key('bench'), A.x + s * 64, A.y + 46, 16);
+    D.near(D.key('carv'), A.x + A.rx * 0.55, A.y - A.ry * 0.35, 30);
+    D.put(D.key('lamp') || D.key('lantern'), A.x - 40, A.y - 40);
+    D.pile(A.x - A.rx * 0.5, A.y - A.ry * 0.3, ['barrel', 'crate', 'barrel'], 2);
+    D.scatter('flower', A.x, A.y, A.rx * 0.6, 4);
+    D.scatter('plate', A.x, A.y, A.rx * 0.6, 1);
+  };
+  /* the hanging tree's cousin: gallows, cages, stocks, chain posts, skull pikes and a warning */
+  SCENE.gallows = (D, A) => {
+    D.put(D.key('pole'), A.x, A.y - 20);
+    for (const s of [-1, 1]) D.near(D.key('cage'), A.x + s * 62, A.y - 6, 20);
+    D.near(D.key('table'), A.x - 40, A.y + 50, 20); // the stocks
+    D.near(D.key('spike'), A.x + 70, A.y + 40, 20);
+    D.near(D.key('sign'), A.x - A.rx * 0.6, A.y - A.ry * 0.4, 24);
+    D.near(D.key('trap'), A.x + 20, A.y + 70, 24);
+    D.scatter('bones', A.x, A.y, A.rx * 0.6, 4);
+    D.scatter('skeleton', A.x, A.y, A.rx * 0.6, 1);
+    D.scatter('hang', A.x, A.y, A.rx * 0.7, 1);
+  };
+  /* the giant twisted tree in the biggest quiet room (before the rooms are dressed); after them: warning signs by the
+     secret walls, the trail's debris, and the gates at the ends */
+  function giantTree(D, L) {
+    const IM = CH.Assets.images;
+    const quiet = L.rooms.filter((rm) => rm.tag !== 'start' && rm.tag !== 'exit' && !L.spawners.some((s) => s.room === rm.id));
+    quiet.sort((a, b) => (b.r || b.w) - (a.r || a.w));
+    let tree = !IM['kit.cf_giant_tree'];
+    for (const rm of quiet) {
+      if (tree) break;
+      const A = area(L, rm);
+      for (const [ox, oy] of [[0.45, -0.25], [-0.45, -0.25], [0, -0.5], [0.4, 0.3], [-0.4, 0.3], [0, 0]]) if (D.put('kit.cf_giant_tree', A.x + A.rx * ox, A.y + A.ry * oy)) { tree = true; break; }
+    }
+  }
+  function deadwood(D, L) {
+    const IM = CH.Assets.images;
+    for (const s of L.secrets) {
+      const cx = (s.crack.x + 0.5) * TS, cy = (s.crack.y + 0.5) * TS;
+      for (const [ox, oy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+        if (L.solid(s.crack.x + ox, s.crack.y + oy)) continue;
+        D.near(D.key(D.r() < 0.6 ? 'sign' : 'signpost'), cx + ox * 40 + oy * 20, cy + oy * 40 + 16, 18);
+        break;
+      }
+    }
+    if (L.trail) for (let ty = 0; ty < L.th; ty += 3) for (let tx = 0; tx < L.tw; tx += 3) if (L.trail[L.idx(tx, ty)] === 2 && D.r() < 0.28) D.put(D.key('patch'), tx * TS + 16, ty * TS + 20, { a: 0.9 });
+    if (IM['kit.cf_skull_gate']) L.exit.gate = 'kit.cf_skull_gate';
+    if (IM['kit.cf_crypt_arch']) L.entrance.gate = 'kit.cf_crypt_arch';
+  }
+
   /* ------------------------------------------------------------------ the route */
   function route(L) {
     const f = L.flowFor(L.exit.x, L.exit.y);
@@ -446,6 +597,7 @@
     for (const [tx, ty] of path) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const i = L.idx(tx + ox, ty + oy); if (L.inb(tx + ox, ty + oy) && !L.trail[i]) L.trail[i] = 1; }
     L.chunks.clear();
     // rooms
+    if (D.fam === 'c') giantTree(D, L); // the landmark first, while its room is empty
     const scenes = SCENES[biome] || SCENES.dungeon;
     let si = Math.floor(D.r() * scenes.length);
     const camps = [];
@@ -468,7 +620,7 @@
         camps.push(c);
         continue;
       }
-      const name = rm.tag === 'exit' ? 'shrine' : scenes[si++ % scenes.length];
+      const name = rm.tag === 'exit' ? 'shrine' : D.fam === 'c' && !L.cabins ? 'cabin' : scenes[si++ % scenes.length]; // every Dead Wood stage has a cabin
       const made = (SCENE[name] || SCENE.ruin)(D, A, { x: A.x, y: A.y }, {}); // an empty camp: a deserted one
       if (made && name === 'camp') camps.push(made);
       if (pk) pk.camp = { x: pk.x, y: pk.y, r: Math.min(A.rx, 90) };
@@ -485,6 +637,7 @@
     if (path.length > 10) { const [tx, ty] = path[6]; D.near(D.key('signpost') || D.key('sign'), (tx + 1.8) * TS, (ty + 0.5) * TS, 24); }
     for (const s of [-1, 1]) D.put(D.key(LIGHT_KIND[D.fam] === 'lamp' ? 'lamp' : 'brazier') || D.key('torch'), L.exit.x + s * 46, L.exit.y - 10, { force: false });
     L.camps = camps;
+    if (D.fam === 'c') deadwood(D, L);
     fields(D, L);
     edges(D, L);
     keepReachable(L);
@@ -501,10 +654,12 @@
     w: ['debris', 'debris', 'trash', 'tires', 'rubble', 'pipe', 'shrub'],
     v: ['rock', 'debris', 'bones', 'lavarock', 'spike'],
     h: ['bones', 'debris', 'hang', 'hang', 'pot', 'candles', 'scrawl'],
+    c: ['shrub', 'mushroom', 'rock', 'stump', 'bones', 'debris', 'flower', 'grave'],
   };
   /* open ground between the rooms (outdoor maps are mostly that): a small clump every few tiles */
   const FIELD = {
     backyard: [['tree', 'tree', 'shrub', 'shrub'], ['tree', 'deadtree', 'shrub', 'flower'], ['rock', 'shrub', 'flower'], ['boulder', 'shrub', 'rock']],
+    deadwood: [['deadtree', 'deadtree', 'shrub', 'mushroom'], ['deadtree', 'stump', 'log', 'rock'], ['grave', 'grave', 'deadtree', 'candles'], ['boulder', 'rock', 'shrub'], ['deadtree', 'bones', 'signpost'], ['growth', 'mushroom', 'arch']],
     frozen: [['deadtree', 'rock', 'rock'], ['boulder', 'rock'], ['darktree', 'deadtree', 'rock']],
     zombie: [['car', 'debris', 'trash'], ['trash', 'bin', 'debris'], ['deadtree', 'shrub', 'debris'], ['barricade', 'cone', 'debris']],
     wasteland: [['rubble', 'debris', 'tires'], ['carv', 'debris'], ['toxbarrel', 'barrel', 'debris'], ['deadtree', 'shrub', 'debris']],
@@ -534,7 +689,7 @@
       if (L.solid(tx, ty) || (L.route && L.route[L.idx(tx, ty)])) continue;
       const north = L.solid(tx, ty - 1), west = L.solid(tx - 1, ty), east = L.solid(tx + 1, ty);
       if (!(north || west || east)) {
-        if (D.r() < 0.018) D.put(D.key(D.fam === 'm' ? D.pick(['patch', 'shrub', 'flower', 'flower']) : 'decal'), tx * TS + 16, ty * TS + 20, { a: 0.85 }); // stains, cracks, patches
+        if (D.r() < 0.018) D.put(D.key(D.fam === 'm' ? D.pick(['patch', 'shrub', 'flower', 'flower']) : D.fam === 'c' ? D.pick(['shrub', 'mushroom', 'bones', 'decal']) : 'decal'), tx * TS + 16, ty * TS + 20, { a: 0.85 }); // stains, cracks, patches
         continue;
       }
       if (D.r() > 0.16) continue;

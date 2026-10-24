@@ -11,6 +11,7 @@
   const Arenas = (CH.Arenas = {});
 
   const THEMES = {
+    deadwood: { id: 'deadwood', name: 'The Dead Wood', tag: 'The trees remember you.', clear: '#1d2117', music: 'library', amb: 'amb_wind', weather: 'rain' }, // PLAN.md 18, K2: stages 1-2
     backyard: { id: 'backyard', name: 'The Broken Backyard', tag: 'Gnomes are watching.', clear: '#3d7a2e', music: 'court', amb: 'amb_backyard', weather: 'sun' },
     office: { id: 'office', name: 'Corporate Hell', tag: 'Circle back to your doom.', clear: '#3a4560', music: 'combat', amb: 'amb_office', weather: 'sun' },
     glitch: { id: 'glitch', name: 'The Glitch Dimension', tag: 'Reality.exe has stopped working.', clear: '#1b1226', music: 'combat', amb: 'amb_glitch', weather: 'glitch' },
@@ -845,6 +846,8 @@
     dungeon: buildDungeon,
   };
 
+  const ARENA_OF = { deadwood: 'backyard', frozen: 'dungeon', gaslight: 'zombie' };
+  Arenas.arenaOf = (id) => (BUILD[id] ? id : ARENA_OF[id] || id);
   Arenas.build = function (id) {
     const theme = THEMES[id] || THEMES.backyard;
     const W = B.arena.w;
@@ -853,7 +856,8 @@
     const g = bg.getContext('2d');
     const anim = [];
     const props = [];
-    BUILD[theme.id](W, H, B.arena.margin, g, anim, props);
+    // the newer biomes (PLAN.md 18, K2-K4) have no arena of their own yet: their boss fights use an older one
+    (BUILD[theme.id] || BUILD[ARENA_OF[theme.id]] || BUILD.backyard)(W, H, B.arena.margin, g, anim, props);
 
     // Static vignette lighting
     const grd = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.95);
