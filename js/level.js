@@ -20,7 +20,19 @@
     wasteland: { floor: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
     volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
     dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
-    frozen: { floor: 'sheet', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256' },
+    // the Frozen Kingdom (PLAN.md 18, K3): its snow swatches (kit.fk1) in patches of powder, frost, cracked ice, cobbles,
+    // crystals and dark ice; a cobbled road
+    frozen: {
+      floor: 'kit', key: 'tile.rock', sheet: 'tile.rock', tint: '#7f9bc8', a: '#c9dcea', wall: '#5c7a96', top: '#9fc0d8', edge: '#2f4256', trail: 'kit.fk1.5',
+      mats: {
+        dirt: { base: ['fk1.0'], acc: ['fk1.1', 'fk1.2', 'fk1.7'] },
+        moss: { base: ['fk1.6'], acc: ['fk1.3', 'fk1.9'] },
+        roots: { base: ['fk1.11'], acc: ['fk1.8', 'fk1.14'] },
+        rust: { base: ['fk1.2'], acc: ['fk1.16', 'fk1.15', 'fk1.17'] },
+        stone: { base: ['fk1.5'], acc: ['fk1.10'] },
+        swamp: { base: ['fk1.13'], acc: ['fk1.14'] },
+      },
+    },
     // The Dead Wood (PLAN.md 18, K2): Creepy Forest ground swatches (kit.cf1 / kit.cf2) in patches of dirt, moss and roots,
     // bounded by the rock cliff darkened to a wet, mossy brown; a cobbled path
     deadwood: {

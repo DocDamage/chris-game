@@ -116,6 +116,12 @@
     portal: K(1, [0.8, 0.3], { l: 1, res: 'stone' }),
     roof: K(1, null, { skip: 1 }), // cabin roofs are only used inside built cabins (js/setpieces.js)
     landmark: K(1, [0.3, 10], { res: 'wood' }), // the giant twisted tree: one per Dead Wood stage, not choppable
+    cliff: K(1, [0.92, 0.45], { res: 'stone' }), // a glacier cliff block: its icicle face blocks
+    stall: K(1, [0.9, 0.38], { res: 'wood' }), // market stalls and racks
+    house: K(1, [0.9, 0.4], { res: 'wood' }), // a whole house (Frozen Kingdom 7)
+    castle: K(1, [0.95, 0.35], { res: 'stone', hp: 200 }), // ice castle wall sections and towers
+    bridge: K(1, null, { skip: 1 }), // bridges and stairs wait for the height work (K7)
+    particle: K(1, null, { skip: 1 }), // snowflakes and footprints are drawn by code (js/atmos.js)
   };
   PR.KIND = KIND;
 
@@ -214,6 +220,27 @@
     cf18: { barrel: '0,2,6,7,9', bench: '1,5,20', carv: '3,4', sign: '8', chair: '10,11', table: '12', pole: '13,19', hut: '14', crate: '15,17', fence: '16,22', signpost: '18', stump: '21,23', debris: '24' },
     cf19: { hang: '0-2,5', banner: '3,4,6', decal: '7', statue: '8,11', altar: '9,10,12,14,15', candles: '13,18,20', spike: '16,17', grave: '19' },
     cf20: { portal: '0,1,4', statue: '2', altar: '3,7,13', campfire: '5', door: '6,8,10', pillar: '9', torch: '11,12' },
+    // family f = Frozen Kingdom (PLAN.md 18, K3)
+    fk1: { patch: '4,12' },
+    fk2: { patch: '0-27' },
+    fk3: { pool: '0-17' },
+    fk4: { cliff: '0-11', spike: '12-18' },
+    fk5: { castle: '0-23', door: '24', banner: '25,26' },
+    fk6: { roof: '0-2,8-16,19,20,22,23', hut: '3-7,17,18,21,31,32', pillar: '24,25', obelisk: '26-30', banner: '33' },
+    fk7: { house: '0-5', hut: '6-22', fence: '23', lamp: '24', banner: '25', tree: '26,32-34', barrel: '27', crate: '28', carv: '29', log: '30', well: '31', brazier: '35', pillar: '36' },
+    fk8: { bridge: '0-13,21-25', plate: '14-20' },
+    fk9: { crystal: '0-24' },
+    fk10: { deadtree: '0-3,16,20,21', tree: '4-15,17-19,22-24' },
+    fk11: { fence: '0-18,29-71', door: '19-28' },
+    fk12: { torch: '0-4,14-26', brazier: '5-13,27-31,35', lantern: '32-34' },
+    fk13: { arch: '0,1,11,12', pillar: '2-5,9,10,14,15,35,36', wall: '6-8,13,32-34', rubble: '16-26,30,31,37-40', debris: '27-29' },
+    fk14: { decal: '0-15', plate: '16-31' }, // round rune medallions as the biome's floor decals, square ones as plates
+    fk15: { pillar: '0-29' },
+    fk16: { stall: '0-10,15-17,19', cauldron: '11', brazier: '12', carv: '13,14', case: '18' },
+    fk17: { hut: '0', campfire: '1', pole: '2', fence: '3,5', shelf: '4', table: '6,7', barrel: '8-13' },
+    fk18: { particle: '0-23' },
+    fk19: { statue: '0-6,18,20,21,24,29', obelisk: '7-9', crystal: '10,14,17', grave: '11,25', pillar: '12,13,28', well: '15,23', brazier: '16', portal: '19', lamp: '22', altar: '26', plate: '27', arch: '30' },
+    fk20: { barrel: '0,2,17', sack: '1', crate: '3,8', pole: '4,16', cauldron: '5', table: '6', bench: '7,9,10', well: '11,13', crystal: '12', signpost: '14', lamp: '15,18-20,33,34', brazier: '21', obelisk: '22', door: '23', smallstatue: '24,25', grave: '26', banner: '27,28,35', fence: '29,30', rock: '31', tree: '32' },
   };
   PR.KCAT = KCAT;
   const KFAM = { cf: 'c', fk: 'f', hv: 'g' };
@@ -271,8 +298,8 @@
       }
     }
     // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
-    const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door' };
-    for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {}).c = byKind.portal.c || []).push('kit.' + k); }
+    const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door' };
+    for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { const f = KFAM[k.slice(0, 2)]; kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {})[f] = byKind.portal[f] || []).push('kit.' + k); }
   }
   PR.kindOf = (key) => { build(); return kindOf[key] || null; };
   /* every piece of a kind in the given families ('zw', 'hm' ...) */

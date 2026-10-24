@@ -290,7 +290,7 @@
       } else {
         const tx = mv.x * speed;
         const ty = mv.y * speed;
-        const acc = P.accel * (mods.lowGrav ? 0.12 : 1);
+        const acc = P.accel * (mods.lowGrav ? 0.12 : 1) * (this.onIce ? 0.14 : 1); // frozen water slides (PLAN.md 18, K3)
         const dx = tx - this.vx;
         const dy = ty - this.vy;
         const len = Math.hypot(dx, dy);

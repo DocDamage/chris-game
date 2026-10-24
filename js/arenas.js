@@ -19,7 +19,7 @@
     wasteland: { id: 'wasteland', name: 'Scrapyard Wasteland', tag: 'Rust, radiation, and survival.', clear: '#4a3b2c', music: 'theme', amb: 'amb_wind', weather: 'wind' },
     volcano: { id: 'volcano', name: 'The Molten Caldera', tag: 'Watch your step on the crust.', clear: '#3a1810', music: 'dungeon', amb: 'amb_glitch', weather: 'sun' },
     dungeon: { id: 'dungeon', name: 'Psychological Crypt', tag: 'The walls have thoughts.', clear: '#1c1824', music: 'dungeon', amb: 'amb_glitch', weather: 'rain' },
-    frozen: { id: 'frozen', name: 'The Frozen Pass', tag: 'Do not lick the walls.', clear: '#c9dcea', music: 'dungeon', amb: 'amb_wind', weather: 'wind' },
+    frozen: { id: 'frozen', name: 'The Frozen Kingdom', tag: 'Do not lick the walls.', clear: '#c9dcea', music: 'dungeon', amb: 'amb_wind', weather: 'wind' },
   };
   Arenas.THEMES = THEMES;
   Arenas.themes = THEMES;

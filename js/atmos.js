@@ -220,8 +220,8 @@
   /* ------------------------------------------------------------------ tracks */
   /* feet that walked through blood, water or goo print it for a while: shoes for heroes and sidekicks, paws for
      monsters (not flyers), fainter with every step as the feet dry. Prints are floor, so the shader leaves them be. */
-  const TRACK = { blood: { n: 18, life: 50 }, water: { n: 9, life: 8 }, toxic: { n: 12, life: 24 } };
-  const PCOL = { blood: [104, 4, 14, 235], dried: [66, 20, 12, 220], water: [8, 12, 22, 105], toxic: [72, 152, 44, 220], mask: [80, 0, 128, 255] };
+  const TRACK = { blood: { n: 18, life: 50 }, water: { n: 9, life: 8 }, toxic: { n: 12, life: 24 }, snow: { n: 1e9, life: 26 } };
+  const PCOL = { blood: [104, 4, 14, 235], dried: [66, 20, 12, 220], water: [8, 12, 22, 105], toxic: [72, 152, 44, 220], snow: [70, 96, 150, 120], mask: [80, 0, 128, 255] };
   const MAXP = 360;
   A.prints = [];
   const PRINT = new Map();
@@ -249,8 +249,13 @@
     return c;
   }
   const printAlpha = (q) => { const life = TRACK[q.kind].life, age = G.wall - q.born; return q.str * (1 - sstep(life * 0.55, life, age)); };
+  /* snow (the Frozen Kingdom, PLAN.md 18 K3): every foot leaves a dent, except on the ice */
+  const snowy = () => !!(G.level && G.level.biome === 'frozen' && !G.level.isTown);
+  const onIce = (x, y) => { const L = G.level; if (!L || !L.ice) return false; for (const q of L.ice) { const dx = (x - q.x) / q.rx, dy = (y - q.y) / q.ry; if (dx * dx + dy * dy < 1) return true; } return false; };
   function walk(a, fx, fy, paw, air, list) {
     if (air) { a._tx = undefined; return; }
+    if (!a._wet && snowy() && !onIce(fx, fy)) a._wet = { kind: 'snow', n: 1e9, max: 1e9 };
+    if (a._wet && a._wet.kind === 'snow' && onIce(fx, fy)) a._wet = null;
     let pd = null;
     for (const p of list) if (inside(p, fx, fy, 0)) { pd = p; break; }
     if (pd) { // standing in it: the feet soak it up, no prints inside the puddle
@@ -279,7 +284,8 @@
   function tracks(dt) {
     if ((A.pclean = (A.pclean || 0) - dt) <= 0) { A.pclean = 2; A.prints = A.prints.filter((q) => G.wall - q.born < TRACK[q.kind].life); }
     const list = A.puddles();
-    if (!list.length) return;
+    for (const p of G.players) p.onIce = onIce(p.x, p.y + 12);
+    if (!list.length && !snowy()) return;
     for (const p of G.players) if (!p.dead) walk(p, p.x, p.y + 12, false, p.z > 4, list);
     if (CH.SK) for (const s of CH.SK.list) if (s.state !== 'down') walk(s, s.x, s.y + 8, false, false, list);
     for (const e of G.enemies) {
@@ -434,7 +440,11 @@
     ctx.clip();
     for (const p of A.particles) {
       const x = Math.round(v.x + (p.x % v.w + v.w) % v.w), y = Math.round(p.y);
-      if (m === 'snow' || m === 'blizzard') { ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + 0.4 * p.z) + ')'; const s = p.z > 0.6 ? 2 : 1; ctx.fillRect(x, y, s, s); if (m === 'blizzard') ctx.fillRect(x - 3, y, 3, 1); }
+      if (m === 'snow' || m === 'blizzard') {
+        const fl = p.z > 0.85 && CH.Assets.images['kit.fk18.' + (Math.floor(p.ph * 7) % 7 + 3)]; // the nearest flakes: the pack's own (Frozen 18)
+        if (fl) { ctx.globalAlpha = 0.85; ctx.drawImage(fl, Math.round(x - fl.width / 2), Math.round(y - fl.height / 2)); ctx.globalAlpha = 1; }
+        else { ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + 0.4 * p.z) + ')'; const s = p.z > 0.6 ? 2 : 1; ctx.fillRect(x, y, s, s); if (m === 'blizzard') ctx.fillRect(x - 3, y, 3, 1); }
+      }
       else if (m === 'ash') { ctx.fillStyle = 'rgba(' + (p.z > 0.8 ? '255,120,40' : '90,80,80') + ',' + (0.5 + 0.3 * p.z) + ')'; ctx.fillRect(x, y, 1 + (p.z > 0.5 ? 1 : 0), 1); }
       else if (m === 'firestorm') { ctx.fillStyle = p.z > 0.5 ? 'rgba(255,140,40,0.85)' : 'rgba(255,220,120,0.8)'; ctx.fillRect(x, y, 1 + (p.z > 0.7 ? 1 : 0), 1); }
       else if (m === 'bloodrain') { ctx.fillStyle = 'rgba(150,10,25,' + (0.4 + 0.4 * p.z) + ')'; ctx.fillRect(x, y, 1, 3 + (p.z > 0.6 ? 2 : 0)); }

@@ -26,13 +26,13 @@
   const LG = CH.LevelGen;
   const SP = (CH.SetPieces = { on: true });
 
-  const FAM = { deadwood: 'c', backyard: 'm', frozen: 'm', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
-  const ALT = { deadwood: 'm', backyard: 'v', frozen: 'v', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
+  const FAM = { deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
+  const ALT = { deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
   /* scenes each biome draws from (the first entries are the most common) */
   const SCENES = {
     backyard: ['grove', 'ruin', 'yard', 'graveyard', 'grove', 'camp'],
     deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
-    frozen: ['grove', 'ruin', 'graveyard', 'yard', 'camp'],
+    frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'grove', 'castle'],
     zombie: ['street', 'wreck', 'yard', 'ruin', 'graveyard', 'camp'],
     wasteland: ['wreck', 'toxic', 'yard', 'ruin', 'camp'],
     volcano: ['forge', 'lava', 'shrine', 'ruin', 'camp'],
@@ -53,7 +53,7 @@
     pot: ['obj.jarBlue', 'obj.jarClay'],
     flower: ['obj.flowerPurple1', 'obj.flowerPurple2', 'obj.flowerBlue1', 'obj.flowerBlue2', 'obj.grassTuft'],
   };
-  const LIGHT_KIND = { c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
+  const LIGHT_KIND = { f: 'brazier', c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
   const FIRE = { deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
   const MIRROR = { corpse: 1, bones: 1, skeleton: 1, debris: 1, patch: 1, ashes: 1, pool: 1 }; // decals with writing (blood "HELP", signs) are never mirrored
@@ -228,7 +228,7 @@
   SCENE.camp = (D, A, at, o) => {
     const cx = at.x, cy = at.y;
     const R = Math.min(A.rx, A.ry * 1.3, 120);
-    const ring = D.fam === 'h' ? ['spikes', 'fence'] : D.fam === 'z' ? ['barricade', 'sandbag', 'fence', 'wire'] : D.fam === 'w' ? ['barricade', 'fence', 'spikes', 'sandbag'] : ['spikes', 'spikes', 'fence'];
+    const ring = D.fam === 'f' ? ['fence', 'spike'] : D.fam === 'h' ? ['spikes', 'fence'] : D.fam === 'z' ? ['barricade', 'sandbag', 'fence', 'wire'] : D.fam === 'w' ? ['barricade', 'fence', 'spikes', 'sandbag'] : ['spikes', 'spikes', 'fence'];
     const ringKey = D.kit(D.pick(ring));
     const gap0 = D.r() * 6.283;
     const segs = Math.max(6, Math.round((R * 6.283) / 46));
@@ -309,7 +309,7 @@
   };
   SCENE.grove = (D, A) => {
     const nt = 4 + Math.floor(D.r() * 4);
-    const trees = D.biome === 'frozen' ? ['deadtree', 'darktree', 'tree'] : D.fam === 'c' ? ['deadtree', 'deadtree', 'deadtree', 'stump'] : ['tree', 'tree', 'deadtree'];
+    const trees = D.fam === 'f' ? ['tree', 'tree', 'deadtree'] : D.biome === 'frozen' ? ['deadtree', 'darktree', 'tree'] : D.fam === 'c' ? ['deadtree', 'deadtree', 'deadtree', 'stump'] : ['tree', 'tree', 'deadtree'];
     for (let i = 0; i < nt; i++) { const a = D.r() * 6.283, d = A.rx * (0.3 + D.r() * 0.6); D.put(D.key(D.pick(trees)), A.x + Math.cos(a) * d, A.y + Math.sin(a) * d * 0.7); }
     if (D.fam === 'c') { // the Dead Wood: roots, a vine arch, a flowering bush
       D.near(D.key('growth'), A.x + A.rx * 0.3, A.y - A.ry * 0.2, 30);
@@ -525,6 +525,94 @@
     D.scatter('skeleton', A.x, A.y, A.rx * 0.6, 1);
     D.scatter('hang', A.x, A.y, A.rx * 0.7, 1);
   };
+  /* ------------------------------------------------------------------ the Frozen Kingdom (PLAN.md 18, K3) */
+  const FK = (sheet, kind) => PR.pool(kind, 'f').filter((k) => k.startsWith('kit.' + sheet + '.'));
+  /* a frozen hamlet: two or three houses in a row with gaps, a market stall, lamps, bunting, barrels, a well, a fence */
+  SCENE.frozentown = (D, A) => {
+    const houses = FK('fk7', 'house').concat(FK('fk7', 'hut'), FK('fk6', 'hut'));
+    let x = A.x - A.rx * 0.6;
+    const y = A.y - A.ry * 0.15;
+    for (let i = 0; i < 3 && x < A.x + A.rx * 0.6; i++) {
+      const p = D.put(D.pick(houses), x, y);
+      x += (p && p.box ? p.box.hw * 2 : 60) + 26;
+    }
+    D.near(D.key('stall'), A.x + A.rx * 0.3, A.y + A.ry * 0.45, 20);
+    for (const s of [-1, 1]) D.put(D.key('lamp'), A.x + s * A.rx * 0.5, A.y + A.ry * 0.25);
+    D.near(D.key('banner'), A.x, A.y + A.ry * 0.2, 16);
+    D.pile(A.x - A.rx * 0.45, A.y + A.ry * 0.45, ['barrel', 'crate', 'sack'], 3);
+    D.near(D.key('well'), A.x - A.rx * 0.05, A.y + A.ry * 0.55, 24);
+    D.near(D.key('carv'), A.x + A.rx * 0.65, A.y + A.ry * 0.2, 24);
+    const fences = FK('fk11', 'fence'); // the pack's own iron-and-snow fences
+    for (let i = 0; i < 3; i++) D.put(fences.length ? D.pick(fences) : D.key('fence'), A.x - A.rx * 0.8 + i * 36, A.y + A.ry * 0.7);
+  };
+  /* a winter camp: the tent, a fire, drying racks, a weapon rack, shelves, crate tables, tubs */
+  SCENE.wintercamp = (D, A) => {
+    D.put('kit.fk17.0', A.x - 30, A.y - 20);
+    D.fire(A.x + 34, A.y + 16);
+    D.near('kit.fk17.2', A.x + 70, A.y - 26, 16);
+    D.near('kit.fk17.3', A.x - 80, A.y + 20, 16);
+    D.near('kit.fk17.4', A.x + 4, A.y - 54, 16);
+    D.near(D.pick(FK('fk17', 'table')), A.x - 60, A.y + 50, 16);
+    D.pile(A.x + 70, A.y + 48, ['barrel', 'barrel', 'crate'], 3);
+    D.scatter('debris', A.x, A.y, A.rx * 0.6, 3);
+  };
+  /* a crystal field: clusters, rune plates in the snow, a crystal shrine */
+  SCENE.crystals = (D, A) => {
+    D.scatter('crystal', A.x, A.y, A.rx * 0.8, 7);
+    D.scatter('plate', A.x, A.y, A.rx * 0.5, 3);
+    D.near(D.key('altar') || D.key('crystal'), A.x, A.y - 20, 20);
+    for (const s of [-1, 1]) D.put(D.key('lamp'), A.x + s * 56, A.y + 30);
+  };
+  /* an avenue of statues: knights and robed figures on plinths, obelisks, braziers, a frozen fountain */
+  SCENE.statues = (D, A) => {
+    const pillars = FK('fk15', 'pillar'); // ice pillars close the avenue
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) D.put(D.key(i === 1 ? 'obelisk' : 'statue'), A.x + s * 70, A.y - A.ry * 0.5 + i * 52);
+    for (const s of [-1, 1]) if (pillars.length) D.put(D.pick(pillars), A.x + s * 110, A.y - A.ry * 0.5);
+    D.put(D.key('well'), A.x, A.y - 10);
+    for (const s of [-1, 1]) D.put(D.key('brazier'), A.x + s * 30, A.y + A.ry * 0.5);
+    D.scatter('plate', A.x, A.y, 40, 1);
+  };
+  /* a stretch of the ice castle: crenellated walls and towers along the back, banners, a gatehouse in the middle */
+  SCENE.castle = (D, A) => {
+    const walls = FK('fk5', 'castle');
+    const y = A.y - A.ry * 0.55;
+    let x = A.x - A.rx * 0.8;
+    const mid = A.x;
+    let gate = false;
+    while (x < A.x + A.rx * 0.8) {
+      let key = D.pick(walls);
+      if (!gate && x > mid - 50) { key = 'kit.fk5.24'; gate = true; }
+      const p = D.put(key, x, y);
+      x += p && p.box ? p.box.hw * 2 + 2 : 40;
+    }
+    for (const s of [-1, 1]) D.put(D.key('banner'), A.x + s * 60, A.y + 4);
+    D.scatter('rubble', A.x, A.y + 20, A.rx * 0.6, 3);
+    for (const s of [-1, 1]) D.put(D.key('torch'), A.x + s * 40, A.y + 30);
+  };
+  /* frozen water: slabs of dark ice in the open, slippery (js/player.js reads L.ice) */
+  function frozen(D, L) {
+    L.ice = [];
+    const slabs = PR.pool('pool', 'f');
+    if (!slabs.length) return;
+    for (let i = 0; i < 40 && L.ice.length < 9; i++) {
+      const rm = D.pick(L.rooms);
+      if (!rm || rm.tag === 'start') continue;
+      const A = area(L, rm);
+      const x = A.x + (D.r() - 0.5) * A.rx * 1.4, y = A.y + (D.r() - 0.5) * A.ry * 1.2;
+      const key = D.pick(slabs);
+      const d = D.put(key, x, y, { a: 0.95 });
+      if (d && d.img) L.ice.push({ x: d.x, y: d.y + d.img.height / 2, rx: d.img.width * 0.45, ry: d.img.height * 0.45 });
+    }
+    if (CH.Assets.images['kit.fk_ice_gate']) L.exit.gate = 'kit.fk_ice_gate';
+    const pillars = PR.pool('pillar', 'f').filter((k) => k.startsWith('kit.fk15.')); // ice pillars flank the exit and the entrance
+    for (const P of [L.exit, L.entrance]) for (const sx of [-1, 1]) if (pillars.length) D.near(D.pick(pillars), P.x + sx * 76, P.y - 6, 14);
+    if (CH.Assets.images['kit.fk_portal']) D.near('kit.fk_portal', L.exit.x + 80, L.exit.y - 30, 20);
+    for (const s of L.secrets) D.near(D.key('signpost') || D.key('grave'), (s.crack.x + 0.5) * TS + 30, (s.crack.y + 1.5) * TS, 20);
+    // the icy path pieces (Frozen 2) worn into the trail
+    const paths = PR.pool('patch', 'f').filter((k) => k.startsWith('kit.fk2.'));
+    if (L.trail && paths.length) for (let ty = 0; ty < L.th; ty += 3) for (let tx = 0; tx < L.tw; tx += 3) if (L.trail[L.idx(tx, ty)] === 2 && D.r() < 0.3) D.put(D.pick(paths), tx * TS + 16, ty * TS + 20, { a: 0.9 });
+  }
+
   /* the giant twisted tree in the biggest quiet room (before the rooms are dressed); after them: warning signs by the
      secret walls, the trail's debris, and the gates at the ends */
   function giantTree(D, L) {
@@ -638,6 +726,7 @@
     for (const s of [-1, 1]) D.put(D.key(LIGHT_KIND[D.fam] === 'lamp' ? 'lamp' : 'brazier') || D.key('torch'), L.exit.x + s * 46, L.exit.y - 10, { force: false });
     L.camps = camps;
     if (D.fam === 'c') deadwood(D, L);
+    if (D.fam === 'f') frozen(D, L);
     fields(D, L);
     edges(D, L);
     keepReachable(L);
@@ -655,12 +744,13 @@
     v: ['rock', 'debris', 'bones', 'lavarock', 'spike'],
     h: ['bones', 'debris', 'hang', 'hang', 'pot', 'candles', 'scrawl'],
     c: ['shrub', 'mushroom', 'rock', 'stump', 'bones', 'debris', 'flower', 'grave'],
+    f: ['rock', 'crystal', 'rubble', 'tree', 'debris', 'spike', 'pillar'],
   };
   /* open ground between the rooms (outdoor maps are mostly that): a small clump every few tiles */
   const FIELD = {
     backyard: [['tree', 'tree', 'shrub', 'shrub'], ['tree', 'deadtree', 'shrub', 'flower'], ['rock', 'shrub', 'flower'], ['boulder', 'shrub', 'rock']],
     deadwood: [['deadtree', 'deadtree', 'shrub', 'mushroom'], ['deadtree', 'stump', 'log', 'rock'], ['grave', 'grave', 'deadtree', 'candles'], ['boulder', 'rock', 'shrub'], ['deadtree', 'bones', 'signpost'], ['growth', 'mushroom', 'arch']],
-    frozen: [['deadtree', 'rock', 'rock'], ['boulder', 'rock'], ['darktree', 'deadtree', 'rock']],
+    frozen: [['tree', 'tree', 'rock'], ['deadtree', 'crystal', 'rock'], ['cliff', 'spike'], ['crystal', 'crystal', 'plate'], ['tree', 'deadtree', 'rubble'], ['pillar', 'rubble']],
     zombie: [['car', 'debris', 'trash'], ['trash', 'bin', 'debris'], ['deadtree', 'shrub', 'debris'], ['barricade', 'cone', 'debris']],
     wasteland: [['rubble', 'debris', 'tires'], ['carv', 'debris'], ['toxbarrel', 'barrel', 'debris'], ['deadtree', 'shrub', 'debris']],
     volcano: [['lavarock', 'rock'], ['spike', 'lavarock', 'debris'], ['boulder', 'debris']],
