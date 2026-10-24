@@ -91,6 +91,7 @@
   /* ------------------------------------------------------------------ stage starts */
   G.on('newRun:before', function () {
     G.fallen = null;
+    G.bossHpMul = 1;
     A.loading = !!A.world();
   });
   G.on('startWave:before', function (ev) {
@@ -99,6 +100,7 @@
     A.capture(); // the area being left
     G.runSeed = W.seed; // every area comes from the character's world
     G.runIndex = W.seed % 2520; // and so do its bosses
+    G.bossHpMul = 1.3; // the balance pass (PLAN.md 18, K11): bots took act I and II bosses down in under a minute
     // the world's forks are fixed by its seed (the path prompts went with the runs: K0d)
     if (W.path[4] !== 'gaslight') W.path[4] = 'gaslight'; // act II: the Gaslight District (PLAN.md 18, K4)
     if (!W.path[7] || W.path[7] !== 'frozen') W.path[7] = 'frozen'; // act III: the Frozen Kingdom (PLAN.md 18, K3)

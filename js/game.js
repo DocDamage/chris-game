@@ -540,7 +540,7 @@
     // appear on the far side of the arena
     const x = p.x < G.arena.w / 2 ? G.arena.w - 110 : 110;
     const y = G.arena.h / 2 + U.rand(-60, 60);
-    const b = G.spawnEnemy(kind, x, y, { endlessTier: tier, boss: true });
+    const b = G.spawnEnemy(kind, x, y, { endlessTier: tier, boss: true, hpMul: G.bossHpMul || 1 }); // a character's world: sturdier act bosses (js/areas.js, PLAN.md 18 K11)
     G.ui.bossIntro(b);
     // a boss snack: the arena provides a little first aid before the fight starts
     for (const q of G.players) G.healPlayer(q.maxHp * 0.25 / q.stats.healMult / G.diff.heal, q);
