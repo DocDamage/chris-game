@@ -565,6 +565,9 @@ Also in the NPC folder, not mentioned: **Lucifer** (160 px frames: hellfire, dar
 - **Characters**: Diablo-style save slots, each one hero.
 - **Modes**: endless, boss rush, training and the tutorial are removed; the first area teaches the basics with hints.
 - **Hideout roles** as proposed below; **Lucifer is a hideout figure**, not an enemy; **light platforming**.
+- **Local co-op** offers all three ways when a second player joins: bring **their own saved hero** (it keeps its level,
+  gear and progress), play a **temporary guest hero** scaled to the host's level (nothing saved), or stay **solo** (co-op
+  off). The world and its progress belong to the host's save.
 
 ### 18.2 What the packs give and lack (summary of `docs/ASSET_PACKS.md`)
 
@@ -671,8 +674,8 @@ runs today).
 
 | # | What | Needs |
 | --- | --- | --- |
-| K0 | **No more runs**: save slots, character creation (hero, hardcore), persistent world state per area, acts and areas, death and the corpse, monster repopulation, removal of run modes and scoring; Storage migration | |
-| K1 | Cutting tool for the three packs and the NPCs (`tools/pack-kits.js`): per-sheet rules from `docs/ASSET_PACKS.md`, a contact sheet per pack for review, `t41_kits` (every sheet yields its pieces, no banner or frame pieces) | |
+| K0 | **No more runs**: save slots, character creation (hero, hardcore), persistent world state per area, acts and areas, death and the corpse, monster repopulation, removal of run modes and scoring, co-op joining (saved hero, guest hero or solo); Storage migration | |
+| K1 | **Done.** `tools/pack-kits.js` cuts all 60 sheets by the rules of `docs/ASSET_PACKS.md` into 2,197 pieces (`kit.<sheet>.<n>`, meta.kits: role, size and source box per piece) plus 13 set pieces at their own scale (portals, the skull gate, the pentagram, the giant tree ...), and packs the nurse, doctor, Jesus, Lucifer and four cultists as animation strips facing east and the camera (`npc.<id>.<anim>.<e/s>`, meta.npcs), scaled to hero height (Jesus' figures are 26 px in both of his frame sizes, so both get x1.3). Ground swatches are tiles only when the square inside their border is fully painted (edge pieces, boulders and the skull statue keep their shapes): 113 opaque 32 px tiles. New bundles `kits` (9.4 MB) and `npcs` (1.1 MB); every other bundle is byte-identical. `node tools/pack-kits.js` writes contact sheets to `tools/out/kits/`. `t41_kits` checks it all. Roles are a first guess on a few sheets (hv19 mostly `decal`); K2-K4 refine them as they use the pieces | |
 | K2 | The Dead Wood (Act I) | K0, K1 |
 | K3 | Frozen Kingdom stages, snow footprints, slippery ice | K1 |
 | K4 | Gaslight District biome | K1 |

@@ -4,6 +4,7 @@
      data/bundle_bosses.js  img keys 'boss.*'
      data/bundle_audio.js   sfx + loops
      data/bundle_ui.js, data/bundle_sidekicks.js  empty slots, filled by pack-ui / pack-sidekicks
+     data/bundle_kits.js, data/bundle_npcs.js  img keys 'kit.*' and 'npc.*' (pack-kits.js)
    Every bundle merges itself into window.CH_ASSETS, so each one is optional.
    CLI: `node tools/split-bundles.js` re-splits whatever is in data/ (idempotent). */
 const fs = require('fs');
@@ -25,8 +26,10 @@ const BUNDLES = {
   ui: (kind, key) => kind === 'img' && key.startsWith('ui.'),
   sidekicks: (kind, key) => kind === 'img' && key.startsWith('sk.'),
   sheets: (kind, key) => kind === 'img' && key.startsWith('sh.'),
+  kits: (kind, key) => kind === 'img' && key.startsWith('kit.'), // the 2026-10-23 tile packs (pack-kits.js)
+  npcs: (kind, key) => kind === 'img' && key.startsWith('npc.'), // the hideout people and the cult
 };
-const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'sheets', 'assets'];
+const ORDER = ['heroes', 'bosses', 'audio', 'ui', 'sidekicks', 'sheets', 'kits', 'npcs', 'assets'];
 const fileOf = (name) => path.join(OUT, name === 'assets' ? 'assets.js' : 'bundle_' + name + '.js');
 
 function splitBundles(all) {
