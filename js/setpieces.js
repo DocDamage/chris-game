@@ -26,11 +26,12 @@
   const LG = CH.LevelGen;
   const SP = (CH.SetPieces = { on: true });
 
-  const FAM = { deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
-  const ALT = { deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
+  const FAM = { gaslight: 'g', deadwood: 'c', backyard: 'm', frozen: 'f', zombie: 'z', wasteland: 'w', volcano: 'v', dungeon: 'h', office: 'h', glitch: 'h' };
+  const ALT = { gaslight: 'z', deadwood: 'm', backyard: 'v', frozen: 'm', zombie: 'w', wasteland: 'z', volcano: 'm', dungeon: 'm', office: 'z', glitch: 'm' };
   /* scenes each biome draws from (the first entries are the most common) */
   const SCENES = {
     backyard: ['grove', 'ruin', 'yard', 'graveyard', 'grove', 'camp'],
+    gaslight: ['townhouse', 'gstreet', 'cemetery', 'market', 'townhouse', 'occult', 'ruin', 'graveyard', 'gstreet'],
     deadwood: ['grove', 'cabin', 'graveyard', 'ritual', 'grove', 'well', 'gallows', 'cabin', 'graveyard', 'camp'],
     frozen: ['grove', 'frozentown', 'crystals', 'ruin', 'wintercamp', 'statues', 'grove', 'castle'],
     zombie: ['street', 'wreck', 'yard', 'ruin', 'graveyard', 'camp'],
@@ -53,8 +54,8 @@
     pot: ['obj.jarBlue', 'obj.jarClay'],
     flower: ['obj.flowerPurple1', 'obj.flowerPurple2', 'obj.flowerBlue1', 'obj.flowerBlue2', 'obj.grassTuft'],
   };
-  const LIGHT_KIND = { f: 'brazier', c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
-  const FIRE = { deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
+  const LIGHT_KIND = { g: 'lamp', f: 'brazier', c: 'lantern', m: 'torch', v: 'brazier', z: 'lamp', w: 'lamp', h: 'brazier' };
+  const FIRE = { gaslight: 'purple', deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
   const MIRROR = { corpse: 1, bones: 1, skeleton: 1, debris: 1, patch: 1, ashes: 1, pool: 1 }; // decals with writing (blood "HELP", signs) are never mirrored
   const FLAT = { patch: 1, ashes: 1, decal: 1, scrawl: 1, plate: 1, corpse: 1, bones: 1, skeleton: 1, debris: 1, pool: 1, rug: 1, pallet: 1, pipe: 1 };
@@ -93,6 +94,8 @@
       return () => D.pick(pool);
     };
     D.reserve = (x, y, r) => D.reserved.push({ x, y, r });
+    /* a building's footprint (box at the feet x, y) keeps clear of every spot the stage needs */
+    D.clearOf = (x, y, box) => ![L.entrance, L.exit].concat(L.packs, L.chests, L.shrines, L.spawners, L.waypoints).some((q) => q && Math.abs(q.x - x) < box.hw + 24 && q.y < y + 24 && q.y > y - box.hh * 2 - 24);
     /* is a footprint free: floor under it, clear of reserved spots and other solid props */
     D.free = (x, y, hw, hh, solid) => {
       const m = 4;
@@ -469,7 +472,7 @@
     if (cab) for (const [ox, oy] of [[0, -0.1], [-0.35, -0.3], [0.35, -0.3], [-0.35, 0.25], [0.35, 0.25], [0, 0.35], [0, -0.45]]) {
       x = Math.round(A.x + ox * A.rx);
       y = Math.round(A.y + oy * A.ry + box.hh);
-      if (D.free(x, y, box.hw, box.hh, true)) { room = true; break; }
+      if (D.free(x, y, box.hw, box.hh, true) && D.clearOf(x, y, box)) { room = true; break; }
     }
     if (!room) return SCENE.grove(D, A);
     CH.Arenas.addProp(D.L.props, cab.name, x, y, { solid: true, box, cy: -box.hh + 1, cat: 'hut', jumpable: false, elevation: 30, destructible: false });
@@ -525,6 +528,144 @@
     D.scatter('skeleton', A.x, A.y, A.rx * 0.6, 1);
     D.scatter('hang', A.x, A.y, A.rx * 0.7, 1);
   };
+  /* ------------------------------------------------------------------ the Gaslight District (PLAN.md 18, K4) */
+  const HV = (sheet, kind) => PR.pool(kind, 'g').filter((k) => k.startsWith('kit.' + sheet + '.'));
+  /* a townhouse: Victorian brick front segments with a door and windows, under a slate roof with a dormer and a chimney,
+     built into one picture (the modules face south only) */
+  function townhouseSprite(D) {
+    const IM = CH.Assets.images;
+    const has = (k) => !!IM[k];
+    const walls = [2, 3, 4, 5, 6, 7, 8, 9, 16].map((i) => 'kit.hv3.' + i).filter(has);
+    const doors = [1, 2, 3, 14, 15, 16, 17, 18, 19, 20].map((i) => 'kit.hv5.' + i).filter(has);
+    const wins = HV('hv6', 'window');
+    const slates = ['kit.hv4.2', 'kit.hv4.4'].filter(has);
+    const dormers = [14, 15, 16, 17, 18].map((i) => 'kit.hv4.' + i).filter(has);
+    const chimneys = [7, 11, 12, 13].map((i) => 'kit.hv4.' + i).filter(has);
+    if (walls.length < 2 || !doors.length || !slates.length) return null;
+    const n = 3;
+    const doorAt = Math.floor(D.r() * n);
+    const front = [], over = [];
+    for (let i = 0; i < n; i++) { front.push(D.pick(walls)); over.push(i === doorAt ? D.pick(doors) : D.r() < 0.85 && wins.length ? D.pick(wins) : null); }
+    const slate = D.pick(slates), dormer = dormers.length ? D.pick(dormers) : null, chim = chimneys.length ? D.pick(chimneys) : null;
+    const id = front.join() + over.join() + slate + dormer + chim;
+    if (built[id]) return built[id];
+    const cw = 46, wallH = 46, roofH = 52;
+    const c = document.createElement('canvas');
+    c.width = cw * n + 6;
+    c.height = wallH + roofH + 12;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    const top = 12;
+    const si = IM[slate];
+    g.save();
+    g.beginPath();
+    g.rect(0, top, c.width, roofH + 6);
+    g.clip();
+    for (let y = top + roofH + 6 - si.height; y > top - si.height; y -= si.height - 4) for (let x = -6; x < c.width; x += si.width - 4) g.drawImage(si, x, y);
+    g.restore();
+    if (chim) { const ci = IM[chim]; g.drawImage(ci, Math.round(c.width * 0.75 - ci.width / 2), Math.max(0, top + 10 - ci.height + 20)); }
+    if (dormer) { const di = IM[dormer]; g.drawImage(di, Math.round(c.width * 0.35 - di.width / 2), top + roofH - di.height + 4); }
+    for (let i = 0; i < n; i++) {
+      const im = IM[front[i]];
+      const x = 3 + i * cw + Math.round((cw - im.width) / 2);
+      g.drawImage(im, x, c.height - im.height);
+      const o = over[i] && IM[over[i]];
+      if (o) g.drawImage(o, 3 + i * cw + Math.round((cw - o.width) / 2), c.height - o.height - (i === doorAt ? 0 : 8));
+    }
+    const name = 'townhouse' + Object.keys(built).length;
+    S.fromFrames(name, [c], { anchor: 'feet' });
+    built[id] = { name, w: c.width, h: c.height, keys: front.concat(over.filter(Boolean), [slate], dormer ? [dormer] : [], chim ? [chim] : []) };
+    return built[id];
+  }
+  SCENE.townhouse = (D, A) => {
+    const th = townhouseSprite(D);
+    const box = th && { hw: Math.round(th.w * 0.45), hh: Math.round(th.h * 0.32) }; // the roof leans back over the street behind
+    let x = 0, y = 0, room = false;
+    const tries = [];
+    for (let oy = -0.5; oy <= 0.45; oy += 0.19) for (const ox of [0, -0.3, 0.3, -0.55, 0.55]) tries.push([ox, oy]);
+    if (th) for (const [ox, oy] of tries) {
+      x = Math.round(A.x + ox * A.rx);
+      y = Math.round(A.y + oy * A.ry + box.hh);
+      if (D.free(x, y, box.hw, box.hh, true) && D.clearOf(x, y, box)) { room = true; break; }
+    }
+    if (!room) return SCENE.gstreet(D, A);
+    CH.Arenas.addProp(D.L.props, th.name, x, y, { solid: true, box, cy: -box.hh + 1, cat: 'house', jumpable: false, elevation: 30, destructible: false });
+    const p = D.L.props[D.L.props.length - 1];
+    p.sp = true;
+    p.kits = th.keys;
+    D.L.townhouses = (D.L.townhouses || 0) + 1;
+    D.placed.push(p);
+    // the street in front: an iron fence, lamps, a bench, a bin, a poster, a carriage at the kerb
+    const fence = D.kit('fence');
+    for (const s of [-1, 1]) D.put(fence(), x + s * (th.w / 2 + 22), y + 4);
+    for (const s of [-1, 1]) D.put(D.key('lamp'), x + s * (th.w / 2 - 10), y + 22);
+    D.near(D.key('bench'), x - 30, y + 46, 16);
+    D.near(D.key('bin'), x + 40, y + 40, 16);
+    D.near(D.key('hang'), x + th.w / 2 + 8, y - 10, 10);
+    D.near(D.key('carv'), x + (D.r() < 0.5 ? -1 : 1) * A.rx * 0.6, y + 70, 30);
+  };
+  /* a lamplit street: carriages at the kerb, lamps, benches, bins, posters, a pipe or a grate */
+  SCENE.gstreet = (D, A) => {
+    const y = A.y + (D.r() - 0.5) * A.ry * 0.4;
+    let x = A.x - A.rx * 0.8;
+    while (x < A.x + A.rx * 0.8) {
+      if (D.r() < 0.55) D.put(D.key('carv'), x, y - 20);
+      else D.put(D.key(D.pick(['bench', 'bin', 'signpost', 'stall'])), x, y - 26);
+      D.put(D.key('lamp'), x + 20, y + 30);
+      x += 80 + D.r() * 30;
+    }
+    D.scatter('plate', A.x, A.y, A.rx * 0.6, 2);
+    D.scatter('hang', A.x, A.y - 40, A.rx * 0.6, 2);
+    D.scatter('debris', A.x, A.y, A.rx * 0.8, 3);
+  };
+  /* the night market: awning stalls in a row, tables of curios, crates, sacks, lanterns, signs, a cage */
+  SCENE.market = (D, A) => {
+    const stalls = HV('hv13', 'stall');
+    let x = A.x - A.rx * 0.6;
+    while (x < A.x + A.rx * 0.6) { const p = D.put(stalls.length ? D.pick(stalls) : D.key('stall'), x, A.y - 20); x += (p && p.box ? p.box.hw * 2 : 50) + 18; }
+    for (let i = 0; i < 3; i++) D.near(D.key('table'), A.x - 60 + i * 60, A.y + 40, 16);
+    D.pile(A.x + A.rx * 0.6, A.y + 50, ['crate', 'sack', 'barrel'], 3);
+    for (const s of [-1, 1]) D.put(D.key('lantern') || D.key('lamp'), A.x + s * A.rx * 0.75, A.y - 10);
+    D.near(D.key('sign'), A.x, A.y + 80, 20);
+    D.near(D.key('cage'), A.x - A.rx * 0.6, A.y + 60, 20);
+  };
+  /* a cemetery: graves in rows inside an iron fence with a gate, a mausoleum, statues, a dead tree, candles */
+  SCENE.cemetery = (D, A) => {
+    const w = Math.min(A.rx * 1.5, 220), h = Math.min(A.ry * 1.3, 150);
+    const fence = D.kit('fence');
+    for (let x = A.x - w / 2; x <= A.x + w / 2; x += 40) { if (Math.abs(x - A.x) > 30) D.put(fence(), x, A.y + h / 2); D.put(fence(), x, A.y - h / 2); }
+    D.put(D.key('door'), A.x, A.y + h / 2);
+    D.put(D.key('crypt'), A.x, A.y - h / 2 + 30);
+    for (let r = 0; r < 2; r++) for (let c = -2; c <= 2; c++) if (c && D.r() < 0.85) D.put(D.key('grave'), A.x + c * 38, A.y + r * 36);
+    for (const s of [-1, 1]) D.put(D.key('statue'), A.x + s * (w / 2 - 20), A.y - h / 2 + 30);
+    D.near(D.key('deadtree'), A.x + w / 2 - 30, A.y + 20, 20);
+    D.scatter('candles', A.x, A.y, w * 0.4, 3);
+    D.scatter('shrub', A.x, A.y, w * 0.5, 3);
+  };
+  /* an occult corner: a pentagram on the cobbles, candles round it, grimoires and skulls, cult banners, a throne */
+  SCENE.occult = (D, A) => {
+    const IM = CH.Assets.images;
+    if (IM['kit.hv_pentagram']) D.put('kit.hv_pentagram', A.x, A.y + 30, { a: 0.95 });
+    else D.put(D.key('decal'), A.x, A.y + 20);
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; D.put(D.key('candles'), A.x + Math.cos(a) * 54, A.y + 20 + Math.sin(a) * 34); }
+    D.put(D.key('throne'), A.x, A.y - 50);
+    for (const s of [-1, 1]) D.put(D.key('banner'), A.x + s * 70, A.y - 46);
+    D.scatter('item', A.x, A.y + 10, 60, 3);
+    D.near(D.key('altar'), A.x + 80, A.y + 30, 20);
+  };
+  function gaslight(D, L) {
+    const IM = CH.Assets.images;
+    for (const s of L.secrets) D.near(D.key(D.r() < 0.5 ? 'hang' : 'sign'), (s.crack.x + 0.5) * TS + 24, (s.crack.y + 1.4) * TS, 20); // a poster by the hollow wall
+    if (L.trail) for (let ty = 0; ty < L.th; ty += 4) for (let tx = 0; tx < L.tw; tx += 4) if (L.trail[L.idx(tx, ty)] === 2 && D.r() < 0.2) D.put(D.key('plate'), tx * TS + 16, ty * TS + 20, { a: 0.9 });
+    if (IM['kit.hv_skull_arch']) L.exit.gate = 'kit.hv_skull_arch';
+    // a Gothic throne and candelabras (Victorian 20) wait by the way out
+    const gothic = (kind) => PR.pool(kind, 'g').filter((k) => k.startsWith('kit.hv20.'));
+    const th = gothic('throne'), cand = gothic('candles');
+    if (th.length) D.near(D.pick(th), L.exit.x + 90, L.exit.y - 40, 30);
+    for (const sx of [-1, 1]) if (cand.length) D.near(D.pick(cand), L.exit.x + sx * 64, L.exit.y + 30, 16);
+    if (IM['kit.hv5.5']) L.entrance.gate = 'kit.hv5.5';
+  }
+
   /* ------------------------------------------------------------------ the Frozen Kingdom (PLAN.md 18, K3) */
   const FK = (sheet, kind) => PR.pool(kind, 'f').filter((k) => k.startsWith('kit.' + sheet + '.'));
   /* a frozen hamlet: two or three houses in a row with gaps, a market stall, lamps, bunting, barrels, a well, a fence */
@@ -702,13 +843,14 @@
         if (pk) { pk.x = c.x + (D.r() - 0.5) * 40; pk.y = c.y + c.r * 0.35; pk.camp = c; }
         continue;
       }
-      if (pk && D.r() < 0.5 && biome !== 'dungeon' && biome !== 'office' && biome !== 'glitch') {
+      const owed = (D.fam === 'c' && !L.cabins) || (D.fam === 'g' && !L.townhouses); // a stage still waiting for its cabin / townhouse
+      if (pk && D.r() < 0.5 && !owed && biome !== 'dungeon' && biome !== 'office' && biome !== 'glitch') {
         const c = SCENE.camp(D, A, { x: A.x, y: A.y }, {});
         pk.x = c.x; pk.y = c.y; pk.camp = c;
         camps.push(c);
         continue;
       }
-      const name = rm.tag === 'exit' ? 'shrine' : D.fam === 'c' && !L.cabins ? 'cabin' : scenes[si++ % scenes.length]; // every Dead Wood stage has a cabin
+      const name = rm.tag === 'exit' ? 'shrine' : D.fam === 'c' && !L.cabins ? 'cabin' : D.fam === 'g' && !L.townhouses ? 'townhouse' : scenes[si++ % scenes.length]; // every Dead Wood stage has a cabin, every Gaslight one a townhouse
       const made = (SCENE[name] || SCENE.ruin)(D, A, { x: A.x, y: A.y }, {}); // an empty camp: a deserted one
       if (made && name === 'camp') camps.push(made);
       if (pk) pk.camp = { x: pk.x, y: pk.y, r: Math.min(A.rx, 90) };
@@ -727,6 +869,7 @@
     L.camps = camps;
     if (D.fam === 'c') deadwood(D, L);
     if (D.fam === 'f') frozen(D, L);
+    if (D.fam === 'g') gaslight(D, L);
     fields(D, L);
     edges(D, L);
     keepReachable(L);
@@ -745,10 +888,12 @@
     h: ['bones', 'debris', 'hang', 'hang', 'pot', 'candles', 'scrawl'],
     c: ['shrub', 'mushroom', 'rock', 'stump', 'bones', 'debris', 'flower', 'grave'],
     f: ['rock', 'crystal', 'rubble', 'tree', 'debris', 'spike', 'pillar'],
+    g: ['rubble', 'debris', 'pipe', 'shrub', 'bin', 'hang', 'plate', 'patch'],
   };
   /* open ground between the rooms (outdoor maps are mostly that): a small clump every few tiles */
   const FIELD = {
     backyard: [['tree', 'tree', 'shrub', 'shrub'], ['tree', 'deadtree', 'shrub', 'flower'], ['rock', 'shrub', 'flower'], ['boulder', 'shrub', 'rock']],
+    gaslight: [['lamp', 'bench', 'bin'], ['shrub', 'deadtree', 'grave'], ['carv', 'debris'], ['rubble', 'debris', 'pipe'], ['statue', 'shrub'], ['stall', 'crate', 'barrel']],
     deadwood: [['deadtree', 'deadtree', 'shrub', 'mushroom'], ['deadtree', 'stump', 'log', 'rock'], ['grave', 'grave', 'deadtree', 'candles'], ['boulder', 'rock', 'shrub'], ['deadtree', 'bones', 'signpost'], ['growth', 'mushroom', 'arch']],
     frozen: [['tree', 'tree', 'rock'], ['deadtree', 'crystal', 'rock'], ['cliff', 'spike'], ['crystal', 'crystal', 'plate'], ['tree', 'deadtree', 'rubble'], ['pillar', 'rubble']],
     zombie: [['car', 'debris', 'trash'], ['trash', 'bin', 'debris'], ['deadtree', 'shrub', 'debris'], ['barricade', 'cone', 'debris']],
@@ -805,7 +950,7 @@
       let best = null, bd = 1e9;
       for (const p of L.props) {
         if (!p.sp || !p.solid || p.dead) continue;
-        const d = U.dist(p.x, p.y, bad.x, bad.y);
+        const d = U.dist(p.x, p.y, bad.x, bad.y) + (p.kits ? 400 : 0); // a built cabin or townhouse goes last
         if (d < bd) { bd = d; best = p; }
       }
       if (!best) break;

@@ -20,6 +20,18 @@
     wasteland: { floor: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
     volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
     dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
+    // the Gaslight District (PLAN.md 18, K4): cobbled streets (kit.hv1), slab pavements (kit.hv2), grates; city walls
+    gaslight: {
+      floor: 'kit', sheet: 'wall.zombie', ftint: null, tint: '#6a5e78', wall: '#14121a', top: '#2a2533', edge: '#09080d', trail: 'kit.hv2.0',
+      mats: {
+        dirt: { base: ['hv1.0', 'hv1.1', 'hv1.2'], acc: ['hv1.3', 'hv1.4', 'hv1.5', 'hv1.10', 'hv1.11', 'hv1.12', 'hv1.13'] },
+        moss: { base: ['hv1.14', 'hv1.15'], acc: ['hv1.16', 'hv1.18', 'hv1.19', 'hv1.6', 'hv1.8'] },
+        roots: { base: ['hv2.0', 'hv2.1', 'hv2.2'], acc: ['hv2.3', 'hv2.4', 'hv2.5', 'hv2.6', 'hv2.7', 'hv2.9', 'hv2.10', 'hv2.11', 'hv2.13', 'hv2.14', 'hv2.18'] },
+        rust: { base: ['hv1.20', 'hv1.21'], acc: ['hv1.22', 'hv1.23', 'hv1.24', 'hv1.25'] },
+        stone: { base: ['hv1.26', 'hv1.27'], acc: ['hv1.28', 'hv1.30', 'hv2.39', 'hv2.40', 'hv2.41', 'hv2.42'] },
+        swamp: { base: ['hv2.44', 'hv2.45'], acc: ['hv1.40', 'hv1.41'] },
+      },
+    },
     // the Frozen Kingdom (PLAN.md 18, K3): its snow swatches (kit.fk1) in patches of powder, frost, cracked ice, cobbles,
     // crystals and dark ice; a cobbled road
     frozen: {

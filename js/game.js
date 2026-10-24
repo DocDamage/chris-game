@@ -40,8 +40,8 @@
   ];
 
   /* semantic music / ambience choices (see tools/sounds.js for the files behind each key) */
-  const ARENA_MUSIC = { deadwood: 'library', backyard: 'court', office: 'hall', glitch: 'secret' };
-  const ARENA_AMB = { deadwood: 'amb_wind', backyard: 'amb_backyard', office: 'amb_office', glitch: 'amb_glitch' };
+  const ARENA_MUSIC = { gaslight: 'rain', deadwood: 'library', backyard: 'court', office: 'hall', glitch: 'secret' };
+  const ARENA_AMB = { gaslight: 'amb_rain', deadwood: 'amb_wind', backyard: 'amb_backyard', office: 'amb_office', glitch: 'amb_glitch' };
   const BOSS_MUSIC = {
     frog: 'miniboss', bd: 'miniboss', ceo: 'miniboss', mage: 'miniboss', ooze: 'miniboss', treant: 'miniboss', knight: 'miniboss',
     chicken: 'dungeon', gol: 'dungeon', beholder: 'dungeon', moss: 'dungeon', sporeeye: 'dungeon',
@@ -54,7 +54,7 @@
     dragon: 'cre_roar', beholder: 'cre_hiss', mage: 'cre_trumpet', demon: 'cre_growl', ooze: 'cre_wet',
     treant: 'cre_growl', moss: 'rock', knight: 'cre_growl', yeti: 'cre_roar', daddy: 'cre_roar', skull: 'cre_hiss', dunewyrm: 'cre_roar', bloodwyrm: 'cre_roar', sporeeye: 'cre_wet', voideye: 'cre_hiss'
   };
-  const SURFACE = { deadwood: 'step_grass', backyard: 'step_grass', office: 'step_concrete', glitch: 'step_stone' };
+  const SURFACE = { gaslight: 'step_concrete', deadwood: 'step_grass', backyard: 'step_grass', office: 'step_concrete', glitch: 'step_stone' };
 
   const defaultMods = () => ({ enemySpeed: 1, enemyScale: 1, kbMul: 1, bigHead: false, reverse: false, lowGrav: false, explosiveDeaths: false, disco: false, discoBeat: 0, scoreMul: 1 });
 

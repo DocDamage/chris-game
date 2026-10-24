@@ -92,7 +92,7 @@ const { open } = require('./lib');
     document.getElementById('btn-vic-hideout').click();
     return { forks, vic, after: { state: G.state, town: !!(G.level && G.level.isTown), at: W.at, slot: !!St.slot() } };
   });
-  ok('the forks are fixed by the world (act III is the Frozen Kingdom: PLAN.md 18, K3)', ['office', 'wasteland'].includes(r.forks.a) && r.forks.b === 'frozen' && r.forks.chosen === r.forks.a && r.forks.arena === r.forks.a, r.forks);
+  ok('the forks are fixed by the world (act II the Gaslight District, act III the Frozen Kingdom: PLAN.md 18, K3-K4)', r.forks.a === 'gaslight' && r.forks.b === 'frozen' && r.forks.chosen === r.forks.a && r.forks.arena === r.forks.a, r.forks);
   ok('the final boss saves the world: the character goes back to the hideout', r.vic.state === 'victory' && /WORLD IS SAVED/.test(r.vic.title) && r.vic.hideout !== 'none' && r.vic.again === 'none', r.vic);
   ok('BACK TO THE HIDEOUT plays on in the hideout, the portal leads to area 1', r.after.state === 'playing' && r.after.town && r.after.at === 1 && r.after.slot, r.after);
 

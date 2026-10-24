@@ -33,7 +33,7 @@
 
   /* ------------------------------------------------------------------ props */
   const LIGHT = { amber: [1, 0.62, 0.25], orange: [1, 0.46, 0.18], cyan: [0.12, 0.55, 0.95], green: [0.45, 1, 0.38], purple: [0.68, 0.4, 1] };
-  const BIOME = { deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
+  const BIOME = { gaslight: 'purple', deadwood: 'green', backyard: 'amber', office: 'orange', glitch: 'cyan', zombie: 'green', wasteland: 'orange', volcano: 'orange', dungeon: 'purple', frozen: 'cyan' };
   const hash = (a, b) => { let n = (a * 374761393 + b * 668265263) | 0; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) >>> 0) / 4294967296; };
 
   Fires.place = function (props, x, y, color, smoke) {

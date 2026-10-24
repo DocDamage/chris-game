@@ -99,7 +99,7 @@
     G.runSeed = W.seed; // every area comes from the character's world
     G.runIndex = W.seed % 2520; // and so do its bosses
     // the world's forks are fixed by its seed (the path prompts went with the runs: K0d)
-    if (!W.path[4]) W.path[4] = ['office', 'wasteland'][W.seed % 2];
+    if (W.path[4] !== 'gaslight') W.path[4] = 'gaslight'; // act II: the Gaslight District (PLAN.md 18, K4)
     if (!W.path[7] || W.path[7] !== 'frozen') W.path[7] = 'frozen'; // act III: the Frozen Kingdom (PLAN.md 18, K3)
     if (G.chosenPath && !Object.keys(G.chosenPath).length) Object.assign(G.chosenPath, W.path);
     // a character who has been out before starts in the hideout

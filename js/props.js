@@ -122,6 +122,7 @@
     castle: K(1, [0.95, 0.35], { res: 'stone', hp: 200 }), // ice castle wall sections and towers
     bridge: K(1, null, { skip: 1 }), // bridges and stairs wait for the height work (K7)
     particle: K(1, null, { skip: 1 }), // snowflakes and footprints are drawn by code (js/atmos.js)
+    throne: K(1, [0.8, 0.3], { res: 'stone' }), // Gothic thrones (Victorian 20): the cult house and boss halls
   };
   PR.KIND = KIND;
 
@@ -240,6 +241,27 @@
     fk17: { hut: '0', campfire: '1', pole: '2', fence: '3,5', shelf: '4', table: '6,7', barrel: '8-13' },
     fk18: { particle: '0-23' },
     fk19: { statue: '0-6,18,20,21,24,29', obelisk: '7-9', crystal: '10,14,17', grave: '11,25', pillar: '12,13,28', well: '15,23', brazier: '16', portal: '19', lamp: '22', altar: '26', plate: '27', arch: '30' },
+    // family g = Haunted Victorian City (PLAN.md 18, K4); sheets 3-8 also carry the title's lamp and carriage
+    hv1: { patch: '7,9,17,29,31-39', plate: '40,41,44', boulder: '42,43' },
+    hv2: { patch: '0-47' },
+    hv3: { lamp: '0', carv: '1', wall: '2-11,16-18', pillar: '12-14,19-22,29,30', roof: '15,23-28,31' },
+    hv4: { lamp: '0', carv: '1', roof: '2-26' },
+    hv5: { carv: '0', door: '1-3,8-21', arch: '4-7,22,23' },
+    hv6: { carv: '0', window: '1-45' },
+    hv7: { lamp: '0,2-44', carv: '1' },
+    hv8: { lamp: '0', carv: '1', fence: '2-25', door: '26-40' },
+    hv9: { carv: '0-21' },
+    hv10: { grave: '0-17,20,21,25', crypt: '18', rock: '19,26', patch: '22', item: '23', debris: '24,27' },
+    hv11: { crypt: '0-5,11-16,25-28,30', grave: '6-10,17-24,37-39', door: '29,31,32', arch: '33', altar: '34,35', patch: '36', plate: '40', debris: '41-43,46,47', decal: '44,45', item: '48' },
+    hv12: { statue: '0-7,9-13,16,20', grave: '8,17,18,21,24,32,33,36', pillar: '14,15,30', portal: '19', obelisk: '22,23,25,29', altar: '26-28,31', crypt: '34,35', patch: '37', rubble: '38', door: '39,40' },
+    hv13: { stall: '0-8,52', table: '9-14,22,25,26,37', pole: '15,51', shelf: '16,36', crate: '17,20,23,30-33,40', signpost: '18,49', cage: '19,50', barrel: '21,24,35,39', sign: '27,28,47,48', banner: '29', sack: '34', cauldron: '38', case: '41', lantern: '42-44,46', lamp: '45' },
+    hv14: { sofa: '0,3,17', chair: '1,2,9-12', shelf: '4-8,19,21,24,26,40', table: '13-16,18,20,23,33', machine: '22', bed: '25', pole: '27', crate: '28', case: '29,30,36', item: '31,32,43', cage: '34', debris: '35', bin: '37,48', lamp: '38,46,47', shrub: '39', hang: '41,42', stall: '44', sign: '45', bench: '49', plate: '50' },
+    hv15: { pipe: '0-6,15-35', plate: '7-14,36-43', bridge: '44,45', well: '46' },
+    hv16: { skip: '0,21,28', hang: '1-10,13,14', sign: '11,12,15-18', lamp: '19', signpost: '20,23-25', banner: '22,26,27' },
+    hv17: { deadtree: '0-2', shrub: '3-26,31,33,37,38', mushroom: '27-29', debris: '30,39', stump: '32', grave: '34,40', rock: '35', growth: '36' },
+    hv18: { candles: '0-2,5-7,9,15', lantern: '3', smallstatue: '4', altar: '11', item: '8,10,12-14,17-20', decal: '16' },
+    hv19: { wall: '0-10,39-43', rubble: '11-38,87,88', pipe: '44-56,58,59', plate: '57', decal: '60-63,69', patch: '64-68', candles: '70-73', banner: '74,75', lantern: '76,77', grave: '78,92,94,95', hang: '79', fence: '80,81,97', signpost: '82,83,85', barrel: '84', crate: '86', shrub: '89,90', deadtree: '91,93', stump: '96' },
+    hv20: { throne: '0-7', candles: '8,9,23', lantern: '10,35', smallstatue: '11,17', table: '12,13', statue: '14,31', grave: '15,21,22,30', cage: '16', crystal: '18,19', portal: '20,36', plate: '24', door: '25', obelisk: '26-28', hang: '29,34', banner: '32,33' },
     fk20: { barrel: '0,2,17', sack: '1', crate: '3,8', pole: '4,16', cauldron: '5', table: '6', bench: '7,9,10', well: '11,13', crystal: '12', signpost: '14', lamp: '15,18-20,33,34', brazier: '21', obelisk: '22', door: '23', smallstatue: '24,25', grave: '26', banner: '27,28,35', fence: '29,30', rock: '31', tree: '32' },
   };
   PR.KCAT = KCAT;
@@ -298,7 +320,7 @@
       }
     }
     // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
-    const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door' };
+    const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door', hv_eye_portal: 'door', hv_pentagram: 'decal', hv_skull_arch: 'door' };
     for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { const f = KFAM[k.slice(0, 2)]; kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {})[f] = byKind.portal[f] || []).push('kit.' + k); }
   }
   PR.kindOf = (key) => { build(); return kindOf[key] || null; };

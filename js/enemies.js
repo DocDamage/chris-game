@@ -68,7 +68,7 @@
     ],
   };
   /* which variant (0 = plain) a freshly queued enemy gets; later waves and matching arenas mutate more */
-  const BIOME_VARIANT = { volcano: { slime: 2, orc: 1, golem: 2 }, dungeon: { spider: 3, plant: 2, golem: 2 }, wasteland: { orc: 2, goblin: 2 }, backyard: { plant: 1, spider: 2 }, deadwood: { plant: 1, spider: 2, slime: 1 }, zombie: { slime: 1 } };
+  const BIOME_VARIANT = { volcano: { slime: 2, orc: 1, golem: 2 }, dungeon: { spider: 3, plant: 2, golem: 2 }, wasteland: { orc: 2, goblin: 2 }, backyard: { plant: 1, spider: 2 }, deadwood: { plant: 1, spider: 2, slime: 1 }, gaslight: { spider: 3, slime: 1 }, zombie: { slime: 1 } };
   E.rollVariant = function (type, wave, arenaId) {
     const list = E.VARIANTS[type];
     if (!list || wave < 2) return 0;
