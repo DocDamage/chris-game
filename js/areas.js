@@ -7,7 +7,9 @@
    Saved in the slot as world = { seed, at, deepest, path, areas: { [stage]: { biome, visits, closed, chests, secrets,
    shrines, wps, cleared, boss } } } (js/storage.js checks it).
    With no character (tests, debug) none of this applies: play runs stage after stage as before.
-   Act bosses unlock heroes for the whole account (the owner's choice, 18.1). */
+   Act bosses unlock heroes for the whole account (the owner's choice, 18.1).
+   Death (K0c): a character wakes in the hideout and half the gold they carried waits at the corpse; a hardcore character
+   is deleted and gets the game over screen. */
 (function (CH) {
   'use strict';
   const G = CH.G;
@@ -87,6 +89,7 @@
 
   /* ------------------------------------------------------------------ stage starts */
   G.on('newRun:before', function () {
+    G.fallen = null;
     A.loading = !!A.world();
   });
   G.on('startWave:before', function (ev) {
@@ -148,5 +151,81 @@
       }
       Storage.save();
     }
+  });
+  /* ------------------------------------------------------------------ death (K0c): wake in the hideout, gold at the corpse */
+  A.corpseShare = 0.5; // the part of the carried gold left at the corpse
+  /* js/game.js asks before its game over: a character wakes in the hideout instead (true); a hardcore one is gone */
+  A.onDeath = function () {
+    const s = Storage.slot(), W = A.world();
+    if (!s || !W) return false;
+    if (s.hardcore) {
+      G.fallen = s.name || 'Your hero';
+      Storage.deleteSlot(Storage.activeIndex());
+      return false;
+    }
+    A.capture();
+    const p = G.players.find((q) => q.x !== undefined) || G.player;
+    const gold = Math.floor((G.coins || 0) * A.corpseShare);
+    G.coins -= gold;
+    W.corpse = gold > 0 && G.wave >= 1 ? { area: G.wave, x: Math.round(p.x), y: Math.round(p.y), gold } : null; // a new death leaves the old corpse's gold behind for good
+    W.at = Math.max(1, G.wave || 1);
+    for (const q of G.players) {
+      q.dead = false;
+      q.deathT = 0;
+      q.reviveT = 0;
+      q.hp = q.maxHp;
+      q.invuln = 2;
+      q.vx = q.vy = 0;
+    }
+    G.deathTimer = 0;
+    G.bossDying = null;
+    G.victoryPending = false;
+    if (G.ui && G.ui.hideBossBar) G.ui.hideBossBar(false);
+    if (CH.Town) {
+      CH.Town.inTown = false;
+      CH.Town.saved = null;
+      CH.Town.pendingStage = 0;
+      CH.Town.wantTown = false;
+    }
+    G.level = null;
+    G.arena = null;
+    if (CH.Town) CH.Town.enter('death');
+    if (CH.Character) CH.Character.save();
+    G.banner('YOU DIED', gold > 0 ? 'You wake in the hideout. ' + gold + ' gold lies where you fell.' : 'You wake in the hideout.', 3.4);
+    return true;
+  };
+  /* the corpse waits in its area (and in a boss arena) until a hero walks over it */
+  const corpseHere = () => {
+    const W = A.world(), c = W && W.corpse;
+    if (!c || c.area !== G.wave || (G.level && G.level.isTown) || !G.arena) return null;
+    return c;
+  };
+  G.on('step', function () {
+    const c = corpseHere();
+    if (!c || G.state !== 'playing') return;
+    for (const p of G.players) {
+      if (p.dead || U.dist(p.x, p.y, c.x, c.y) > 24) continue;
+      G.coins += c.gold;
+      FX.text(c.x, c.y - 24, '+' + c.gold + ' GOLD RECOVERED', '#fee761', 2);
+      FX.burst(c.x, c.y, { n: 22, colors: ['#fee761', '#feae34', '#ffffff'], speed: 120, life: 0.6 });
+      CH.Audio.sfx('chest');
+      A.world().corpse = null;
+      if (CH.Character) CH.Character.save();
+      return;
+    }
+  });
+  CH.Hooks.world.push((ctx, cam) => {
+    const c = corpseHere();
+    if (!c) return;
+    const x = Math.round(c.x - cam.x), y = Math.round(c.y - cam.y);
+    if (x < -40 || y < -40 || x > B.view.w + 40 || y > B.view.h + 40) return;
+    const t = G.time || 0;
+    // a cross over a little heap, gold glinting on it
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(x, y + 3, 12, 4, 0, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#5a4632'; ctx.fillRect(x - 9, y - 2, 18, 5);
+    ctx.fillStyle = '#8a8a96'; ctx.fillRect(x - 1, y - 20, 3, 19); ctx.fillRect(x - 6, y - 15, 13, 3);
+    for (let i = 0; i < 4; i++) { ctx.fillStyle = (Math.floor(t * 4) + i) % 4 === 0 ? '#ffffff' : '#fee761'; ctx.fillRect(x - 7 + i * 4, y - 3 - (i % 2), 2, 2); }
+    CH.Font.draw(ctx, 'YOUR CORPSE', x, y + 8, '#fee761', 1, true);
   });
 })(window.CH);

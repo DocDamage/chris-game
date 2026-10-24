@@ -63,7 +63,8 @@ const { play } = require('./lib');
   const uv = await page.evaluate(() => CH.Audio.musicInfo().filter((t) => t.target === 1)[0].volume);
   ok('mute zeroes music, unmute restores', mv === 0 && uv > 0.1, { mv, uv });
   // game over
-  await page.evaluate(() => { const p = CH.G.player; p.invuln = 0; p.hp = 1; CH.G.hurtPlayer(30, null, {}); }); await page.waitForTimeout(3200);
+  // a hardcore character's death ends in the game over screen (a normal one wakes in the hideout)
+  await page.evaluate(() => { if (CH.Storage.slot()) CH.Storage.slot().hardcore = true; const p = CH.G.player; p.invuln = 0; p.hp = 1; CH.G.hurtPlayer(30, null, {}); }); await page.waitForTimeout(3200);
   ok('game over track (early death = sad)', ['sad', 'gameover'].includes(await track()) && (await page.evaluate(() => CH.Audio.ambName)) === null, await track());
   await page.click('#btn-go-menu'); await page.waitForTimeout(800);
   ok('back to menu music, ambience off', (await track()) === 'menu' && (await page.evaluate(() => CH.Audio.ambName)) === null);

@@ -141,8 +141,8 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.keyboard.press('KeyM');
   ok('M toggles back', !(await page.evaluate(() => CH.Storage.settings.muted)));
 
-  // game over via real death
-  await page.evaluate(() => { const p = CH.G.player; p.invuln = 0; p.rolling = false; p.rollGrace = 0; p.hp = 1; CH.G.hurtPlayer(50, null, {}); CH.G.hurtPlayer(50, null, {}); });
+  // game over via real death: a hardcore character's (a normal one wakes in the hideout: t44_death)
+  await page.evaluate(() => { CH.Storage.slot().hardcore = true; const p = CH.G.player; p.invuln = 0; p.rolling = false; p.rollGrace = 0; p.hp = 1; CH.G.hurtPlayer(50, null, {}); CH.G.hurtPlayer(50, null, {}); });
   const deaths = await page.evaluate(() => CH.G.player.dead);
   ok('player dies when hp hits 0', deaths);
   await page.waitForTimeout(2600);
@@ -150,10 +150,12 @@ const ok = (name, cond, extra) => { results.push([cond ? 'PASS' : 'FAIL', name, 
   await page.screenshot({ path: __dirname + '/u_gameover.png' });
   const st = await page.evaluate(() => CH.Storage.stats);
   ok('stats recorded exactly once for the run', st.totalRuns === 2 && st.deaths === 2, st); // first run abandoned by restart + this death
-  await page.click('#btn-retry');
+  ok('a fallen hardcore character gets no RETRY', await page.evaluate(() => getComputedStyle(document.getElementById('btn-retry')).display === 'none' && !CH.Storage.slot()));
+  await page.click('#btn-go-menu');
+  await play(page);
   await page.waitForTimeout(300);
   const afterRetry = await state();
-  ok('retry starts clean', afterRetry.s === 'playing' && afterRetry.proj === 0 && afterRetry.kills === 0 && start(afterRetry), afterRetry);
+  ok('a new character starts clean', afterRetry.s === 'playing' && afterRetry.proj === 0 && afterRetry.kills === 0 && start(afterRetry), afterRetry);
 
   // abandon to menu with confirmation
   await page.keyboard.press('Escape');

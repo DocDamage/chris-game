@@ -182,7 +182,7 @@
      (PLAN.md 18, K0a). The game is no longer made of runs: each slot is one hero taken through the world.
        KEY3 = { version: 3, account: { settings, stats, unlocked, seen, meta }, slots: [slot], active: index or -1 }
        slot = { id, name, hero, hardcore, created, played, char: { level, xp, sp, skills, gold, weapons ... },
-                world: { seed, at, deepest, path, areas } (js/areas.js), data: { resources, shelter, loot, diablo, sidekicks, meta } }
+                world: { seed, at, deepest, path, areas, corpse } (js/areas.js), data: { resources, shelter, loot, diablo, sidekicks, meta } }
      Storage.data keeps the shape every module reads (settings, stats, unlocked, seen, resources, shelter, loot, diablo,
      sidekicks, meta): built from the account and the active slot on load, split back into them on save. With no
      active slot (the menu, most tests, the debug start without the book) the character part goes to a nameless
@@ -246,6 +246,8 @@
       if (!/^[0-9]{1,2}$/.test(k) || !a || typeof a !== 'object') continue;
       out.areas[k] = { biome: str(a.biome, '', 24), visits: Math.floor(num(a.visits, 0, 0, 1e6)), closed: ints(a.closed, 32), chests: ints(a.chests, 64), secrets: ints(a.secrets, 16), shrines: ints(a.shrines, 32), wps: ints(a.wps, 16), cleared: a.cleared === true, boss: a.boss === true };
     }
+    const c = w.corpse;
+    out.corpse = c && typeof c === 'object' && num(c.gold, 0, 0, 1e9) > 0 ? { area: Math.floor(num(c.area, 1, 1, 99)), x: num(c.x, 0, -1e5, 1e5), y: num(c.y, 0, -1e5, 1e5), gold: Math.floor(num(c.gold, 0, 0, 1e9)) } : null;
     return out;
   }
   function cleanSlot(s, i) {

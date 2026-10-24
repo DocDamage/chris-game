@@ -1370,6 +1370,7 @@
 
   G.gameOver = function () {
     if (G.state === 'gameover') return;
+    if (CH.Areas && CH.Areas.onDeath()) return; // a character wakes in the hideout instead (js/areas.js)
     if (CH.Character) CH.Character.saveIfPlaying();
     G.state = 'gameover';
     G.addScore(G.time * B.score.perSecond * 0); // survival score is accrued live

@@ -887,7 +887,10 @@
   UI.showGameOver = function (d) {
     setPlaying(false);
     $('hud').classList.add('hidden');
-    setText($('go-snark'), U.pick(SNARK));
+    // a hardcore character is gone for good (js/areas.js): their name, no RETRY
+    setText($('go-title'), G.fallen ? 'R.I.P. ' + G.fallen.toUpperCase() : 'GAME OVER');
+    $('btn-retry').style.display = G.fallen ? 'none' : '';
+    setText($('go-snark'), G.fallen ? 'Hardcore means hardcore. Their page in the book is torn out.' : U.pick(SNARK));
     $('go-stats').innerHTML = rowsHTML([
       ['Final score', U.fmtNum(d.score)],
       ['Waves survived', d.wave],
