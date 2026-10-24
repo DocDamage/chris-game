@@ -1,5 +1,5 @@
 /* Events (PLAN.md section 16, step 2): G.call's order and take-over rules, and the calls that take over or change
-   their arguments: shields, fear, training. */
+   their arguments: shields, fear, a hit on the hero. */
 const { open } = require('./lib');
 (async () => {
   const { browser, page, errs } = await open({});
@@ -29,10 +29,10 @@ const { open } = require('./lib');
     const h = CH.G.hooks(), n = (k) => (h[k] || []).length;
     return { newRun: [n('newRun:before'), n('newRun')], startWave: [n('startWave:before'), n('startWave')], damageEnemy: [n('damageEnemy:before'), n('damageEnemy')], hurtPlayer: [n('hurtPlayer:before'), n('hurtPlayer')], playerUpdate: [n('playerUpdate:before'), n('playerUpdate')] };
   });
-  ok('listeners: newRun 9 + 9, startWave 6 + 5 (js/character.js and js/areas.js add theirs), damageEnemy 3 + 4, hurtPlayer 2 + 3, playerUpdate 6 + 5',
-    JSON.stringify(r) === JSON.stringify({ newRun: [9, 9], startWave: [6, 5], damageEnemy: [3, 4], hurtPlayer: [2, 3], playerUpdate: [6, 5] }), r);
+  ok('listeners: newRun 9 + 9, startWave 6 + 5 (js/character.js and js/areas.js add theirs), damageEnemy 3 + 4, hurtPlayer 1 + 3, playerUpdate 6 + 5',
+    JSON.stringify(r) === JSON.stringify({ newRun: [9, 9], startWave: [6, 5], damageEnemy: [3, 4], hurtPlayer: [1, 3], playerUpdate: [6, 5] }), r);
 
-  // 3. shields, fear and training
+  // 3. shields, fear and a hit on the hero
   r = await page.evaluate(() => {
     const G = CH.G, X = CH.X, out = {};
     X.startRun({ mode: 'classic' }, null);
@@ -52,19 +52,16 @@ const { open } = require('./lib');
     e = mob();
     e.fearT = 2;
     out.fear = { r: G.damageEnemy(e, 40, { shooter: p }), hp: e.hp };
-    // training: nothing hurts the hero
+    // a hit on the hero lands (the training room that swallowed it is gone: PLAN.md 18, K0d)
     const hp0 = p.hp;
     p.invuln = 0; p.rolling = false; p.rollGrace = 0;
-    X.run.mode = 'training';
-    out.training = { r: G.hurtPlayer(10, null, {}), lost: hp0 - p.hp };
-    X.run.mode = 'classic';
     out.classic = { r: G.hurtPlayer(10, null, {}), lost: hp0 - p.hp };
     return out;
   });
   ok('a shield that swallows a hit: 0 damage, the shield pays, the stats count nothing', r.swallow.r === 0 && r.swallow.hp === 500 && r.swallow.shield === 30 && r.swallow.counted === 0, r.swallow);
   ok('a shield that takes part of a hit: the rest gets through and is counted', r.partial.r === 20 && r.partial.hp === 480 && r.partial.shield === 0 && r.partial.counted === 20, r.partial);
   ok('a frightened monster takes 25% more', r.fear.r === 50 && r.fear.hp === 450, r.fear);
-  ok('nothing hurts in training; outside it the hero is hurt', r.training.r === 0 && r.training.lost === 0 && r.classic.r > 0 && r.classic.lost > 0, r);
+  ok('a hit on the hero lands', r.classic.r > 0 && r.classic.lost > 0, r);
 
   ok('no console errors', errs.length === 0, errs.slice(0, 5));
   console.log(fails ? fails + ' FAILED' : 'ALL PASS');

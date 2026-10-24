@@ -27,7 +27,7 @@
     F.gold = null;
     F.esc = null;
     F.shrink = null;
-    if (n < 2 || G.isBossWave(n) || X.run.mode === 'rush' || n === 1) return;
+    if (n < 2 || G.isBossWave(n)) return;
     const forced = X.run.forceMod;
     if (!forced && W.rng() > 0.45) return;
     const pool = Object.keys(MODS).filter((k) => (k !== 'defend' || G.machine) && (k !== 'shrink' || n >= 3));
@@ -204,7 +204,7 @@
   const LAST = ['the Unpaid', 'the Overdue', 'Reply-All', 'the Unstoppable', 'the Microwaved', 'from Accounting', 'the Merger', 'the Intern Whisperer'];
   function planMini(n) {
     F.mini = null;
-    F.miniPlan = n >= 3 && !G.isBossWave(n) && X.run.mode !== 'rush' && W.rng() < 0.35;
+    F.miniPlan = n >= 3 && !G.isBossWave(n) && W.rng() < 0.35;
   }
   function spawnMini() {
     F.miniPlan = false;

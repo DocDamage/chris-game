@@ -1,5 +1,5 @@
-/* CHAOS.exe - EXTRAS & MODES screen (run modes, daily, challenges, Heat, loadouts, pets, history, achievements, heroes and
-   mastery, safehouse extras, trophy sets, bestiary, options) plus the end-of-run summary screen. */
+/* CHAOS.exe - the EXTRAS screen: achievements, heroes and mastery, safehouse extras (buildings, relics, crafting, the
+   companion), trophy sets, bestiary, options. The run setups and the run summary went with the runs (PLAN.md 18, K0d). */
 (function (CH) {
   'use strict';
   const B = CH.Balance;
@@ -21,12 +21,9 @@
     UI.SCREENS.push(id);
     return el;
   };
-  const extrasEl = mk('extras', '<div class="panel wide"><h2>EXTRAS &amp; MODES</h2><div class="xt-tabs" id="xt-tabs"></div><div class="scroll xt-body" id="xt-body"></div><div class="row-btns"><button class="btn back" id="btn-xt-back">BACK</button></div></div>');
-  const sumEl = mk('summary', '<div class="panel wide"><h2>RUN SUMMARY</h2><div class="scroll xt-body" id="sum-body"></div><div class="row-btns"><button class="btn primary" id="btn-sum-back">BACK</button></div></div>');
+  const extrasEl = mk('extras', '<div class="panel wide"><h2>EXTRAS</h2><div class="xt-tabs" id="xt-tabs"></div><div class="scroll xt-body" id="xt-body"></div><div class="row-btns"><button class="btn back" id="btn-xt-back">BACK</button></div></div>');
 
   const TABS = [
-    ['play', 'PLAY'],
-    ['hist', 'HISTORY'],
     ['ach', 'ACHIEVEMENTS'],
     ['hero', 'HEROES'],
     ['safe', 'SAFEHOUSE+'],
@@ -34,77 +31,12 @@
     ['bestiary', 'BESTIARY'],
     ['opts', 'OPTIONS'],
   ];
-  const S = (M.ui = { tab: 'play', mode: 'classic', challenge: '', heat: {}, seed: '' });
+  const S = (M.ui = { tab: 'ach' });
   const $ = (id) => document.getElementById(id);
   const btn = (act, v, label, cls, title) => `<button class="btn small ${cls || ''}" data-act="${act}" data-v="${esc(v === undefined ? '' : v)}"${title ? ` title="${esc(title)}"` : ''}>${label}</button>`;
   const costTxt = (c) => Object.keys(c).map((k) => c[k] + ' ' + k).join(', ');
   const res = () => Storage.resources;
 
-  function playTab() {
-    const m = md();
-    let h = '<h3>RUN MODE</h3><div class="row-btns">';
-    for (const k of Object.keys(X.MODES)) h += btn('mode', k, X.MODES[k].name, S.mode === k ? 'sel' : '', X.MODES[k].desc);
-    h += `</div><div class="hint">${esc(X.MODES[S.mode].desc)}</div>`;
-    h += '<h3>CHALLENGE</h3><div class="row-btns">' + btn('chal', '', 'NONE', !S.challenge ? 'sel' : '');
-    for (const c of M.CHALLENGES) h += btn('chal', c.id, c.name, S.challenge === c.id ? 'sel' : '', c.desc);
-    h += '</div>';
-    const ch = M.CHALLENGES.find((c) => c.id === S.challenge);
-    if (ch) h += `<div class="hint">${esc(ch.desc)}</div>`;
-    const tot = M.heatTotal(S.heat);
-    h += `<h3>HEAT  ${tot}  (score x${(1 + 0.1 * tot).toFixed(1)})</h3><div class="grid2">`;
-    for (const p of M.PACTS) {
-      const r = S.heat[p.id] || 0;
-      h += `<div class="xt-item"><b>${esc(p.name)}</b> <span class="chip">${r}/${p.max}</span><div class="hint">${esc(p.desc)} (+${p.heat} heat)</div>${btn('heat-', p.id, '-')}${btn('heat+', p.id, '+')}</div>`;
-    }
-    h += '</div><h3>STARTING LOADOUT</h3>';
-    const lo = m.loadout || {};
-    const mw = Object.keys(m.maxedW);
-    const mu = Object.keys(m.maxedU);
-    h += '<div class="hint">Max out a weapon or upgrade in any run to start future runs with it.</div><div class="row-btns">' + btn('lw', '', 'DEFAULT WEAPON', !lo.weapon ? 'sel' : '');
-    for (const id of mw) h += btn('lw', id, esc((B.weapons[id] || { name: id }).name), lo.weapon === id ? 'sel' : '');
-    h += '</div><div class="row-btns">' + btn('lu', '', 'NO UPGRADE', !lo.upgrade ? 'sel' : '');
-    for (const id of mu) h += btn('lu', id, esc((CH.Upgrades.byId[id] || { name: id }).name || id), lo.upgrade === id ? 'sel' : '');
-    h += '</div>';
-    h += '<h3>COMPANION</h3>';
-    if (M.safeLv('kennel') < 1) h += '<div class="hint">Build the Pet Kennel in SAFEHOUSE+ to bring a companion.</div>';
-    else {
-      h += '<div class="row-btns">' + btn('pet', '', 'NONE', !m.pet ? 'sel' : '');
-      for (const p of M.PETS) {
-        const ok = M.petUnlocked(p.id);
-        h += btn(ok ? 'pet' : 'noop', p.id, esc(p.name) + (ok ? '' : ' (' + Math.round(p.at * 100) + '% codex)'), m.pet === p.id ? 'sel' : '', p.desc);
-      }
-      h += '</div>';
-    }
-    const dk = M.dailyKey();
-    const d = M.dailySetup(dk);
-    h += `<h3>DAILY RUN  ${dk}</h3><div class="hint">Fixed seed, hero (${esc(B.heroes.find((x) => x.id === d.hero).name)}), mode (${esc(X.MODES[d.mode].name)}) and pacts (${M.PACTS.filter((p) => d.heat[p.id]).map((p) => esc(p.name)).join(', ')}).</div>`;
-    h += '<div class="hint">Today: ' + (M.board('d:' + dk).map((e) => U.fmtNum(e.score)).join(' / ') || 'no scores yet') + '</div>';
-    h += '<h3>CUSTOM SEED</h3><input id="xt-seed" class="xt-input" maxlength="24" placeholder="any text (blank = random)" value="' + esc(S.seed) + '">';
-    h += '<div class="row-btns">' + btn('start', '', 'START RUN', 'primary') + btn('daily', '', 'PLAY TODAY\'S DAILY') + btn('tutorial', '', 'TUTORIAL WAVE') + (M.safeLv('dummy') ? btn('training', '', 'TRAINING ROOM') : '') + '</div>';
-    return h;
-  }
-  function histTab() {
-    const m = md();
-    let h = '<h3>RECENT RUNS</h3>';
-    if (!m.history.length) h += '<div class="hint">No runs recorded yet.</div>';
-    else {
-      h += '<table class="xt-table"><tr><td>WHEN</td><td>HERO</td><td>MODE</td><td>WAVE</td><td>SCORE</td><td>RESULT</td></tr>';
-      for (const e of m.history.slice(0, 20)) {
-        const dt = new Date(e.t);
-        h += `<tr><td>${dt.getMonth() + 1}/${dt.getDate()}</td><td>${esc(e.hero)}</td><td>${esc(e.mode)}${e.heat ? ' H' + e.heat : ''}${e.challenge ? ' *' : ''}</td><td>${e.wave}</td><td>${U.fmtNum(e.score)}</td><td>${e.win ? '<span style="color:#63c74d">WIN</span>' : 'Lost' + (e.by ? ' to ' + esc(e.by) : '')}</td></tr>`;
-      }
-      h += '</table>';
-    }
-    h += '<h3>LEADERBOARDS</h3>';
-    const keys = Object.keys(m.board).sort().reverse().slice(0, 8);
-    if (!keys.length) h += '<div class="hint">Finish a daily or seeded run to post a score.</div>';
-    for (const k of keys) h += `<div class="xt-item"><b>${esc(k.startsWith('d:') ? 'DAILY ' + k.slice(2) : 'SEED ' + k.slice(2))}</b> ${m.board[k].map((e, i) => `<div class="hint">#${i + 1} ${U.fmtNum(e.score)} - ${esc(e.hero)} wave ${e.wave}</div>`).join('')}</div>`;
-    h += '<h3>BEST-RUN GHOSTS</h3>';
-    const gk = Object.keys(m.ghost);
-    h += gk.length ? '<div class="hint">' + gk.map((k) => `${esc(k.replace('|', ' / '))}: ${U.fmtNum(m.ghost[k].score)}`).join(' &middot; ') + '</div>' : '<div class="hint">None yet - your best run per mode is shown as a live GHOST +/- while you play.</div>';
-    h += '<div class="hint">Wins with a challenge: ' + (M.CHALLENGES.map((c) => esc(c.name) + ' ' + (m.chal[c.id] || 0)).join(' &middot; ')) + '</div>';
-    return h;
-  }
   function achTab() {
     const m = md();
     let h = `<h3>ACHIEVEMENTS  ${M.achDone()}/${M.ACH.length}</h3><div class="grid2">`;
@@ -143,10 +75,20 @@
       h += '</div>';
     }
     if (M.safeLv('craft') >= 1) {
-      h += '<h3>CRAFTING BENCH</h3><div class="hint">Armed consumables are spent at the start of your next run.</div><div class="grid2">';
+      h += '<h3>CRAFTING BENCH</h3><div class="hint">Armed consumables are spent the next time you set out.</div><div class="grid2">';
       for (const c of M.CRAFT) {
         const n = md().stock[c.id] || 0;
         h += `<div class="xt-item"><b>${esc(c.name)}</b> <span class="chip">x${n}</span><div class="hint">${esc(c.desc)}</div>${btn(M.canPay(c.cost) ? 'craft' : 'noop', c.id, 'CRAFT: ' + costTxt(c.cost))}${n ? btn('arm', c.id, md().armed[c.id] ? 'ARMED' : 'ARM', md().armed[c.id] ? 'sel' : '') : ''}</div>`;
+      }
+      h += '</div>';
+    }
+    h += '<h3>COMPANION</h3>';
+    if (M.safeLv('kennel') < 1) h += '<div class="hint">Build the Pet Kennel to bring a companion.</div>';
+    else {
+      h += '<div class="row-btns">' + btn('pet', '', 'NONE', !md().pet ? 'sel' : '');
+      for (const p of M.PETS) {
+        const ok = M.petUnlocked(p.id);
+        h += btn(ok ? 'pet' : 'noop', p.id, esc(p.name) + (ok ? '' : ' (' + Math.round(p.at * 100) + '% codex)'), md().pet === p.id ? 'sel' : '', p.desc);
       }
       h += '</div>';
     }
@@ -191,28 +133,25 @@
     ['minimap', 'Minimap / radar'],
     ['eventOrbs', 'Chaos event orbs'],
     ['showDirector', 'Show spawn-director state'],
-    ['showGhost', 'Best-run ghost delta'],
     ['tutorial', 'Contextual tutorial tips'],
   ];
   function optsTab() {
     const o = X.opts();
     let h = '<h3>FEEDBACK &amp; ACCESSIBILITY</h3><div class="toggles">';
     for (const [k, label] of OPT_LABELS) {
-      const on = o[k] !== false && (o[k] || ['eventOrbs', 'showGhost'].includes(k));
+      const on = o[k] !== false && (o[k] || k === 'eventOrbs');
       h += btn('opt', k, esc(label) + ': ' + (on ? 'ON' : 'OFF'), 'toggle' + (on ? ' sel' : ''));
     }
     h += `</div><h3>GAME SPEED  ${o.gameSpeed}%</h3><input type="range" id="xt-speed" min="50" max="100" step="5" value="${o.gameSpeed}">`;
     return h;
   }
-  const RENDER = { play: playTab, hist: histTab, ach: achTab, hero: heroTab, safe: safeTab, sets: setsTab, bestiary: bestiaryTab, opts: optsTab };
+  const RENDER = { ach: achTab, hero: heroTab, safe: safeTab, sets: setsTab, bestiary: bestiaryTab, opts: optsTab };
   M.ui.render = () => {
     $('xt-tabs').innerHTML = TABS.map(([k, l]) => btn('tab', k, l, S.tab === k ? 'sel' : '')).join('');
     const body = $('xt-body');
     const st = body.scrollTop;
-    body.innerHTML = RENDER[S.tab]();
+    body.innerHTML = (RENDER[S.tab] || achTab)();
     body.scrollTop = st;
-    const sd = $('xt-seed');
-    if (sd) sd.oninput = () => (S.seed = sd.value);
     const sp = $('xt-speed');
     if (sp) sp.oninput = () => {
       X.opts().gameSpeed = +sp.value;
@@ -221,26 +160,8 @@
     };
   };
 
-  const start = (setup) => {
-    if (CH.Journal && CH.Journal.open) CH.Journal.close(true); // the run starts from inside the book: shut it first
-    if (CH.MapScroll && CH.MapScroll.open) CH.MapScroll.open = false;
-    UI.hideAll();
-    M.launch(setup, null);
-  };
   const ACTS = {
     tab: (v) => (S.tab = v),
-    mode: (v) => (S.mode = v),
-    chal: (v) => (S.challenge = v),
-    'heat+': (v) => {
-      const p = M.PACTS.find((x) => x.id === v);
-      S.heat[v] = Math.min(p.max, (S.heat[v] || 0) + 1);
-    },
-    'heat-': (v) => {
-      S.heat[v] = Math.max(0, (S.heat[v] || 0) - 1);
-      if (!S.heat[v]) delete S.heat[v];
-    },
-    lw: (v) => ((md().loadout = Object.assign({}, md().loadout, { weapon: v || null })), Storage.save()),
-    lu: (v) => ((md().loadout = Object.assign({}, md().loadout, { upgrade: v || null })), Storage.save()),
     pet: (v) => ((md().pet = v || null), Storage.save()),
     alt: (v) => ((md().alt[v] = !md().alt[v]), Storage.save()),
     skin: (v) => {
@@ -255,23 +176,11 @@
     arm: (v) => ((md().armed[v] = !md().armed[v]), Storage.save()),
     opt: (v) => {
       const o = X.opts();
-      const cur = o[v] !== false && (o[v] || ['eventOrbs', 'showGhost'].includes(v));
+      const cur = o[v] !== false && (o[v] || v === 'eventOrbs');
       o[v] = !cur;
       X.save();
     },
     noop: () => {},
-    start: () => {
-      const seedTxt = S.seed.trim();
-      const setup = { mode: S.mode, challenge: S.challenge || null, heat: Object.assign({}, S.heat) };
-      if (seedTxt) {
-        setup.seed = M.hash(seedTxt);
-        setup.seedLabel = seedTxt.toLowerCase();
-      }
-      start(setup);
-    },
-    daily: () => start(M.dailySetup()),
-    tutorial: () => start({ mode: 'tutorial' }),
-    training: () => start({ mode: 'training' }),
   };
   extrasEl.querySelector('.panel').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-act]');
@@ -295,23 +204,4 @@
     UI.show('main');
   });
 
-  /* ---- run summary, opened from the game-over / victory screens */
-  M.ui.openSummary = (from) => {
-    $('sum-body').innerHTML = M.summaryHTML();
-    sumEl.dataset.from = from;
-    UI.show('summary');
-  };
-  $('btn-sum-back').addEventListener('click', () => UI.show(sumEl.dataset.from || 'gameover'));
-  for (const [scr, id] of [['gameover', 'btn-sum-go'], ['victory', 'btn-sum-vic']]) {
-    const row = document.querySelector('#screen-' + scr + ' .row-btns');
-    const b = document.createElement('button');
-    b.className = 'btn';
-    b.id = id;
-    b.textContent = 'RUN SUMMARY';
-    b.addEventListener('click', () => {
-      CH.Audio.sfx('click');
-      M.ui.openSummary(scr);
-    });
-    row.appendChild(b);
-  }
 })(window.CH);

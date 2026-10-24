@@ -1,5 +1,6 @@
-/* CHAOS.exe - run structure: run modes (5-wave, marathon, boss rush), boss choice at branches, extra branch points,
-   the between-wave shop, risk/reward shrines, event orbs, new events, boss modifiers/parts/no-hit trophies. */
+/* CHAOS.exe - stage structure: boss choice at forks, extra branch points, the between-wave shop, risk/reward shrines,
+   event orbs, new events, boss modifiers/parts/no-hit trophies. The run modes (quick, marathon, boss rush) went with
+   the runs (PLAN.md 18, K0d). */
 (function (CH) {
   'use strict';
   const { Balance: B, U, X, FX, Audio, G, Events: Ev, Enemies: E } = CH;
@@ -14,20 +15,13 @@
   const P5 = ['ceo', 'beholder', 'moss', 'sporeeye'];
   const P8 = ['chicken', 'yeti', 'maw', 'dunewyrm', 'gol', 'bloodwyrm', 'dragon', 'voideye', 'demon'];
   const PF = ['bug', 'skull', 'daddy'];
-  const ALLB = ['frog', 'treant', 'bd', 'mage', 'knight', 'gol', 'moss', 'chicken', 'sporeeye', 'dragon', 'yeti', 'maw', 'dunewyrm', 'beholder', 'demon', 'bloodwyrm', 'ooze', 'voideye', 'ceo'];
   const PATH_IDX = { wasteland: 0, office: 1, volcano: 0, dungeon: 1 };
 
   /* ---------------------------------------------------------------- run setup */
-  const W = (X.W = { rush: [], pathMod: {}, shop: null, orbs: null, shrine: null, revives: 0, bossHit: false, cardOwed: 0 });
+  const W = (X.W = { pathMod: {}, shop: null, orbs: null, shrine: null, revives: 0, bossHit: false, cardOwed: 0 });
   X.run = { mode: 'classic', seed: null, challenge: null, heat: [] };
   X.pending = null;
-  X.MODES = {
-    classic: { name: 'CAMPAIGN', desc: '10 stages: close the breaches, find the exit, 4 bosses, then the Endless descent.', len: 10 },
-    short: { name: 'QUICK RUN', desc: '5 stages, 2 bosses. Perfect for a short session.', len: 5 },
-    marathon: { name: 'MARATHON', desc: '15 stages and 6 bosses before the final.', len: 15 },
-    rush: { name: 'BOSS RUSH', desc: '8 bosses back to back. Heal a little between fights.', len: 8 },
-  };
-  /* base seed: the daily seed when set, otherwise the run counter (keeps the alternate-boss rotation) */
+  /* base seed: a fixed seed when set (tests), otherwise the run counter or the world's (keeps the alternate-boss rotation) */
   const base = () => (X.run.seed != null ? X.run.seed >>> 0 : G.runIndex || 0);
   W.rng = Math.random;
   const pick = (list, off) => list[(base() + off) % list.length];
@@ -47,19 +41,7 @@
     W.revives = 0;
     W.bossHit = false;
     W.cardOwed = 0;
-    W.rush = [];
-    if (X.run.mode === 'rush') {
-      const list = ALLB.slice();
-      for (let i = list.length - 1; i > 0; i--) {
-        const j = Math.floor(W.rng() * (i + 1));
-        [list[i], list[j]] = [list[j], list[i]];
-      }
-      W.rush = list.slice(0, 7).concat([PF[(X.run.seed != null ? X.run.seed >>> 0 : Storage_totalRuns()) % PF.length]]);
-    }
   };
-  function Storage_totalRuns() {
-    return (CH.Storage.stats && CH.Storage.stats.totalRuns) || 0;
-  }
 
   G.on('newRun:before', function (ev) {
     let setup = X.pending;
@@ -75,26 +57,7 @@
   const offFor = (key, idx) => (idx !== undefined ? idx : PATH_IDX[G.chosenPath && G.chosenPath[key]] || 0);
   const mk = (kind) => ({ kind, tier: 0 });
   wrap(G, 'isBossWave', function (orig, w, idx) {
-    const mode = X.run.mode;
-    if (mode === 'rush') {
-      if (G.endless) return orig.call(G, w);
-      return w <= W.rush.length ? mk(W.rush[w - 1]) : null;
-    }
     if (G.endless) return orig.call(G, w);
-    if (mode === 'short') {
-      if (w === 3) return mk(pick(P3, 0));
-      if (w === 5) return mk(pick(PF, offFor(4, idx)));
-      return null;
-    }
-    if (mode === 'marathon') {
-      if (w === 3) return mk(pick(P3, 0));
-      if (w === 5) return mk(pick(P5, offFor(4, idx)));
-      if (w === 8) return mk(pick(P8, offFor(7, idx)));
-      if (w === 10) return mk(pick(ALLB, 3));
-      if (w === 12) return mk(pick(ALLB, 7));
-      if (w === 15) return mk(pick(PF, 0));
-      return null;
-    }
     if (X.run.seed != null) {
       if (w === 3) return mk(pick(P3, 0));
       if (w === 5) return mk(pick(P5, offFor(4, idx)));
@@ -105,22 +68,6 @@
       return mk(w === 5 ? pick(P5, offFor(4, idx)) : pick(P8, offFor(7, idx)));
     }
     return orig.call(G, w);
-  });
-
-  /* the wave banner says ENDLESS past wave 10, which is wrong for Marathon's regular waves */
-  wrap(G, 'banner', function (orig, text, sub, dur) {
-    if (typeof text === 'string' && X.run.mode === 'marathon' && !G.endless) text = text.replace('  (ENDLESS)', '');
-    return orig.call(G, text, sub, dur);
-  });
-
-  /* rush waves are the boss plus a few adds */
-  wrap(G, 'buildQueue', function (orig, w) {
-    const q = orig.call(G, w);
-    if (X.run.mode === 'rush' && !G.endless) {
-      const adds = 2 + Math.floor(w / 3);
-      return q.slice(0, 1 + adds);
-    }
-    return q;
   });
 
   /* ---------------------------------------------------------- branch screens */
@@ -137,7 +84,7 @@
     }
   });
   wrap(CH.UI, 'showBranch', function (orig, options, cb) {
-    if (W.branchFor && X.run.mode !== 'rush') {
+    if (W.branchFor) {
       const bw = W.branchFor + 1;
       options.forEach((o, i) => {
         const b = G.isBossWave(bw, i);
@@ -155,7 +102,7 @@
     safe: { id: 'safe', name: 'SAFE PATH', tag: 'Rest', desc: 'Heal 40% and browse the shop before the next wave.', resName: 'HEAL + SHOP', hazard: 'CALM' },
     secret: { id: 'secret', name: 'SECRET ARENA', tag: 'Hidden', desc: 'A strange zombie arena with a golden goblin and bonus curios.', resName: 'CURIOS', hazard: 'UNKNOWN' },
   };
-  const extraSet = () => (X.run.mode === 'marathon' ? [2, 6, 9, 12] : X.run.mode === 'classic' ? [2, 6, 9] : X.run.mode === 'short' ? [2] : []);
+  const extraSet = () => [2, 6, 9];
 
   /* a wave with a path choice waits for it: the choice takes the call over and starts the wave once it is made */
   G.on('startWave:before', function (ev) {
@@ -215,9 +162,6 @@
       const p = G.partyCenter();
       CH.PowerUps.dropCurio(G, p.x + 10, p.y);
       FX.text(p.x, p.y - 30, 'HARD PATH BONUS +' + c, '#fee761', 2);
-    }
-    if (X.run.mode === 'rush' && G.wave < W.rush.length) {
-      for (const p of alive()) G.healPlayer((p.maxHp * 0.3) / p.stats.healMult / G.diff.heal, p);
     }
     if (X.onWaveComplete) X.onWaveComplete(G.wave);
   });
@@ -327,7 +271,7 @@
   /* ----------------------------------------------------------------- SHRINES */
   function setupShrine(n) {
     W.shrine = null;
-    if (n < 3 || G.isBossWave(n) || X.run.mode === 'rush' || W.rng() > 0.4) return;
+    if (n < 3 || G.isBossWave(n) || W.rng() > 0.4) return;
     const kind = W.rng() < 0.5 ? 'blood' : 'elite';
     W.shrine = { kind, x: U.rand(200, G.arena.w - 200), y: U.rand(200, G.arena.h - 200), used: false, guards: null, t: 0 };
   }
@@ -642,7 +586,6 @@
       G.runStat && G.runStat('noHitBosses', 1);
       X.save();
     }
-    if (X.run.mode === 'rush' && G.wave < W.rush.length) W.cardOwed++;
   });
 
   /* ------------------------------------------------------------ drawing hooks */

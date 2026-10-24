@@ -25,11 +25,9 @@
   const players = () => G.players.filter((p) => !p.dead);
   Run.aliveCount = () => G.enemies.reduce((n, e) => n + (e.dead || e.isSpawner ? 0 : 1), 0);
 
-  /* levels are used for normal campaign / marathon / quick / endless stages that are not boss fights */
+  /* levels are used for every stage that is not a boss fight */
   Run.usesLevels = (n) => {
     if (!Run.levels) return false;
-    const mode = X.run && X.run.mode;
-    if (mode === 'rush' || mode === 'tutorial' || mode === 'training') return false; // arena modes
     return !G.isBossWave(n);
   };
 

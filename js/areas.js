@@ -210,6 +210,7 @@
       FX.burst(c.x, c.y, { n: 22, colors: ['#fee761', '#feae34', '#ffffff'], speed: 120, life: 0.6 });
       CH.Audio.sfx('chest');
       A.world().corpse = null;
+      if (G.runStat) G.runStat('corpses', 1);
       if (CH.Character) CH.Character.save();
       return;
     }

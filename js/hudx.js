@@ -176,10 +176,10 @@
     // DPS meter
     if (opt('dpsMeter', false)) Font.draw(ctx, 'DPS ' + hx.dps, v.x + v.w - 6, 24, '#feae34', 1, true, 'right');
 
-    // tutorial prompt
+    // first-area hints
     if (hx.tut && !hx.tut.done) {
       const s = TUT[hx.tut.i];
-      Font.draw(ctx, 'TUTORIAL ' + (hx.tut.i + 1) + '/' + TUT.length, cx, 40, '#fee761', 1, true, 'center');
+      Font.draw(ctx, 'HINT ' + (hx.tut.i + 1) + '/' + TUT.length, cx, 40, '#fee761', 1, true, 'center');
       Font.draw(ctx, s.text, cx, 50, '#ffffff', 1, true, 'center');
     }
   });
@@ -216,15 +216,15 @@
     return orig.call(CH.UI);
   });
 
-  /* ---- tutorial wave: one skill at a time */
+  /* ---- first-area hints (PLAN.md 18, K0d: the tutorial wave went with the runs): a new character is shown one skill at
+     a time until they have used them all, once per account (Extras > Options > Contextual tutorial tips turns it off) */
   const TUT = [
     { id: 'move', text: 'Move around with the movement keys / left stick' },
     { id: 'fire', text: 'Shoot an enemy: aim and hold fire' },
     { id: 'dodge', text: 'Dodge-roll (just before a hit lands for a PERFECT DODGE)' },
     { id: 'nade', text: 'Throw a grenade' },
     { id: 'special', text: 'Use your special ability (Q / button)' },
-    { id: 'barricade', text: 'Place a barricade (it is free in here)' },
-    { id: 'interact', text: 'Walk to the vending machine and interact' },
+    { id: 'interact', text: 'Walk up to a chest and interact to open it' },
   ];
   const tutMark = (id) => {
     if (hx.tut && !hx.tut.done) hx.tut.did[id] = true;
@@ -245,48 +245,27 @@
     if (this.cast) tutMark('special');
     return r;
   });
-  wrap(CH.Player.prototype, 'deployBarricade', function (orig, g) {
-    if (X.run.mode === 'tutorial') {
-      CH.Storage.resources.wood += 2;
-      CH.Storage.resources.scrap += 1;
-    }
-    const r = orig.call(this, g);
-    tutMark('barricade');
-    return r;
-  });
   wrap(G, 'interact', function (orig, who) {
     const r = orig.call(G, who);
     tutMark('interact');
     return r;
   });
-  wrap(G, 'buildQueue', function (orig, w) {
-    if (X.run.mode !== 'tutorial') return orig.call(G, w);
-    const t = Object.keys(B.enemies)[0];
-    return Array.from({ length: 6 }, () => ({ type: t }));
-  });
   G.on('newRun', function () {
     hx.log.length = 0;
-    hx.tut = X.run.mode === 'tutorial' ? { i: 0, did: {}, done: false, t: 0 } : null;
-    if (hx.tut && !G.machine) G.machine = { x: G.arena.w / 2 + 70, y: G.arena.h / 2 + 40, uses: 1, t: 0 };
+    hx.tut = CH.Storage.slot() && !M.data().tutDone && opt('tutorial', true) ? { i: 0, did: {}, done: false, t: 0 } : null;
   });
   function tutorialStep(dt) {
     const T = hx.tut;
-    if (!T || T.done || X.run.mode !== 'tutorial') return;
-    if (G.waveState === 'combat' && !G.queue.length && G.enemies.length < 2) for (let i = 0; i < 3; i++) G.queue.push({ type: Object.keys(B.enemies)[0] });
-    G.players.forEach((p) => (p.hp = Math.max(p.hp, p.maxHp * 0.5)));
+    if (!T || T.done || G.state !== 'playing') return;
     while (T.i < TUT.length && T.did[TUT[T.i].id]) {
       T.i++;
       Audio.sfx('levelup');
     }
     if (T.i >= TUT.length) {
       T.done = true;
-      G.queue.length = 0;
       M.data().tutDone = true;
       CH.Storage.save();
-      G.ui.toast('TUTORIAL COMPLETE! Returning to the menu...');
-      G.after(3, () => {
-        if (X.run.mode === 'tutorial' && G.state === 'playing') G.toMenu();
-      });
+      G.ui.toast('THAT IS EVERYTHING. NOW GO BREAK THINGS.');
     }
   }
 })(window.CH);

@@ -1,3 +1,6 @@
+/* Meta progression without runs (PLAN.md 18, K0d): the new heroes, crafting, relics, pets, play stats, mastery,
+   achievements and the Extras tabs; the run setups (Heat, daily, challenges, training, history, ghosts, the summary) are
+   gone. */
 const { open } = require('./lib');
 (async () => {
   const { browser, page, errs } = await open();
@@ -21,12 +24,6 @@ const { open } = require('./lib');
       res[id].dead = !!(p.deadeyeT > 0);
     }
     S.settings.hero = CH.Balance.heroes[0].id;
-    // heat
-    X.startRun({ heat: { brawn: 2, frail: 1, haste: 1, hurt: 1, horde: 1, famine: 1 } }, null);
-    G._scriptTesting = true; G.startWave(3); god();
-    res.heat = { total: M.heatTotal(), mul: M.scoreMul(), speed: X.extraEnemySpeed, dmg: X.enemyDmgMul };
-    const e = G.spawnEnemy('orc', G.player.x + 90, G.player.y, {});
-    res.heat.hpRatio = Math.round((e.maxHp / CH.Balance.enemies.orc.hp) * 100) / 100;
     // planning table + rr bonus
     S.data.meta.shp = { planning: 2, kennel: 3, vendor: 1, craft: 1, dummy: 1 };
     X.startRun({}, null);
@@ -52,32 +49,14 @@ const { open } = require('./lib');
     // run stats
     X.startRun({}, null); G._scriptTesting = true; G.startWave(3); god();
     for (let i = 0; i < 600; i++) { G.player.aim = 0; G.update(1 / 30); god(); }
-    res.rs = { dmg: Math.round(X.rs.dmg), weapons: Object.keys(X.rs.dmgW).join(','), series: X.rs.series.length, html: M.summaryHTML().length };
-    // finish + history + ghost + mastery
-    const h0 = M.history().length;
+    res.rs = { dmg: Math.round(X.rs.dmg), weapons: Object.keys(X.rs.dmgW).join(','), series: X.rs.series.length };
+    // the end of play feeds mastery
     G.time = 20; G.finishRun(false);
-    res.hist = M.history().length - h0;
-    res.ghost = Object.keys(M.data().ghost).join(',');
     res.mastery = M.data().mastery[G.player.hero.id] > 0;
-    // daily + board
-    const d = M.dailySetup('2030-01-01'); const d2 = M.dailySetup('2030-01-01');
-    res.dailySame = JSON.stringify(d) === JSON.stringify(d2);
-    X.startRun(M.dailySetup('2030-01-02'), null); G._scriptTesting = true;
-    res.dailyHero = G.player.hero.id + '/' + X.run.mode;
-    G.startWave(2); god(); G.time = 10; G.finishRun(true);
-    res.board = M.board('d:2030-01-02').length;
     // achievements
     res.achDone = M.achDone();
-    // challenges
-    X.startRun({ challenge: 'oneweapon' }, null); G.player.addWeapon('pizza'); res.oneWeapon = G.player.weapons.length;
-    X.startRun({ challenge: 'nododge' }, null); G._scriptTesting = true; G.startWave(2); god();
-    G.player.startRoll(G, { x: 1, y: 0 }, true); res.noDodge = !G.player.rolling;
-    X.startRun({ challenge: 'events20' }, null); res.ev20 = CH.Events.nextGap(G, true);
-    X.startRun({ challenge: 'bighead' }, null); G._scriptTesting = true; G.startWave(2); G.update(1 / 30); res.bigHead = !!G.mods.bigHead;
-    // training
-    X.startRun({ mode: 'training' }, null); G._scriptTesting = true;
-    for (let i = 0; i < 400; i++) { G.player.aim = 0; G.update(1 / 30); god(); }
-    res.train = { dummy: !!(M.train.dummy && !M.train.dummy.dead), weapons: G.player.weapons.length, state: G.state, wave: G.wave, hp: G.player.hp > 1000 };
+    // the run setups are gone
+    res.gone = [M.PACTS, M.CHALLENGES, M.dailySetup, M.train, M.summaryHTML, M.history, M.board, X.MODES].every((v) => v === undefined);
     // trophies
     res.sets = M.setThemes().length + '/' + M.setsDone().length;
     // UI
@@ -85,23 +64,24 @@ const { open } = require('./lib');
     document.getElementById('btn-extras').click();
     res.extrasOpen = CH.Journal.open;
     res.tabs = {};
-    for (const t of ['play', 'hist', 'ach', 'hero', 'safe', 'sets', 'bestiary', 'opts']) {
+    for (const t of ['ach', 'hero', 'safe', 'sets', 'bestiary', 'opts']) {
       M.ui.tab = t; M.ui.render();
       res.tabs[t] = document.getElementById('xt-body').innerHTML.length;
     }
-    M.ui.tab = 'play'; M.ui.render();
-    document.querySelector('#xt-body [data-act=mode][data-v=short]').click();
-    document.querySelector('#xt-body [data-act="heat+"][data-v=brawn]').click();
-    res.ui = { mode: M.ui.mode, heat: M.ui.heat.brawn };
-    document.querySelector('#xt-body [data-act=start]').click();
-    res.started = G.state === 'playing' && X.run.mode === 'short' && X.run.heat.brawn === 1;
-    G._scriptTesting = true;
-    G.time = 10; G.finishRun(false); G.state = 'gameover'; CH.UI.show('gameover');
-    document.getElementById('btn-sum-go').click();
-    res.summary = CH.UI.active === 'summary' && document.getElementById('sum-body').innerHTML.length > 100;
+    res.tabBtns = document.querySelectorAll('#xt-tabs [data-act=tab]').length;
+    // the companion is picked in SAFEHOUSE+ (the kennel is built above)
+    M.ui.tab = 'safe'; M.ui.render();
+    const wisp = document.querySelector('#xt-body [data-act=pet][data-v=wisp]');
+    if (wisp) wisp.click();
+    res.pet = M.data().pet;
+    res.noSummary = !document.getElementById('btn-sum-go') && !document.getElementById('screen-summary');
     return res;
   });
   console.log(JSON.stringify(out, null, 1));
   console.log('errors:', errs.length ? errs : 'none');
+  const ok = out.heroes.split(',').length === 6 && out.ach >= 20 && out.craft && out.crafted.shield > 0 && out.buyRelic && out.relicHp > 0 && out.pets >= 1 && out.rs.dmg > 0 && out.rs.series > 0 && out.mastery && out.gone &&
+    Object.values(out.tabs).every((n) => n > 100) && out.tabBtns === 6 && out.pet === 'wisp' && out.noSummary && !errs.length;
+  console.log(ok ? 'ALL PASSED' : 'FAILED');
   await browser.close();
+  process.exitCode = ok ? 0 : 1;
 })();

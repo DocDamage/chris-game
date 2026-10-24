@@ -1,6 +1,7 @@
-/* CHAOS.exe - meta progression: run stats + summary, achievements, hero mastery, three new heroes, Heat pacts, starting
-   loadouts, pets, relics, crafting, safehouse extras, trophy sets, daily runs + leaderboard, history, ghost, challenge
-   runs, co-op team moves. UI for all of it lives in extras.js. */
+/* CHAOS.exe - meta progression: play stats, achievements, hero mastery, three new heroes, pets, relics, crafting,
+   safehouse extras, trophy sets, co-op team moves. UI for all of it lives in extras.js. The run setups (modes, Heat
+   pacts, loadouts, daily and seeded runs, challenges, the training room, history, ghosts, boards, the run summary) went
+   with the runs (PLAN.md 18, K0d). */
 (function (CH) {
   'use strict';
   const B = CH.Balance;
@@ -16,8 +17,7 @@
 
   const md = () => {
     const m = X.meta();
-    for (const k of ['ach', 'cnt', 'mastery', 'maxedW', 'maxedU', 'loadout', 'petsOwn', 'relics', 'stock', 'armed', 'shp', 'alt', 'skin', 'chal', 'seen', 'board', 'ghost']) if (!m[k] || typeof m[k] !== 'object') m[k] = {};
-    if (!Array.isArray(m.history)) m.history = [];
+    for (const k of ['ach', 'cnt', 'mastery', 'maxedW', 'maxedU', 'petsOwn', 'relics', 'stock', 'armed', 'shp', 'alt', 'skin', 'seen']) if (!m[k] || typeof m[k] !== 'object') m[k] = {};
     if (!Array.isArray(m.relicEq)) m.relicEq = [];
     return m;
   };
@@ -147,7 +147,7 @@
   });
 
   /* ------------------------------------------------------------------ run stats */
-  const rs0 = () => ({ dmgW: {}, dmg: 0, series: [], bucket: 0, c: {}, killedBy: null, deathsBy: {}, ghost: [], sampleT: 0, ghostT: 0 });
+  const rs0 = () => ({ dmgW: {}, dmg: 0, series: [], bucket: 0, c: {}, killedBy: null, deathsBy: {}, sampleT: 0 });
   X.rs = rs0();
   const pst = (p) => p.mstat || (p.mstat = { kills: 0, dmg: 0, revives: 0, deaths: 0, hurt: 0, lastBy: null });
   M.pstat = pst;
@@ -183,11 +183,9 @@
         e._dealt = true;
         if (label !== 'baguette') e._nonBag = true;
       }
-      if (e.training) M.train.dealt += r;
     }
   });
   G.on('kill', function (e) {
-    if (e.training) return;
     const p = e.lastHitBy;
     if (p && p.hero) {
       pst(p).kills++;
@@ -236,16 +234,11 @@
     }
     return r;
   });
-  wrap(G, 'addScore', function (orig, n) {
-    return orig.call(G, n * M.scoreMul());
-  });
-
-  /* one-second sampler: DPS graph, ghost, achievement ticks, maxed weapon / upgrade records */
+  /* one-second sampler: damage per second, achievement ticks, maxed weapon / upgrade records */
   G.on('step', function (dt) {
     if (G.state !== 'playing' || !G.run) return;
     const rs = X.rs;
     rs.sampleT += dt;
-    rs.ghostT += dt;
     if (rs.sampleT >= 1) {
       rs.sampleT -= 1;
       rs.series.push(Math.round(rs.bucket));
@@ -253,55 +246,7 @@
       if (rs.series.length > 1800) rs.series.shift();
       M.tick();
     }
-    if (rs.ghostT >= 5) {
-      rs.ghostT -= 5;
-      rs.ghost.push(Math.round(G.score));
-    }
     M.petsUpdate(dt);
-    M.trainUpdate(dt);
-    if (X.run.challenge === 'bighead') G.mods.bigHead = true;
-  });
-
-  /* ------------------------------------------------------------------ Heat pacts */
-  M.PACTS = [
-    { id: 'brawn', name: 'Beefy Foes', desc: 'Enemies have +25% HP per rank', heat: 1, max: 3 },
-    { id: 'haste', name: 'Caffeinated Foes', desc: 'Enemies move +8% faster per rank', heat: 1, max: 3 },
-    { id: 'hurt', name: 'Sharp Edges', desc: 'Enemies hit +20% harder per rank', heat: 1, max: 3 },
-    { id: 'frail', name: 'Paper Skin', desc: 'You have -15% max HP per rank', heat: 1, max: 3 },
-    { id: 'famine', name: 'Famine', desc: 'Healing is 30% weaker per rank', heat: 1, max: 2 },
-    { id: 'horde', name: 'Overstaffed', desc: '+15% more enemies per rank', heat: 2, max: 3 },
-    { id: 'titan', name: 'Boss Rage', desc: 'Bosses have +20% HP per rank', heat: 2, max: 3 },
-    { id: 'stingy', name: 'No Take-Backs', desc: '-1 reroll and -1 banish per rank', heat: 1, max: 2 },
-  ];
-  const heatObj = () => (X.run && X.run.heat && !Array.isArray(X.run.heat) ? X.run.heat : {});
-  const rank = (id) => heatObj()[id] || 0;
-  M.heatTotal = (h) => {
-    let t = 0;
-    const o = h || heatObj();
-    for (const d of M.PACTS) t += (o[d.id] || 0) * d.heat;
-    return t;
-  };
-  M.scoreMul = () => (G.state === 'menu' || !X.run ? 1 : 1 + 0.1 * M.heatTotal());
-  wrap(G, 'spawnEnemy', function (orig, type, x, y, o) {
-    const e = orig.call(G, type, x, y, o);
-    if (e && X.run.heat && !e.training) {
-      const f = 1 + 0.25 * rank('brawn') + (e.isBoss ? 0.2 * rank('titan') : 0);
-      if (f !== 1) {
-        e.hp *= f;
-        e.maxHp *= f;
-      }
-    }
-    return e;
-  });
-  wrap(G, 'buildQueue', function (orig, w) {
-    if (X.run.mode === 'training') return [];
-    const q = orig.call(G, w);
-    const r = rank('horde');
-    if (r && q.length) {
-      const extra = Math.round(q.length * 0.15 * r);
-      for (let i = 0; i < extra; i++) q.push(Object.assign({}, U.pick(q)));
-    }
-    return q;
   });
 
   /* ------------------------------------------------------------------ relics (vendor) */
@@ -315,7 +260,7 @@
   ];
   const RELIC_BY = {};
   for (const r of M.RELICS) RELIC_BY[r.id] = r;
-  M.relicOn = (id) => md().relicEq.includes(id) && !!md().relics[id] && X.run.mode !== 'training';
+  M.relicOn = (id) => md().relicEq.includes(id) && !!md().relics[id];
   M.relicSlots = () => 1 + (M.safeLv('vendor') >= 1 ? 1 : 0);
 
   /* ------------------------------------------------------------------ crafting (pre-run consumables) */
@@ -398,7 +343,7 @@
   M.petsReset = () => {
     M.pets = [];
     const id = md().pet;
-    if (!id || M.safeLv('kennel') < 1 || !M.petUnlocked(id) || X.run.mode === 'tutorial') return;
+    if (!id || M.safeLv('kennel') < 1 || !M.petUnlocked(id)) return;
     for (const p of G.players) M.pets.push({ id, owner: p, x: p.x, y: p.y, t: Math.random() * 6, zap: 1 });
   };
   M.petsUpdate = (dt) => {
@@ -510,16 +455,10 @@
 
   X.statHooks.push((p, s) => {
     if (M.masteryLevel(p.hero.id) >= 5) s.hpMul *= 1.1;
-    const fr = rank('frail');
-    if (fr) s.hpMul *= 1 - 0.15 * fr;
-    const fm = rank('famine');
-    if (fm) s.healMult = Math.max(0.1, s.healMult * (1 - 0.3 * fm));
     if (p._medkit) s.maxHp += 25;
-    if (X.run.mode !== 'training') {
-      for (const id of md().relicEq) {
-        const r = RELIC_BY[id];
-        if (r && r.stat && md().relics[id]) r.stat(p, s);
-      }
+    for (const id of md().relicEq) {
+      const r = RELIC_BY[id];
+      if (r && r.stat && md().relics[id]) r.stat(p, s);
     }
     for (const t of M.setsDone()) if (SET_BONUS[t]) SET_BONUS[t].stat(s);
   });
@@ -528,18 +467,18 @@
   const A = (id, name, desc, on, test) => ({ id, name, desc, on, test });
   const lifetime = (k) => md().cnt[k] || 0;
   M.ACH = [
-    A('hundred', 'Warming Up', 'Defeat 100 enemies in one run', 'tick', () => G.kills >= 100),
+    A('hundred', 'Warming Up', 'Defeat 100 enemies in one sitting', 'tick', () => G.kills >= 100),
     A('baguette', 'Only Baguette', 'Beat a boss using only the Baguette', 'boss', (b) => !b._nonBag && b._dealt),
-    A('chaoswin', 'Chaos Champion', 'Win a run on Chaotic', 'run', (w) => w && Storage.settings.difficulty === 'chaotic'),
+    A('chaoswin', 'Chaos Champion', 'Save the world on Chaotic', 'run', (w) => w && Storage.settings.difficulty === 'chaotic'),
     A('env100', 'Hazard Pay', 'Kill 100 enemies with environmental hazards', 'tick', () => lifetime('envKills') >= 100),
     A('dodge50', 'Dancing Master', 'Land 50 perfect dodges', 'tick', () => lifetime('perfectDodges') >= 50),
     A('nohit', 'Untouchable', 'Defeat a boss without being hit', 'tick', () => lifetime('noHitBosses') >= 1),
     A('evolved', 'Evolution', 'Evolve a weapon', 'tick', () => G.players.some((p) => p.evo && Object.keys(p.evo).some((k) => p.evo[k]))),
-    A('cursed3', 'Cursed Collector', 'Take 3 cursed cards in one run', 'tick', () => G.players.some((p) => X.perkList.filter((d) => d.cat === 'cursed' && X.perk(p, d.id) > 0).length >= 3)),
-    A('rich', 'Fat Wallet', 'Earn 1000 coins in a single run', 'tick', () => (G.coinsEarned || 0) >= 1000),
-    A('marathon', 'Marathoner', 'Win a Marathon run', 'run', (w) => w && X.run.mode === 'marathon'),
-    A('quick', 'Quick Fix', 'Win a Quick Run', 'run', (w) => w && X.run.mode === 'short'),
-    A('rush', 'Rush Hour', 'Win a Boss Rush', 'run', (w) => w && X.run.mode === 'rush'),
+    A('cursed3', 'Cursed Collector', 'Take 3 cursed cards in one sitting', 'tick', () => G.players.some((p) => X.perkList.filter((d) => d.cat === 'cursed' && X.perk(p, d.id) > 0).length >= 3)),
+    A('rich', 'Fat Wallet', 'Earn 1000 coins in one sitting', 'tick', () => (G.coinsEarned || 0) >= 1000),
+    A('globe', 'Globetrotter', 'Reach the tenth area with one character', 'tick', () => { const W = (CH.Areas && CH.Areas.world()); return !!W && W.deepest >= 10; }),
+    A('homecoming', 'Homecoming', 'Return to an area you cleared', 'tick', () => { const W = (CH.Areas && CH.Areas.world()); return !!W && Object.keys(W.areas).some((k) => W.areas[k].cleared && W.areas[k].visits >= 2); }),
+    A('corpse', 'Grave Robber', 'Take your gold back from your own corpse', 'tick', () => lifetime('corpses') >= 1),
     A('bosses22', 'Boss Slayer', 'Defeat 22 bosses in total', 'tick', () => Storage.stats.bossesDefeated >= 22),
     A('pets3', 'Pet Lover', 'Unlock 3 pets', 'tick', () => M.PETS.filter((p) => M.petUnlocked(p.id)).length >= 3),
     A('combo', 'Combo King', 'Reach the top combo tier', 'tick', () => X.comboTier >= 3),
@@ -547,13 +486,13 @@
     A('obj5', 'Contractor', 'Complete 5 wave objectives', 'tick', () => lifetime('objectives') >= 5),
     A('mini10', 'Giant Killer', 'Defeat 10 mini-bosses', 'tick', () => lifetime('miniBosses') >= 10),
     A('shop10', 'Shopaholic', 'Buy 10 shop items', 'tick', () => lifetime('shopBuys') >= 10),
-    A('daily', 'Daily Driver', 'Finish a daily run', 'run', () => !!X.run.daily),
-    A('heat5', 'Heat Seeker', 'Win with Heat 5 or more', 'run', (w) => w && M.heatTotal() >= 5),
+    A('hardcore', 'No Take-Backs', 'Defeat a boss with a hardcore character', 'boss', () => !!(Storage.slot() && Storage.slot().hardcore)),
+    A('act3', 'Deep Diver', 'Defeat the boss of Act III', 'tick', () => (Storage.stats.acts || 0) >= 3),
     A('fullset', 'Completionist', 'Complete a trophy set', 'tick', () => M.setsDone().length >= 1),
-    A('coopwin', 'Better Together', 'Win a run in co-op', 'run', (w) => w && G.coop),
-    A('train', 'Dummy Basher', 'Reach 150 DPS in the training room', 'tick', () => (md().trainBest || 0) >= 150),
+    A('coopwin', 'Better Together', 'Save the world in co-op', 'run', (w) => w && G.coop),
+    A('secrets5', 'Wall Knocker', 'Find 5 secret rooms', 'tick', () => ((Storage.data.diablo.counts || {}).secret || 0) >= 5),
     A('mastery3', 'Specialist', 'Reach mastery level 3 with any hero', 'tick', () => B.heroes.some((h) => M.masteryLevel(h.id) >= 3)),
-    A('challenge', 'Self-Imposed', 'Win a challenge run', 'run', (w) => w && !!X.run.challenge),
+    A('waypoints5', 'Frequent Flyer', 'Light 5 waypoints with one character', 'tick', () => Object.keys(Storage.data.diablo.waypoints || {}).length >= 5),
     A('teamplay', 'Team Player', 'Trigger a Team Super in co-op', 'tick', () => lifetime('teamSupers') >= 1),
   ];
   M.achDone = () => M.ACH.filter((a) => md().ach[a.id]).length;
@@ -594,78 +533,16 @@
     return r;
   });
 
-  /* ------------------------------------------------------------------ run setup: loadouts, heat, challenges, daily */
-  M.dailyKey = (d) => {
-    d = d || new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  };
-  M.hash = (str) => {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-  };
-  M.dailySetup = (key) => {
-    key = key || M.dailyKey();
-    const seed = M.hash('chaos-' + key);
-    const r = U.seeded(seed);
-    const hero = B.heroes[Math.floor(r() * 3)].id;
-    const pool = M.PACTS.slice();
-    const heat = {};
-    for (let i = 0; i < 2; i++) heat[pool.splice(Math.floor(r() * pool.length), 1)[0].id] = 1;
-    const mode = ['classic', 'classic', 'short', 'marathon'][Math.floor(r() * 4)];
-    return { mode, seed, daily: key, hero, heat };
-  };
-  M.CHALLENGES = [
-    { id: 'oneweapon', name: 'One Weapon Only', desc: 'You cannot pick up any other weapon.' },
-    { id: 'nododge', name: 'No Dodge', desc: 'The dodge roll is disabled.' },
-    { id: 'bighead', name: 'Big Head Forever', desc: 'Permanent Big Head Mode.' },
-    { id: 'events20', name: 'Chaos Every 20s', desc: 'A chaos event fires every 20 seconds.' },
-  ];
-  let swapped = null;
-  X.onRunSetup = (run) => {
-    swapped = null;
-    if (run.hero && Storage.settings.hero !== run.hero) {
-      swapped = Storage.settings.hero;
-      Storage.settings.hero = run.hero;
-    }
-  };
+  /* ------------------------------------------------------------------ setting out: pets, crafted consumables */
   G.on('newRun', function () {
-    if (swapped) Storage.settings.hero = swapped;
-    swapped = null;
     M.petsReset();
-    M.train = { dealt: 0, hist: [], dps: 0, t: 0, dummy: null };
   });
   X.ownerHooks.push((g, p) => {
     const m = md();
-    const run = X.run;
     p.deadeyeT = 0;
     p.wkills = 0;
     p._sw = false;
     p._medkit = false;
-    X.extraEnemySpeed = 1 + 0.08 * rank('haste');
-    X.enemyDmgMul = 1 + 0.2 * rank('hurt');
-    const tight = rank('stingy');
-    if (tight && p.rr) {
-      p.rr.reroll = Math.max(0, p.rr.reroll - tight);
-      p.rr.banish = Math.max(0, p.rr.banish - tight);
-    }
-    if (run.mode === 'training') {
-      for (const id of Object.keys(B.weapons)) if (!p.weapons.includes(id) && !B.weapons[id].sig) p.addWeapon(id); // not the other heroes' own weapons
-      for (const id of p.weapons) if (p.ws[id]) p.ws[id].level = B.weaponMaxLevel;
-      Up.recalc(p);
-      p.hp = p.maxHp;
-      return;
-    }
-    if (run.mode === 'tutorial') return;
-    const lo = run.loadout || m.loadout;
-    if (lo && lo.weapon && B.weapons[lo.weapon] && m.maxedW[lo.weapon] && !p.weapons.includes(lo.weapon)) {
-      p.addWeapon(lo.weapon);
-      if (p.ws[lo.weapon] && M.masteryLevel(p.hero.id) >= 4) p.ws[lo.weapon].level = 2;
-    }
-    if (lo && lo.upgrade && Up.byId[lo.upgrade] && m.maxedU[lo.upgrade]) p.upgrades[lo.upgrade] = Math.max(p.upgrades[lo.upgrade] || 0, 1);
     for (const c of M.CRAFT) {
       if (!m.armed[c.id] || !(m.stock[c.id] > 0)) continue;
       if (c.id === 'shield') {
@@ -680,135 +557,37 @@
     Up.recalc(p);
     p.hp = p.maxHp;
   });
-  /* consumables are spent once per run, after every player received them */
+  /* armed consumables are spent when the character sets out, after every player received them */
   G.on('newRun', function () {
     const m = md();
-    if (X.run.mode !== 'training' && X.run.mode !== 'tutorial') {
-      let used = false;
-      for (const c of M.CRAFT) {
-        if (m.armed[c.id] && m.stock[c.id] > 0) {
-          m.stock[c.id]--;
-          used = true;
-          if (m.stock[c.id] <= 0) m.armed[c.id] = false;
-        }
-      }
-      if (used) Storage.save();
-    }
-  });
-
-  /* challenges */
-  wrap(CH.Player.prototype, 'addWeapon', function (orig, id) {
-    if (X.run && X.run.challenge === 'oneweapon' && this.weapons && this.weapons.length >= 1 && !this.weapons.includes(id)) return;
-    return orig.call(this, id);
-  });
-  wrap(CH.Player.prototype, 'startRoll', function (orig, ...a) {
-    if (X.run && X.run.challenge === 'nododge') return;
-    return orig.apply(this, a);
-  });
-  if (CH.Events && CH.Events.nextGap) {
-    wrap(CH.Events, 'nextGap', function (orig, ...a) {
-      const r = orig.apply(CH.Events, a);
-      return X.run && X.run.challenge === 'events20' && G.state !== 'menu' ? 20 : r;
-    });
-  }
-
-  /* ------------------------------------------------------------------ training room */
-  M.train = { dealt: 0, hist: [], dps: 0, t: 0, dummy: null };
-  M.trainUpdate = (dt) => {
-    if (X.run.mode !== 'training') return;
-    const T = M.train;
-    if (G.waveState === 'intro') G.waveT = Math.min(G.waveT, 0.05);
-    if (G.waveState === 'combat' && (!T.dummy || T.dummy.dead || !G.enemies.includes(T.dummy))) {
-      const c = G.partyCenter();
-      const e = G.spawnEnemy('trashcan', c.x + 120, c.y, {});
-      if (e) {
-        e.hp = e.maxHp = 1e9;
-        e.speed = 0;
-        e.training = true;
-        T.dummy = e;
+    let used = false;
+    for (const c of M.CRAFT) {
+      if (m.armed[c.id] && m.stock[c.id] > 0) {
+        m.stock[c.id]--;
+        used = true;
+        if (m.stock[c.id] <= 0) m.armed[c.id] = false;
       }
     }
-    T.t += dt;
-    if (T.t >= 0.5) {
-      T.hist.push(T.dealt);
-      T.dealt = 0;
-      T.t -= 0.5;
-      if (T.hist.length > 12) T.hist.shift();
-      T.dps = Math.round(T.hist.reduce((a, b) => a + b, 0) / (T.hist.length * 0.5)) || 0;
-      if (T.dps > (md().trainBest || 0)) md().trainBest = T.dps;
-    }
-  };
-  wrap(G, 'waveComplete', function (orig) {
-    if (X.run.mode === 'training') return;
-    return orig.call(G);
-  });
-  G.on('hurtPlayer:before', function (ev) {
-    if (X.run.mode === 'training') { ev.stop = true; ev.result = 0; } // nothing hurts in training
+    if (used) Storage.save();
   });
 
-  const ghostKey = () => (X.run.daily ? 'daily' : X.run.mode || 'classic') + '|' + (G.coop ? 'co' : 'solo');
-  M.ghostKey = ghostKey;
-  CH.Hooks.screen.push((ctx) => {
-    if (G.state !== 'playing' || !G.run) return;
-    if (X.run.mode === 'training') {
-      CH.Font.draw(ctx, 'TRAINING ROOM  -  DPS ' + M.train.dps + '   BEST ' + (md().trainBest || 0), 240, 30, '#fee761', 1, true, 'center');
-      CH.Font.draw(ctx, 'Pause to leave', 240, 39, '#b9b4c8', 1, true, 'center');
-    }
-    const gh = md().ghost[ghostKey()];
-    if (gh && gh.series && gh.series.length && X.opts().showGhost !== false) {
-      const i = Math.min(gh.series.length - 1, Math.floor(X.rs.ghost.length ? X.rs.ghost.length - 1 : 0));
-      const diff = Math.round(G.score - gh.series[Math.max(0, i)]);
-      CH.Font.draw(ctx, 'GHOST ' + (diff >= 0 ? '+' : '') + diff, 474, 14, diff >= 0 ? '#63c74d' : '#e43b44', 1, true, 'right');
-    }
-  });
-
-  /* ------------------------------------------------------------------ ghost, history, board, mastery */
+  /* ------------------------------------------------------------------ mastery and the 'run' achievements */
+  /* the end of play (game over, the world saved) feeds hero mastery and the achievements that ask for a win */
   M.endRun = (win) => {
-    if (!G.run || G.time < 3 || X.run.mode === 'training' || X.run.mode === 'tutorial') return;
+    if (!G.run || G.time < 3) return;
     if (G.run.metaDone) return;
     G.run.metaDone = true;
     const m = md();
-    const rs = X.rs;
-    const e = {
-      t: Date.now(),
-      hero: G.players.map((p) => heroName(p.hero.id)).join(' + '),
-      mode: X.run.daily ? 'DAILY' : (X.MODES[X.run.mode] || { name: X.run.mode }).name || X.run.mode,
-      diff: Storage.settings.difficulty,
-      wave: G.wave,
-      score: Math.floor(G.score),
-      kills: G.kills,
-      time: Math.round(G.time),
-      win: !!win,
-      heat: M.heatTotal(),
-      challenge: X.run.challenge || '',
-      by: win ? '' : rs.killedBy || '',
-      coop: !!G.coop,
-    };
-    m.history.unshift(e);
-    m.history.length = Math.min(m.history.length, 40);
     for (const p of G.players) {
       const gain = G.wave * 8 + G.bossKills * 30 + (win ? 120 : 0);
       const before = M.masteryLevel(p.hero.id);
       m.mastery[p.hero.id] = (m.mastery[p.hero.id] || 0) + gain;
       if (M.masteryLevel(p.hero.id) > before) toast(heroName(p.hero.id).toUpperCase() + ' MASTERY ' + M.masteryLevel(p.hero.id) + '!');
     }
-    const k = ghostKey();
-    if (!m.ghost[k] || e.score > m.ghost[k].score) m.ghost[k] = { score: e.score, series: rs.ghost.slice(0, 400) };
-    const bk = X.run.daily ? 'd:' + X.run.daily : X.run.seedLabel ? 's:' + X.run.seedLabel : null;
-    if (bk) {
-      const list = m.board[bk] || (m.board[bk] = []);
-      list.push({ score: e.score, hero: e.hero, wave: e.wave, win: e.win, t: e.t });
-      list.sort((a, b) => b.score - a.score);
-      list.length = Math.min(list.length, 5);
-      const keys = Object.keys(m.board);
-      if (keys.length > 40) delete m.board[keys.sort()[0]];
-    }
-    if (win && X.run.challenge) m.chal[X.run.challenge] = (m.chal[X.run.challenge] || 0) + 1;
     M.emit('run', win);
     Storage.save();
   };
   wrap(G, 'finishRun', function (orig, win) {
-    if (X.run.mode === 'training' || X.run.mode === 'tutorial') return;
     const r = orig.call(G, win);
     try {
       M.endRun(win);
@@ -818,76 +597,6 @@
     return r;
   });
 
-  /* ------------------------------------------------------------------ run summary */
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   M.esc = esc;
-  M.dpsGraph = () => {
-    const s = X.rs.series;
-    const cv = document.createElement('canvas');
-    cv.width = 360;
-    cv.height = 80;
-    const c = cv.getContext('2d');
-    c.fillStyle = '#1b1226';
-    c.fillRect(0, 0, 360, 80);
-    if (s.length > 1) {
-      const sm = s.map((_, i) => {
-        let a = 0;
-        let n = 0;
-        for (let j = Math.max(0, i - 3); j <= i; j++) {
-          a += s[j];
-          n++;
-        }
-        return a / n;
-      });
-      const mx = Math.max(10, ...sm);
-      c.strokeStyle = '#feae34';
-      c.lineWidth = 2;
-      c.beginPath();
-      sm.forEach((v, i) => {
-        const x = (i / (sm.length - 1)) * 352 + 4;
-        const y = 74 - (v / mx) * 66;
-        if (i) c.lineTo(x, y);
-        else c.moveTo(x, y);
-      });
-      c.stroke();
-      c.fillStyle = '#b9b4c8';
-      c.font = '10px monospace';
-      c.fillText('peak ' + Math.round(mx) + ' DPS', 6, 12);
-    }
-    return cv.toDataURL();
-  };
-  M.summaryHTML = () => {
-    const rs = X.rs;
-    const rows = Object.keys(rs.dmgW).sort((a, b) => rs.dmgW[b] - rs.dmgW[a]);
-    const tot = Math.max(1, rs.dmg);
-    let h = '<h3>DAMAGE BY WEAPON</h3>';
-    if (!rows.length) h += '<div class="hint">No damage recorded.</div>';
-    for (const k of rows.slice(0, 8)) {
-      const pc = Math.round((rs.dmgW[k] / tot) * 100);
-      h += `<div class="xt-bar"><span>${esc(k === 'other' ? 'Traps, turrets & more' : wname(k))}</span><i style="width:${Math.max(2, pc)}%"></i><b>${U.fmtNum(Math.round(rs.dmgW[k]))} (${pc}%)</b></div>`;
-    }
-    h += '<h3>DAMAGE OVER TIME</h3><img class="xt-graph" alt="DPS graph" src="' + M.dpsGraph() + '">';
-    h += '<h3>RUN FACTS</h3><div class="hint">' + (rs.killedBy ? 'Killed by: <b>' + esc(rs.killedBy) + '</b><br>' : '') +
-      'Perfect dodges: ' + M.rc('perfectDodges') + ' &middot; Environmental kills: ' + M.rc('envKills') + ' &middot; Objectives: ' + M.rc('objectives') + ' &middot; Mini-bosses: ' + M.rc('miniBosses') + ' &middot; No-hit bosses: ' + M.rc('noHitBosses') + '</div>';
-    if (G.players.length > 1) {
-      h += '<h3>CO-OP SCOREBOARD</h3><table class="xt-table"><tr><td></td><td>KILLS</td><td>DAMAGE</td><td>REVIVES</td><td>DEATHS</td></tr>';
-      const best = (f) => Math.max(...G.players.map((p) => pst(p)[f]));
-      G.players.forEach((p, i) => {
-        const s = pst(p);
-        const mk = (f) => (s[f] === best(f) && s[f] > 0 ? ' style="color:#fee761"' : '');
-        h += `<tr><td>P${i + 1} ${esc(heroName(p.hero.id))}</td><td${mk('kills')}>${s.kills}</td><td${mk('dmg')}>${U.fmtNum(Math.round(s.dmg))}</td><td${mk('revives')}>${s.revives}</td><td${mk('deaths')}>${s.deaths}</td></tr>`;
-      });
-      h += '</table>';
-      const worst = Object.keys(rs.deathsBy).sort((a, b) => rs.deathsBy[b] - rs.deathsBy[a])[0];
-      if (worst) h += `<div class="hint">Most deaths to: <b>${esc(worst)}</b> (${rs.deathsBy[worst]})</div>`;
-    }
-    return h;
-  };
-
-  M.launch = (setup, config) => {
-    const s = Object.assign({ mode: 'classic', seed: null, challenge: null, heat: {} }, setup);
-    X.startRun(s, config === undefined ? null : config);
-  };
-  M.history = () => md().history;
-  M.board = (key) => md().board[key] || [];
 })(window.CH);

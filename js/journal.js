@@ -306,7 +306,7 @@
     },
   });
   J.addPage('journal', {
-    title: 'MODES & EXTRAS',
+    title: 'EXTRAS',
     render() {
       CH.Meta.ui.render();
       return J.adopt('extras');
