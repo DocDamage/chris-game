@@ -906,6 +906,7 @@
     for (const s of L.spawners) D.reserved.push({ x: s.x, y: s.y, r: 42, hard: true });
     for (const c of L.chests) D.reserve(c.x, c.y, 26);
     for (const s of L.shrines) D.reserve(s.x, s.y, 30);
+    for (const s of L.secrets || []) D.reserve((s.crack.x + 0.5) * TS, (s.crack.y + 0.5) * TS, 44); // the way up to a hollow wall
     // the route first, so scenes leave it walkable
     const path = route(L);
     L.route = new Uint8Array(L.tw * L.th);

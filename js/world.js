@@ -100,7 +100,7 @@
     if (p.dead || p.z > 2) return;
     const tx = Math.floor(p.x / L.constructor.TS), ty = Math.floor((p.y + foot) / L.constructor.TS);
     const v = L.cell(tx, ty);
-    p.top = !!(L.top && L.top[L.idx(tx, ty)]);
+    if (L.cell(tx, ty) === CH.Level.FLOOR) p.top = L.top ? L.top[L.idx(tx, ty)] : 0;
     p.fallT = Math.max(0, (p.fallT || 0) - 1 / 60);
     if (v === CH.Level.PIT && !p.fallT) {
       p.fallT = 0.8;

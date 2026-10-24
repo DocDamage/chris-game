@@ -148,6 +148,14 @@
     // green tiles are hedge tops, not floor: the plants stand in the rooms as shrubs instead
     return { big: true, dirt: half(g.grey), roots: half(or(g.dark, g.grey)), stone: half(or(g.pale, g.grey)), rust: half(or(g.red, g.grey)), moss: half(g.grey.slice().reverse()), swamp: half(or(g.dark, g.grey)) };
   }
+  /* a bridge for a chasm (PLAN.md 19, W5): the Frozen Kingdom's vertical bridges and the Volcanic Ruins' walkways */
+  function bridgeFor(biome, h) {
+    const P = CH.Props;
+    if (!P) return null;
+    let pool = biome === 'frozen' ? P.pool('bridge', 'f') : biome === 'volcano' ? Object.keys(CH.Assets.images).filter((k) => k.startsWith('sh.v_bridges.')) : P.pool('bridge', 'f').concat(Object.keys(CH.Assets.images).filter((k) => k.startsWith('sh.v_bridges.')));
+    pool = pool.filter((k) => { const im = CH.Assets.images[k]; return im && im.height >= im.width * 0.9; }); // the ones that run north-south
+    return pool.length ? pool[Math.abs(h) % pool.length] : null;
+  }
   function wallSheet(st) { return tintOf(CH.Assets.images[st.sheet], st.sheet, st.tint); }
   function tintOf(im, name, tint) {
     if (!im) return null;
@@ -244,7 +252,7 @@
             const v = this.cell(tx, ty);
             if (v === FLOOR) continue;
             // a hero in the air flies over a pit, and off a plateau's rim (jumping down: never up)
-            if (e.hero && e.z > 2 && (v === PIT || (v === LEDGE && e.top))) continue;
+            if (e.hero && e.z > 2 && (v === PIT || (v === LEDGE && e.top >= (this.top ? this.top[this.idx(tx, ty)] || 1 : 1)))) continue; // off the rim of the tier you stand on
             const rx0 = tx * TS, ry0 = ty * TS;
             if (CH.World.pushBox(e, 0, r, rx0, ry0, rx0 + TS, ry0 + TS)) moved = true;
           }
@@ -445,6 +453,7 @@
       const x0 = cx * size, y0 = cy * size;
       this.paintFloor(g, st, x0, y0, size);
       if (this.trail) this.paintTrail(g, x0, y0, size);
+      // (bridges are drawn after the cells: the pit under them is painted first)
       if (this.decals) for (const d of this.decals) { // floor decals from the sliced sheets
         const im = d.img || CH.Assets.images[d.key]; // set pieces bring the piece already at catalogue scale
         if (!im) continue;
@@ -464,8 +473,9 @@
           const px = tx * TS, py = ty * TS;
           if (v === PIT) { this.paintPit(g, st, gx, gy, px, py); continue; }
           if (v === FLOOR) {
-            if (this.top && this.top[this.idx(gx, gy)]) { g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(px, py, TS, TS); } // a plateau's top catches more light
-            if (this.stairs && this.stairs.has(this.idx(gx, gy))) this.paintStairs(g, st, px, py);
+            const tier = this.top ? this.top[this.idx(gx, gy)] : 0;
+            if (tier) { g.fillStyle = 'rgba(255,255,255,' + (0.07 * tier) + ')'; g.fillRect(px, py, TS, TS); } // a plateau's top catches more light, its upper tier more
+            if (this.stairs && this.stairs.has(this.idx(gx, gy))) (this.ramps && this.ramps.has(this.idx(gx, gy)) ? this.paintRamp(g, st, px, py) : this.paintStairs(g, st, px, py));
             if (this.solid(gx, gy - 1) && this.cell(gx, gy - 1) !== PIT) { // shadow under the wall above
               g.fillStyle = 'rgba(0,0,0,0.38)';
               g.fillRect(px, py, TS, 8);
@@ -485,6 +495,7 @@
           }
         }
       }
+      this.paintBridges(g, x0, y0, size);
       this.chunks.set(key, c);
       return c;
     }
@@ -538,6 +549,32 @@
       for (let i = 0; i < 4; i++) { g.fillStyle = 'rgba(120,110,150,0.08)'; g.fillRect(px + Math.floor(h(gx + i, gy) * 28), py + 12 + Math.floor(h(gy, gx + i) * 18), 2, 1); }
       for (const [dx, x0, w] of [[-1, 0, 2], [1, TS - 2, 2]]) if (this.cell(gx + dx, gy) !== PIT) { g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(px + x0, py, w, TS); }
       if (this.cell(gx, gy + 1) !== PIT) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(px, py + TS - 3, TS, 3); }
+    }
+    /* a ramp up a plateau's rim: a worn slope, lighter toward the top */
+    paintRamp(g, st, px, py) {
+      const gr = g.createLinearGradient(0, py, 0, py + TS);
+      gr.addColorStop(0, 'rgba(255,255,255,0.16)');
+      gr.addColorStop(1, 'rgba(0,0,0,0.18)');
+      g.fillStyle = gr;
+      g.fillRect(px, py, TS, TS);
+      g.fillStyle = 'rgba(0,0,0,0.12)';
+      for (let i = 0; i < 4; i++) g.fillRect(px + 4 + i * 7, py + 3 + ((i * 11) % 24), 3, 1);
+    }
+    /* the planks over a chasm: a bridge piece of the packs stretched over the gap, or plain planks with rails */
+    paintBridges(g, x0, y0, size) {
+      if (!this.bridges || !this.bridges.length) return;
+      const IM = CH.Assets.images;
+      for (const b of this.bridges) {
+        const x = b.x0 * TS - x0, y = b.y0 * TS - y0 - 8, w = b.w * TS, h = b.h * TS + 16;
+        if (x > size || y > size + 12 || x + w < 0 || y + h < 0) continue;
+        if (!b.key) b.key = bridgeFor(this.biome, b.x0 * 31 + b.y0);
+        const im = b.key && IM[b.key];
+        if (im) g.drawImage(im, x, y, w, h);
+        else {
+          for (let k = 0; k < h; k += 6) { g.fillStyle = k % 12 ? '#6b4a2a' : '#7d5733'; g.fillRect(x + 2, y + k, w - 4, 5); }
+          g.fillStyle = '#3a2614'; g.fillRect(x, y, 3, h); g.fillRect(x + w - 3, y, 3, h);
+        }
+      }
     }
     /* stairs up a plateau's rim: worn steps between two cheek walls */
     paintStairs(g, st, px, py) {

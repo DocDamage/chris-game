@@ -199,19 +199,25 @@
     let hc = stage * 83492791;
     for (let i = 0; i < L.cells.length; i += 7) hc = (hc * 31 + L.cells[i] + i) | 0;
     const R = mkRng(U.seeded(hc >>> 0));
-    L.top = new Uint8Array(L.tw * L.th);
+    L.top = new Uint8Array(L.tw * L.th); // the height of a floor cell (0 ground, 1 plateau, 2 its upper tier); of a LEDGE: the tier it rims
     L.stairs = new Set();
+    L.ramps = new Set(); // stairs drawn as a slope (PLAN.md 19, W5)
+    L.bridges = []; // { x0, y0, w, h, key }: the planks over a chasm
     const spots = () => [L.entrance, L.exit].concat(L.waypoints, L.spawners, L.chests.filter((c) => !c.island), L.shrines, L.packs);
-    const reach = () => { // by the cells alone (the outdoor layout's scattered props are not this step's business)
+    let base = null; // the floor reachable before any change: no change may cut a piece of it off (a secret room is dug off any floor later)
+    const reach = (skip) => { // by the cells alone (the outdoor layout's scattered props are not this step's business)
       L.flows.clear();
       const props = L.props;
       L.props = [];
       const f = L.flowFor(L.entrance.x, L.entrance.y);
       L.props = props;
-      const ok = spots().every((s) => f.dist[L.idx(Math.floor(s.x / T), Math.floor(s.y / T))] >= 0);
+      let ok = spots().every((s) => f.dist[L.idx(Math.floor(s.x / T), Math.floor(s.y / T))] >= 0);
+      if (ok && base) for (let i = 0; i < base.length && ok; i++) if (base[i] && L.cells[i] === Level.FLOOR && f.dist[i] < 0 && !(skip && skip(i % L.tw, Math.floor(i / L.tw)))) ok = false;
+      if (!base) { base = new Uint8Array(L.cells.length); for (let i = 0; i < base.length; i++) base[i] = f.dist[i] >= 0 ? 1 : 0; }
       L.flows.clear();
       return ok;
     };
+    reach();
     const busy = (x0, y0, x1, y1) => spots().some((s) => { const tx = Math.floor(s.x / T), ty = Math.floor(s.y / T); return tx >= x0 - 1 && tx <= x1 + 1 && ty >= y0 - 1 && ty <= y1 + 1; });
     const rectOf = (rm) => {
       if (rm.r) { const hw = Math.floor(rm.r * 0.55), cx = Math.floor(rm.cx / T), cy = Math.floor(rm.cy / T); return [cx - hw, cy - Math.floor(hw * 0.8), cx + hw, cy + Math.floor(hw * 0.8)]; }
@@ -229,14 +235,35 @@
       const rim = [];
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if ((x === x0 || x === x1 || y === y0 || y === y1) && L.cell(x, y) === Level.FLOOR) rim.push([x, y]);
       if (spots().some((s) => rim.some(([x, y]) => x === Math.floor(s.x / T) && y === Math.floor(s.y / T)))) continue;
-      const sx = x0 + 1 + (mix(x0, y1) % Math.max(1, x1 - x0 - 2));
-      const steps = [[sx, y1], [sx + 1, y1]];
+      const sx = x0 + 1 + (mix(x0, y1) % Math.max(1, x1 - x0 - 3));
+      const ramp = mix(y0, x1) % 3 === 0 && x1 - x0 >= 7; // now and then a ramp, three wide
+      const steps = ramp ? [[sx, y1], [sx + 1, y1], [sx + 2, y1]] : [[sx, y1], [sx + 1, y1]];
       for (const [x, y] of rim) if (!steps.some(([a, b]) => a === x && b === y)) L.cells[L.idx(x, y)] = Level.LEDGE;
       if (!reach()) { for (const [x, y] of rim) L.cells[L.idx(x, y)] = Level.FLOOR; continue; }
       for (let y = y0 + 1; y < y1; y++) for (let x = x0 + 1; x < x1; x++) if (L.cell(x, y) === Level.FLOOR) L.top[L.idx(x, y)] = 1;
-      for (const [x, y] of steps) L.stairs.add(L.idx(x, y));
+      for (const [x, y] of rim) if (L.cell(x, y) === Level.LEDGE) L.top[L.idx(x, y)] = 1;
+      for (const [x, y] of steps) { L.stairs.add(L.idx(x, y)); if (ramp) L.ramps.add(L.idx(x, y)); }
       rm.plateau = [x0, y0, x1, y1];
       plateaus++;
+      // a big plateau gets an upper tier: another rim inside, its own stairs on the far side from the first
+      const ix0 = x0 + 2, iy0 = y0 + 2, ix1 = x1 - 2, iy1 = y1 - 2;
+      if (ix1 - ix0 >= 5 && iy1 - iy0 >= 4 && mix(x0, y0) % 3 !== 0) {
+        const irim = [];
+        for (let y = iy0; y <= iy1; y++) for (let x = ix0; x <= ix1; x++) if ((x === ix0 || x === ix1 || y === iy0 || y === iy1) && L.cell(x, y) === Level.FLOOR) irim.push([x, y]);
+        const onRim = spots().some((s) => irim.some(([x, y]) => x === Math.floor(s.x / T) && y === Math.floor(s.y / T)));
+        let isx = ix1 - 2 - (mix(ix0, iy1) % Math.max(1, ix1 - ix0 - 3));
+        if (Math.abs(isx - sx) < 3) isx = sx < (ix0 + ix1) / 2 ? ix1 - 2 : ix0 + 1; // not straight up from the first flight
+        const isteps = [[isx, iy1], [isx + 1, iy1]];
+        if (!onRim && Math.abs(isx - sx) >= 2) {
+          for (const [x, y] of irim) if (!isteps.some(([a, b]) => a === x && b === y)) { L.cells[L.idx(x, y)] = Level.LEDGE; L.top[L.idx(x, y)] = 2; }
+          if (!reach()) { for (const [x, y] of irim) { L.cells[L.idx(x, y)] = Level.FLOOR; L.top[L.idx(x, y)] = 1; } }
+          else {
+            for (let y = iy0 + 1; y < iy1; y++) for (let x = ix0 + 1; x < ix1; x++) if (L.cell(x, y) === Level.FLOOR) L.top[L.idx(x, y)] = 2;
+            for (const [x, y] of isteps) L.stairs.add(L.idx(x, y));
+            rm.tier2 = [ix0, iy0, ix1, iy1];
+          }
+        }
+      }
     }
     // the island: a one-tile ring of pit round a 3x3 patch, a chest in the middle
     for (const rm of order) {
@@ -251,10 +278,28 @@
       }
       if (!clear || busy(cx - 3, cy - 3, cx + 3, cy + 3)) continue;
       for (const [x, y] of ring) L.cells[L.idx(x, y)] = Level.PIT;
-      if (!reach()) { for (const [x, y] of ring) L.cells[L.idx(x, y)] = Level.FLOOR; continue; }
+      if (!reach((x, y) => Math.max(Math.abs(x - cx), Math.abs(y - cy)) < 2)) { for (const [x, y] of ring) L.cells[L.idx(x, y)] = Level.FLOOR; continue; } // (the patch inside is jumped to)
       L.chests.push({ x: cx * T + 16, y: cy * T + 18, opened: false, id: L.chests.length, room: rm.id, tier: stage + 2, secret: true, island: true });
       rm.island = true;
+      for (let y = cy - 1; y <= cy + 1; y++) for (let x = cx - 1; x <= cx + 1; x++) base[L.idx(x, y)] = 0; // reached by a jump from now on
       break;
+    }
+    // a chasm: a band of pit two tiles deep across a room from wall to wall, a bridge two tiles wide over its middle
+    let chasms = 0;
+    for (const rm of order) {
+      if (chasms >= 1 || rm.plateau || rm.island || mix(stage, 4099) % 3 === 0) continue; // about two stages in three
+      // a rectangle room, or the box round a round one (outdoor stages)
+      const rx = rm.r ? Math.floor(rm.cx / T) - Math.floor(rm.r) : rm.x, rw = rm.r ? Math.floor(rm.r) * 2 + 1 : rm.w || 0, rh = rm.r ? rw : rm.h || 0, ry = rm.r ? Math.floor(rm.cy / T) - Math.floor(rm.r) : rm.y;
+      if (rw < 10 || rh < 9) continue;
+      const by = ry + Math.floor(rh / 2) - 1, bx = rx + Math.floor(rw / 2) - 1;
+      const band = [];
+      for (let y = by; y < by + 2; y++) for (let x = rx; x < rx + rw; x++) if (L.cell(x, y) === Level.FLOOR && (x < bx || x > bx + 1)) band.push([x, y]);
+      if (busy(rx, by, rx + rw - 1, by + 1)) continue;
+      for (const [x, y] of band) L.cells[L.idx(x, y)] = Level.PIT;
+      if (!reach()) { for (const [x, y] of band) L.cells[L.idx(x, y)] = Level.FLOOR; continue; }
+      L.bridges.push({ x0: bx, y0: by, w: 2, h: 2 });
+      rm.chasm = true;
+      chasms++;
     }
     L.flows.clear();
   }
