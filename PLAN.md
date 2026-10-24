@@ -722,3 +722,31 @@ Each is a default the owner can change.
 - **K0d** Hero mastery stays (per character) and still grows when play ends; crafted consumables are spent when a character sets out. The tutorial's barricade step was dropped (barricades cost materials now). Achievement ids of the removed modes were replaced, not kept.
 - **K0c** The corpse holds half the carried gold (Diablo II style: dying again before reaching it leaves that gold for good). No experience is lost. A death wakes the character in the hideout with full health; the area is entered fresh (thinner) on return.
 - **K0b** Areas are the existing ten stages (ids 1-10); the act structure and new biomes come with K2-K4. A return visit keeps 40% of the monster packs, whether or not the area was cleared. Leaving through the hideout drops the area's live state (monsters, ground items); only the lasting changes are kept. A beaten boss's arena is skipped on the way through (the area after it starts instead). Story hero unlocks: Dreadbloom (Act I boss), Vexaria (Act II), Specter (Act III), Enchantress (Act IV); the Grinning Stranger keeps "defeat 10 bosses".
+
+## 19. The full world (owner's requests of 2026-10-24)
+
+The owner, on the overnight work: the old biomes are meant to be levels of their own, not only arenas; two more packs
+were added (**Dungeon Asset Pack**, 16 sheets, and **Crimson Gothic Castle**, 28 sheets) and every asset of both is to be
+used; the parts left "unfinished by design" (boss arenas, height, entering buildings) are to be finished.
+
+**Decided with the owner:** every biome on the main path, **five stages each**; **no Corporate Hell and no Glitch** in the
+world (their code stays for arena tests). Nine biomes, 45 stages and four act bosses, 49 areas:
+
+| Act | Areas | Boss |
+| --- | --- | --- |
+| I | The Dead Wood 1-5, The Catacombs (Dungeon Asset Pack) 6-10 | 11, in the Catacombs |
+| II | The Gaslight District 12-16, The Outbreak City 17-21, The Psychological Crypt 22-26 | 27, in the Crypt |
+| III | The Scrapyard Wasteland 28-32, The Frozen Kingdom 33-37 | 38, in the Frozen Kingdom |
+| IV | The Molten Caldera 39-43, The Crimson Castle 44-48 | 49, the final boss in the Castle |
+
+Difficulty follows a **depth** that climbs from 1 to 10 across the 49 areas (the old stage number's role), so the old
+tuning holds at both ends.
+
+| # | What | Needs |
+| --- | --- | --- |
+| W1 | **Done.** tools/pack-kits.js cuts `da1`-`da16` (Dungeon Asset Pack: files listed in PACKS.da, the pillars sheet black-keyed by a flood fill from its border) and `gc1`-`gc28` (Crimson Gothic Castle, five folders; scale 0.4 for the small Set 1 sheets, 0.27-0.3 for the rest). Every piece gets a prop kind (`meta.kits[id].kinds`): by row for the Dungeon Asset Pack (faces, doors, crates, sacks, pots, traps, lanterns, braziers, skeletons, bones ...), by shape and colour for the castle (`classify`: lava, brazier, shrub, rug, wall strip, pillar, room, plate, block); `node tools/pack-kits.js` also writes one contact sheet per kind (tools/out/kits/kind_*.png). 1,449 new pieces, 464 of them 32 px floor tiles, in a bundle of their own (`data/bundle_dungeons.js`, 7.6 MB). `t41_kits` checks them | |
+| W2 | Two new biomes: **The Catacombs** (Dungeon Asset Pack) and **The Crimson Castle** (Crimson Gothic Castle), floors, wall faces, scenes; every sheet used | W1 |
+| W3 | The world map: 49 areas, depth scaling, acts, abilities, unlocks and quests from the map; **boss halls** (each act boss fights in a hall built from that act's biome, replacing the old arenas); Corporate Hell and Glitch leave the world | W2 |
+| W4 | **Interiors**: cabins, townhouses and castle doors open into rooms of their own (furniture, a chest, sometimes a lore page or a trader), kept per area | W3 |
+| W5 | **Height, part 2**: two-tier plateaus, ramps, chasms crossed by bridges (Frozen 8, Volcanic 17, castle bridges) | W3 |
+| W6 | Balance pass on the long world (tests/batch_world.js) | all |

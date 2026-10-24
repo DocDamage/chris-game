@@ -1,6 +1,8 @@
-/* The three kits added on 2026-10-23 (Creepy Forest, Frozen Kingdom, Haunted Victorian City) and the new NPCs, cut and
-   packed (PLAN.md 18, K1). docs/ASSET_PACKS.md catalogues every sheet; the rules below follow it.
-     kit.<id>.<n>          a piece of sheet <id> (cf1..cf20, fk1..fk20, hv1..hv20), scaled for the 640x360 world
+/* The kits added on 2026-10-23 (Creepy Forest, Frozen Kingdom, Haunted Victorian City) and the new NPCs, cut and
+   packed (PLAN.md 18, K1), and the two packs of 2026-10-24 (Dungeon Asset Pack, Crimson Gothic Castle: PLAN.md 19, W1).
+   docs/ASSET_PACKS.md catalogues every sheet; the rules below follow it.
+     kit.<id>.<n>          a piece of sheet <id> (cf1..cf20, fk1..fk20, hv1..hv20, da1..da16, gc1..gc28), scaled for the
+                           640x360 world; the newer packs also record each piece's prop kind (meta.kits[id].kinds)
      npc.<id>.<anim>.<d>   an NPC animation strip, d = e (facing east) or s (facing the camera)
    meta.kits[id] = { pack, sheet, name, n, roles: [role per piece], sizes: [[w, h] per piece], src: [[x, y, w, h]] }
    meta.npcs[id] = { fw, fh, anims: { anim: { e: frames, s: frames } } }
@@ -22,6 +24,9 @@ const PACKS = {
   cf: { dir: 'tile sets/Creepy Forest/Creepy Forest Horror Megapack', name: 'Creepy Forest', band: 140 },
   fk: { dir: 'tile sets/Frozen Kingdom/Frozen Kingdom – Top-Down Pixel Art Asset Pack', name: 'Frozen Kingdom', band: 180 },
   hv: { dir: 'tile sets/Haunted Victorian City', name: 'Haunted Victorian City', band: 150 },
+  // the packs of 2026-10-24: their files are listed (no numbered names); no title banners but on the first floor sheet
+  da: { dir: 'tile sets/Dungeon Asset Pack', name: 'Dungeon Asset Pack', band: 0, files: ["Floor tiles!.png","wall tiles.png","special tiles.png","doors and arches.png","BLOOD AND GORE.png","Barrels, crates and sacks.png","Furniture and fixtures.png","Jars, pots and urns.png","Magical and occult.png","Pillars and columns.png","Traps and mechanism.png","Wall and floor details.png","lightning fx.png","miscellaneous props.png","skeletons and bones.png","statues and gargoyles.png"] },
+  gc: { dir: 'tile sets/Crimson Gothic Castle', name: 'Crimson Gothic Castle', band: 0, noBanner: true, files: ["Crimson Gothic Castle/Set 1 (1).png","Crimson Gothic Castle/Set 1 (2).png","Crimson Gothic Castle/Set 1 (3).png","Crimson Gothic Castle/Set 1 (4).png","Cimson Gothic Castle 2/Set 2 (4).png","Cimson Gothic Castle 2/Set 2 (5).png","Cimson Gothic Castle 2/Set 2 (6).png","Cimson Gothic Castle 2/Set 2 (7).png","Cimson Gothic Castle 2/Set 2 (8).png","Cimson Gothic Castle 2/Set 2 (9).png","Crimson Gothic Castle 3/Set 3 (1).png","Crimson Gothic Castle 3/Set 3 (2).png","Crimson Gothic Castle 3/Set 3 (3).png","Crimson Gothic Castle 3/Set 3 (4).png","Crimson Gothic Castle 3/Set 3 (5).png","Crimson Gothic Castle 3/Set 3 (6).png","Crimson Gothic Castle 4/set 4 (1).png","Crimson Gothic Castle 4/set 4 (2).png","Crimson Gothic Castle 4/set 4 (3).png","Crimson Gothic Castle 4/set 4 (4).png","Crimson Gothic Castle 4/set 4 (5).png","Crimson Gothic Castle 4/set 4 (6).png","Crimson Gothic Castle 5/Set 5 (1).png","Crimson Gothic Castle 5/Set 5 (2).png","Crimson Gothic Castle 5/Set 5 (3).png","Crimson Gothic Castle 5/Set 5 (4).png","Crimson Gothic Castle 5/Set 5 (5).png","Crimson Gothic Castle 5/Set 5 (6).png"] },
 };
 const box = (x0, x1, y0, y1) => [x0, y0, x1 - x0, y1 - y0]; // from "x0-x1 x y0-y1" in the catalogue
 
@@ -105,7 +110,46 @@ const SHEETS = {
   hv18: { role: (r) => (r.w > 250 ? 'decal' : 'light'), scale: 0.22 },
   hv19: { role: (r) => (r.w > 200 && r.h > 120 ? 'solid' : 'decal'), scale: 0.28, minArea: 120 },
   hv20: { role: 'solid', scale: 0.28 },
+  // ---------------------------------------------------------------- Dungeon Asset Pack (PLAN.md 19, W1): 1536x1024
+  // sheets (skeletons 1254 square); kind: a prop kind per piece (js/props.js), from the row (source y) or the colour
+  da1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  da2: { role: 'wall', scale: 0.27, noBanner: true, kind: (r) => (r.y > 430 && r.y < 610 ? 'door' : 'face') },
+  da3: { role: 'solid', scale: 0.27, noBanner: true, kind: (r, c) => (r.y < 250 ? 'face' : r.y < 520 ? 'door' : r.y < 720 ? (c.orange > 0.06 ? 'brazier' : c.purple > 0.15 ? 'crystal' : 'trap') : c.fill < 0.6 ? 'decal' : 'pool') },
+  da4: { role: 'gate', scale: 0.27, noBanner: true, kind: 'door' },
+  da5: { role: 'decal', scale: 0.3, noBanner: true, kind: 'decal' },
+  da6: { role: 'solid', scale: 0.22, noBanner: true, kind: (r) => (r.y > 760 ? 'pot' : r.y > 540 ? 'sack' : 'crate') },
+  da7: { role: 'solid', scale: 0.24, noBanner: true, kind: (r, c) => (c.orange > 0.02 && r.w < 160 ? 'candles' : r.h > r.w * 1.3 ? 'shelf' : 'table') },
+  da8: { role: 'solid', scale: 0.18, noBanner: true, kind: 'pot' },
+  da9: { role: 'solid', scale: 0.22, noBanner: true, kind: (r, c) => (c.orange > 0.03 ? 'candles' : c.purple > 0.12 && c.fill < 0.45 ? 'decal' : r.w > 260 ? 'altar' : c.purple > 0.25 ? 'crystal' : 'item') },
+  da10: { role: 'solid', scale: 0.27, noBanner: true, key: true, kind: 'pillar' },
+  da11: { role: 'hazard', scale: 0.24, noBanner: true, kind: 'trap' },
+  da12: { role: 'decal', scale: 0.24, noBanner: true, kind: (r, c) => (c.orange > 0.06 || c.blue > 0.2 ? 'torch' : c.fill < 0.55 && (c.red > 0.2 || c.green > 0.2 || c.purple > 0.2 || c.dark > 0.5) ? 'decal' : r.h > r.w * 1.6 ? 'hang' : r.y > 1040 ? 'bones' : 'debris') },
+  da13: { role: 'light', scale: 0.22, noBanner: true, kind: (r) => (r.y < 320 ? 'lantern' : r.y > 720 ? 'crystal' : 'brazier') },
+  da14: { role: 'solid', scale: 0.22, noBanner: true, kind: (r, c) => (c.orange > 0.04 ? 'candles' : r.h > r.w * 1.8 ? 'hang' : r.w > 300 ? 'table' : r.h > 260 ? 'cage' : 'bones') },
+  da15: { role: 'decal', scale: 0.2, noBanner: true, kind: (r) => (r.y < 330 ? 'skeleton' : 'bones') },
+  da16: { role: 'solid', scale: 0.3, noBanner: true, kind: 'statue' },
 };
+/* ---------------------------------------------------------------- Crimson Gothic Castle (PLAN.md 19, W1): 28 sheets of
+   top-down castle modules (whole halls, stairs, carpets, lava, braziers, pillars, floor and wall pieces); the kind is
+   read from each piece's shape and colour (classify below) */
+GC_FILES().forEach((f, i) => { SHEETS['gc' + (i + 1)] = { role: 'solid', ground: 6, alt: 'solid', scale: /Set 1 \([123]\)/.test(f) ? 0.4 : /Set 1/.test(f) ? 0.3 : 0.27, kind: classify, minArea: 300 }; });
+function GC_FILES() { return ["Crimson Gothic Castle/Set 1 (1).png","Crimson Gothic Castle/Set 1 (2).png","Crimson Gothic Castle/Set 1 (3).png","Crimson Gothic Castle/Set 1 (4).png","Cimson Gothic Castle 2/Set 2 (4).png","Cimson Gothic Castle 2/Set 2 (5).png","Cimson Gothic Castle 2/Set 2 (6).png","Cimson Gothic Castle 2/Set 2 (7).png","Cimson Gothic Castle 2/Set 2 (8).png","Cimson Gothic Castle 2/Set 2 (9).png","Crimson Gothic Castle 3/Set 3 (1).png","Crimson Gothic Castle 3/Set 3 (2).png","Crimson Gothic Castle 3/Set 3 (3).png","Crimson Gothic Castle 3/Set 3 (4).png","Crimson Gothic Castle 3/Set 3 (5).png","Crimson Gothic Castle 3/Set 3 (6).png","Crimson Gothic Castle 4/set 4 (1).png","Crimson Gothic Castle 4/set 4 (2).png","Crimson Gothic Castle 4/set 4 (3).png","Crimson Gothic Castle 4/set 4 (4).png","Crimson Gothic Castle 4/set 4 (5).png","Crimson Gothic Castle 4/set 4 (6).png","Crimson Gothic Castle 5/Set 5 (1).png","Crimson Gothic Castle 5/Set 5 (2).png","Crimson Gothic Castle 5/Set 5 (3).png","Crimson Gothic Castle 5/Set 5 (4).png","Crimson Gothic Castle 5/Set 5 (5).png","Crimson Gothic Castle 5/Set 5 (6).png"]; }
+/* a castle piece's kind: fire -> brazier, lava -> lava, plants -> shrub, red runners -> rug, whole halls -> room (a floor
+   set piece), tall narrow -> pillar, long strips -> wall, framed squares -> plate (a floor inlay), the rest -> block */
+function classify(r, c) {
+  const big2 = Math.max(r.w, r.h), asp = r.w / r.h;
+  if (c.lava > 0.3 && c.fill > 0.8) return 'lava';
+  if (c.orange > 0.05 && big2 < 300) return 'brazier';
+  if (c.green > 0.35) return 'shrub';
+  if (c.red > 0.3 && (asp > 2 || asp < 0.5)) return 'rug';
+  if (asp > 2.4 && r.h < 130) return 'wall'; // long strips first: some are as long as a hall
+  if (asp < 0.42 && r.w < 130) return 'pillar';
+  if (big2 > 380) return 'room';
+  if (asp < 0.45) return 'pillar';
+  if (asp > 2.4) return 'wall';
+  if (asp > 0.7 && asp < 1.4 && c.fill > 0.85) return 'plate';
+  return 'block';
+}
 
 /* set pieces that want a bigger scale than their sheet (enterable crypts, portals, landmarks), packed again as
    kit.<name>; boxes from docs/ASSET_PACKS.md */
@@ -128,6 +172,7 @@ const EXTRAS = {
 /* ------------------------------------------------------------------ helpers */
 const sheetFile = (pack, n) => {
   const d = path.join(ROOT, PACKS[pack].dir);
+  if (PACKS[pack].files) { const f = path.join(d, PACKS[pack].files[n - 1] || ''); return fs.existsSync(f) && PACKS[pack].files[n - 1] ? f : null; }
   const f = fs.readdirSync(d).find((x) => x.startsWith(n + '. ') && x.endsWith('.png'));
   return f ? path.join(d, f) : null;
 };
@@ -150,7 +195,7 @@ function piecesOf(id, img) {
   // frames
   c = c.filter((q) => q.w < img.w * 0.9 && q.h < img.h * 0.9);
   // the title banner: the widest piece near the top; everything above its bottom edge goes with it
-  const top = c.filter((q) => q.y < img.h * 0.2 && q.w > img.w * 0.35).sort((a, b) => b.w - a.w)[0];
+  const top = sp.noBanner || PACKS[id.slice(0, 2)].noBanner ? null : c.filter((q) => q.y < img.h * 0.2 && q.w > img.w * 0.35).sort((a, b) => b.w - a.w)[0];
   const band = Math.max(sp.band || 0, top ? top.y + top.h : PACKS[id.slice(0, 2)].band);
   c = c.filter((q) => q !== top && q.y + q.h > band + 2);
   // junk by box, splits, merges
@@ -176,6 +221,46 @@ function piecesOf(id, img) {
   // reading order: rows of similar y, then x
   c.sort((a, b) => (Math.abs(a.y - b.y) < 40 ? a.x - b.x : a.y - b.y));
   return c;
+}
+/* a sheet painted on an opaque black ground (Dungeon Asset Pack: pillars): the near-black pixels joined to the border
+   become transparent (a flood fill, so the dark outlines inside a piece stay) */
+function keyBlack(img) {
+  const { w, h, data } = img, seen = new Uint8Array(w * h), st = [];
+  const dark = (i) => data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2] < 40;
+  for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
+  for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
+  while (st.length) {
+    const i = st.pop();
+    if (seen[i] || !dark(i)) continue;
+    seen[i] = 1;
+    data[i * 4 + 3] = 0;
+    const x = i % w, y = (i / w) | 0;
+    if (x > 0) st.push(i - 1);
+    if (x < w - 1) st.push(i + 1);
+    if (y > 0) st.push(i - w);
+    if (y < h - 1) st.push(i + w);
+  }
+  return img;
+}
+/* colour shares of a piece (opaque pixels): bright orange fire, lava, red, green, blue, purple, near-black; fill share */
+function colours(img, r) {
+  let n = 0, o = 0, orange = 0, lava = 0, red = 0, green = 0, blue = 0, purple = 0, dark = 0;
+  for (let y = r.y; y < r.y + r.h; y += 2) for (let x = r.x; x < r.x + r.w; x += 2) {
+    const i = (y * img.w + x) * 4, a = img.data[i + 3];
+    n++;
+    if (a < 120) continue;
+    o++;
+    const R2 = img.data[i], G2 = img.data[i + 1], B2 = img.data[i + 2];
+    if (R2 > 200 && G2 > 110 && B2 < 90) lava++;
+    if (R2 > 220 && G2 > 140 && B2 < 120) orange++;
+    else if (R2 > 130 && G2 < 70 && B2 < 70) red++;
+    if (G2 > R2 + 18 && G2 > B2 + 18) green++;
+    if (B2 > R2 + 30 && B2 > G2 + 10) blue++;
+    if (R2 > 80 && B2 > 100 && G2 < R2 - 20 && G2 < B2 - 20) purple++;
+    if (R2 + G2 + B2 < 70) dark++;
+  }
+  const q = Math.max(1, o);
+  return { orange: orange / q, lava: lava / q, red: red / q, green: green / q, blue: blue / q, purple: purple / q, dark: dark / q, fill: o / Math.max(1, n) };
 }
 /* hard alpha after scaling: faint and soft edge pixels go */
 function hardAlpha(im) {
@@ -207,20 +292,26 @@ function packSheet(id) {
   const sp = SHEETS[id];
   const f = sheetFile(id.slice(0, 2), +id.slice(2));
   if (!f) return null;
-  const img = P.decode(fs.readFileSync(f));
+  let img = P.decode(fs.readFileSync(f));
+  if (sp.key) img = keyBlack(img);
   const pieces = piecesOf(id, img);
-  const out = { pack: PACKS[id.slice(0, 2)].name, sheet: +id.slice(2), name: path.basename(f, '.png').replace(/^\d+\. /, ''), n: 0, roles: [], sizes: [], src: [], images: [] };
+  const out = { pack: PACKS[id.slice(0, 2)].name, sheet: +id.slice(2), name: path.basename(f, '.png').replace(/^\d+\. /, ''), n: 0, roles: [], sizes: [], src: [], images: [], kinds: sp.kind ? [] : null };
   for (const r of pieces) {
     let role = typeof sp.role === 'function' ? sp.role(r) : sp.role;
-    let im;
-    if (sp.ground && isSwatch(img, r, sp.ground)) im = swatch(img, r, sp.ground);
+    let im, kind = null;
+    if (sp.ground && isSwatch(img, r, sp.ground)) { im = swatch(img, r, sp.ground); kind = 'ground'; }
     else {
+      if (sp.kind) kind = typeof sp.kind === 'function' ? sp.kind(r, colours(img, r)) : sp.kind;
       if (sp.ground) role = sp.alt || role;
       const w = Math.max(4, Math.round(r.w * sp.scale)), h = Math.max(4, Math.round(r.h * sp.scale));
       im = hardAlpha(resize(S.cut(img, r), w, h));
     }
     if (!P.bounds(im)) continue; // nothing left after scaling
     out.images.push(im);
+    if (out.kinds) {
+      out.kinds.push(kind);
+      role = kind === 'ground' ? 'ground' : ['decal', 'room', 'rug', 'plate', 'lava', 'pool', 'bones', 'skeleton', 'debris'].includes(kind) ? 'decal' : ['brazier', 'lantern', 'torch', 'candles', 'crystal'].includes(kind) ? 'light' : kind === 'door' ? 'gate' : kind === 'face' || kind === 'wall' ? 'wall' : 'solid';
+    }
     out.roles.push(role);
     out.sizes.push([im.w, im.h]);
     out.src.push([r.x, r.y, r.w, r.h]);
@@ -343,6 +434,7 @@ function packKits() {
     if (!r) { console.warn('  ! kit sheet missing: ' + id); continue; }
     r.images.forEach((im, i) => { img['kit.' + id + '.' + i] = png64(im); });
     meta[id] = { pack: r.pack, sheet: r.sheet, name: r.name, n: r.n, roles: r.roles, sizes: r.sizes, src: r.src };
+    if (r.kinds) meta[id].kinds = r.kinds;
     cache[id] = r;
   }
   const extras = {};
@@ -382,6 +474,7 @@ function contact(r) {
 
 module.exports = { packKits, packNpcs, SHEETS, EXTRAS, NPCS, PACKS, piecesOf, sheetFile };
 
+const KINDS = {};
 if (require.main === module) {
   const t0 = Date.now();
   const r = packKits();
@@ -392,10 +485,24 @@ if (require.main === module) {
     fs.writeFileSync(path.join(dir, id + '.png'), P.encode(contact(s)));
     const roles = {};
     s.roles.forEach((x) => (roles[x] = (roles[x] || 0) + 1));
-    legend[id] = s.roles.map((x, i) => [i, x, s.sizes[i]]);
+    legend[id] = s.roles.map((x, i) => [i, x, s.sizes[i]].concat(s.kinds ? [s.kinds[i]] : []));
     console.log(id.padEnd(5), String(s.n).padStart(3), 'pieces', JSON.stringify(roles), '-', s.name);
+    if (s.kinds) { // one contact sheet per kind, to check the classifier by eye
+      const by = {};
+      s.kinds.forEach((k, i) => (by[k] = by[k] || []).push(i));
+      for (const [k, idx] of Object.entries(by)) (KINDS[k] = KINDS[k] || []).push(...idx.map((i) => [id, i, s]));
+    }
   }
   fs.writeFileSync(path.join(dir, 'legend.json'), JSON.stringify(legend));
+  for (const [k, list] of Object.entries(KINDS)) {
+    for (const pack of ['da', 'gc']) {
+      const l = list.filter(([id]) => id.startsWith(pack));
+      if (!l.length) continue;
+      const s = { n: l.length, images: l.map(([, i, q]) => q.images[i]), sizes: l.map(([, i, q]) => q.sizes[i]) };
+      fs.writeFileSync(path.join(dir, 'kind_' + pack + '_' + k + '.png'), P.encode(contact(s)));
+      console.log('  kind', pack, k.padEnd(10), l.length);
+    }
+  }
   // the NPC strips, 3x, for a look
   for (const [k, url] of Object.entries(r.img)) {
     if (!k.startsWith('npc.')) continue;

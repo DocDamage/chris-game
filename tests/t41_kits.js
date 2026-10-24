@@ -22,6 +22,16 @@ const load = (f) => { const w = {}; new Function('window', fs.readFileSync(path.
   ok('all 60 sheets of the three packs give pieces', missing.length === 0, missing);
   const absent = ids.filter((id) => K[id] && Array.from({ length: K[id].n }, (_, i) => 'kit.' + id + '.' + i).some((k) => !kits.img[k]));
   ok('every piece is in the kits bundle', absent.length === 0, absent);
+  // the packs of 2026-10-24 (PLAN.md 19, W1): the Dungeon Asset Pack (16 sheets) and the Crimson Gothic Castle (28), in
+  // their own bundle, every piece with a prop kind
+  const dung = load('bundle_dungeons.js');
+  const ids2 = Array.from({ length: 16 }, (_, i) => 'da' + (i + 1)).concat(Array.from({ length: 28 }, (_, i) => 'gc' + (i + 1)));
+  const miss2 = ids2.filter((id) => !K[id] || !K[id].n || !K[id].kinds || K[id].kinds.length !== K[id].n || K[id].kinds.some((k) => !k));
+  ok('all 44 sheets of the two new packs give pieces, each with a kind', miss2.length === 0, miss2);
+  const abs2 = ids2.filter((id) => K[id] && Array.from({ length: K[id].n }, (_, i) => 'kit.' + id + '.' + i).some((k) => !dung.img[k] || kits.img[k]));
+  ok('every piece of them is in the dungeons bundle (and not the kits one)', abs2.length === 0, abs2);
+  const pillarsKeyed = (() => { const im = P.decode(Buffer.from(dung.img['kit.da10.0'].split(',')[1], 'base64')); return im.data[3] === 0; })();
+  ok('the pillars sheet (black ground) is keyed transparent', pillarsKeyed);
   // no junk: nothing as wide as a frame, nothing wholly inside the banner band at the top of a sheet
   const junk = [];
   for (const id of ids) for (const [x, y, w, h] of (K[id] && K[id].src) || []) if (w > 1400 || h > 860 || y + h <= 104) junk.push([id, x, y, w, h]);
