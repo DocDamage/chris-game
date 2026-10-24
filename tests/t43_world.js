@@ -17,7 +17,7 @@ const { open } = require('./lib');
     G._scriptTesting = true;
     G.newRun(null);
     const W = St.slot().world, L = G.level;
-    window.__sig = (L) => { let h = 0; for (let i = 0; i < L.cells.length; i++) h = (h * 31 + (L.cells[i] === CH.Level.CRACKED ? CH.Level.FLOOR : L.cells[i])) | 0; return h; };
+    window.__sig = (L) => { let h = 0; for (let i = 0; i < L.cells.length; i++) h = (h * 31 + (L.cells[i] === CH.Level.CRACKED || L.cells[i] === CH.Level.SEALED ? CH.Level.FLOOR : L.cells[i])) | 0; return h; };
     window.__first = { sig: __sig(L), packs: L.packs.length, name: L.name, biome: L.biome };
     return { level: !!L && !L.isTown, stage: G.wave, seed: W.seed, runSeed: G.runSeed, at: W.at, deepest: W.deepest };
   });

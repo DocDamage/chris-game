@@ -27,6 +27,7 @@
     { id: 'jesus', name: 'JESUS', x: 38, y: 19, art: 'jesus', act: 'bless' },
   ];
   for (const n of PEOPLE) if (!Town.NPCS.some((q) => q.id === n.id)) Town.NPCS.push(Object.assign({ hue: 0, face: 0, sign: 1 }, n));
+  C.people = PEOPLE.slice(); // everyone drawn with their own art (js/cult.js adds the cult house's)
 
   /* ------------------------------------------------------------------ the character's part */
   const hero = () => G.players[0];
@@ -73,7 +74,7 @@
   C.draw = function (ctx, n, x, y, t) {
     const m = info(n);
     const busy = n.busyT > 0;
-    const anim = busy ? n.act : 'idle';
+    const anim = busy ? n.act : n.idle || 'idle';
     const im = strip(n, anim, 's') || strip(n, 'idle', 's');
     if (!im) return false;
     const fw = m.fw, fh = m.fh, frames = Math.max(1, Math.round(im.width / fw));
@@ -107,7 +108,7 @@
   const portraits = {};
   C.portrait = function (id) {
     if (portraits[id] !== undefined) return portraits[id];
-    const n = PEOPLE.find((q) => q.id === id);
+    const n = C.people.find((q) => q.id === id);
     const m = n && info(n), im = n && strip(n, 'idle', 's');
     if (!im) return (portraits[id] = '');
     const c = document.createElement('canvas');
@@ -203,7 +204,17 @@
       FX.text(h.x, h.y - 30, b.name, '#fee761', 2);
       save();
     } }));
-    choices.push({ label: 'LIFT MY CURSES', fn: () => say(n, p, ['Nothing cursed on you. Yet. Stay away from the house with the purple door.'], [{ label: 'OK', fn: () => {} }]) });
+    // the pilgrimage: walk as far as the Frozen Kingdom and come back, and the Lantern of Truth is yours (PLAN.md 18, K8)
+    const W = CH.Areas && CH.Areas.world();
+    if (CH.Secrets && !CH.Secrets.has('lantern')) {
+      if (W && W.deepest >= 7) choices.unshift({ label: 'THE LANTERN OF TRUTH', fn: () => { CH.Secrets.grant('lantern'); n.busyT = 3; say(n, p, ['Here. It shows what is really there. Mostly walls. Some of them lie.'], [{ label: 'THANKS', fn: () => {} }]); } });
+      else lines.push('Walk to the Frozen Kingdom and back, pilgrim. Then I have a lantern for you.');
+    }
+    choices.push({ label: 'LIFT MY CURSES', fn: () => {
+      const K = CH.Cult;
+      if (K && K.cursed()) { const k = K.lift(); n.busyT = 3; FX.ring(h.x, h.y, 6, 70, '#fee761', 0.8); say(n, p, ['Done. ' + k + ' curse' + (k > 1 ? 's' : '') + ' lifted, the gifts left as they were. Grace is like that. He will be furious. I love that for you.'], [{ label: 'THANK YOU', fn: () => {} }]); }
+      else say(n, p, ['Nothing cursed on you. Yet. Stay away from the house with the purple door.'], [{ label: 'OK', fn: () => {} }]);
+    } });
     choices.push({ label: 'LEAVE', fn: () => {} });
     say(n, p, lines, choices);
   };

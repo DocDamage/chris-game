@@ -109,6 +109,13 @@
     for (const sh of L.shrines || []) if (seen(sh) && !sh.used) sign(5, ...P(sh), 16);
     for (const c of L.chests || []) if (seen(c) && !c.opened && !c.secret) sign(4, ...P(c), 16);
     for (const s of L.secrets || []) if (s.found) sign(6, ...P({ x: s.cx, y: s.cy }), 16);
+    // sealed secrets (PLAN.md 18, K8): a "?" once you have seen the seal, the ability's colour once you can open it
+    for (const s of L.gates || []) {
+      if (s.found || !(s.seen || (CH.Secrets && CH.Secrets.has(s.need) && L.explored[L.idx(s.crack.x, s.crack.y)]))) continue;
+      const [x, y] = P({ x: (s.crack.x + 0.5) * TS, y: (s.crack.y + 0.5) * TS });
+      const can = CH.Secrets && CH.Secrets.has(s.need);
+      CH.Font.draw(cx, '?', Math.round(x), Math.round(y) - 4, can ? CH.Secrets.ABILITIES[s.need].colour : '#a02a2a', 1, true, 'center');
+    }
     if (G.machine && !G.machine.town && seen(G.machine)) sign(4, ...P(G.machine), 16);
     if (L.portal) sign(2, ...P(L.portal), 16);
     if (L.isTown) for (const n of L.npcs) sign(n.sign, ...P({ x: n.px, y: n.py }), 16);

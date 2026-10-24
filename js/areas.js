@@ -60,7 +60,8 @@
       const s = L.secrets && L.secrets[i];
       if (!s) continue;
       s.found = true;
-      if (L.cell(s.crack.x, s.crack.y) === Level.CRACKED) L.set(s.crack.x, s.crack.y, Level.FLOOR);
+      const c = L.cell(s.crack.x, s.crack.y);
+      if (c === Level.CRACKED || c === Level.SEALED) L.set(s.crack.x, s.crack.y, Level.FLOOR); // cracked or sealed: open again
       L.reveal(s.cx, s.cy, 4);
     }
     // closed breaches stay closed: their hive is not there
@@ -169,6 +170,7 @@
     const W = A.world();
     if (W) (W.areas[G.wave] || (W.areas[G.wave] = { visits: 1 })).boss = true;
     const act = A.ACT_BOSS[G.wave];
+    if (act && CH.Secrets) CH.Secrets.forAct(act); // the act's ability (js/secrets.js)
     const s = Storage.stats;
     if (act && act > (s.acts || 0)) {
       s.acts = act;

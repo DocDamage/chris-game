@@ -332,7 +332,8 @@
     L.shrines = shrineRooms.map((r, i) => { const p = L.randomNear(r.cx, r.cy, 40, 90, 18, R.f) || L.nearestOpen(r.cx, r.cy); return { x: p.x, y: p.y, used: false, id: i, kind: R.pick(['blood', 'elite', 'healing', 'speed']) }; });
 
     height(L, R, stage, rooms, start, exitRoom);
-    if (layout === 'dungeon' || opts.secrets || biome === 'zombie') secretRooms(L, R, stage >= 2 ? R.int(1, 2) : 1);
+    if (layout === 'dungeon' || opts.secrets || ['zombie', 'deadwood', 'gaslight', 'frozen'].includes(biome)) secretRooms(L, R, stage >= 2 ? R.int(1, 2) : 1);
+    if (CH.Secrets) CH.Secrets.seal(L, R, stage); // some secrets wait behind an ability from a later act (PLAN.md 18, K8)
     if (biome === 'zombie' && L.secrets[0]) L.secrets[0].kind = 'garage'; // the locked garage of the Outbreak City (needs the key a named unique carries)
     // each secret room holds a chest
     for (const s of L.secrets) L.chests.push({ x: s.cx, y: s.cy, opened: false, id: L.chests.length, room: -1, tier: stage + 2, secret: true });

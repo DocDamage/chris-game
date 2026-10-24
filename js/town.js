@@ -242,7 +242,8 @@
   function waypointTravel(n, p) {
     const wps = CH.Storage.data.diablo.waypoints || {};
     const stages = Object.keys(wps).map(Number).sort((a, b) => a - b);
-    const choices = stages.slice(-4).map((s) => ({ label: 'STAGE ' + s, fn: () => { Town.pendingStage = s; Town.leave(); } }));
+    const name = (s) => (s <= 3 ? 'DEAD WOOD' : s <= 6 ? 'GASLIGHT' : s <= 9 ? 'FROZEN' : 'BELOW');
+    const choices = stages.slice(-8).map((s) => ({ label: 'STAGE ' + s + ' ' + name(s), fn: () => { Town.pendingStage = s; Town.leave(); } })); // every area with a lit waypoint: go back (PLAN.md 18, K8)
     choices.push({ label: 'STAY', fn: () => {} });
     D().say({ who: n.name, portrait: 'npc:' + n.face, lines: [stages.length ? 'Where to? Only places you have been.' : 'Light a waypoint in the field first. Then I can send you back.'], choices: stages.length ? choices : [{ label: 'OK', fn: () => {} }], color: color(p) });
   }
@@ -278,6 +279,7 @@
   function drawTown(ctx, L, cam) {
     const t = L.fx || 0;
     // return pad
+    if (L.interior) return; // a room inside the hideout (js/cult.js) has a door, not the portal
     drawPortal(ctx, { x: L.exit.x, y: L.exit.y, t }, cam);
     CH.Font.draw(ctx, 'PORTAL', Math.round(L.exit.x - cam.x), Math.round(L.exit.y - cam.y) + 8, '#9fd8ef', 1, true);
     if (!L.hideout) for (const n of L.npcs) Town.drawNpc(ctx, n, Math.round(n.px - cam.x), Math.round(n.py - cam.y), t);
