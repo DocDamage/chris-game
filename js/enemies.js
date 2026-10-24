@@ -446,9 +446,11 @@
       }
     }
   }
+  /* e.atkKind keeps which attack this is for its whole length: the telegraph (e.tele) is cleared when the wind-up ends */
   function beginAttack(e, wind, teleKind, extra, act) {
     e.setState('attack', wind);
     e.atkWind = wind;
+    e.atkKind = teleKind;
     if (e.look && e.look.atk && !e.isBoss) Audio.sfx(e.look.atk);
     if (!e.isBoss) CH.Kit.enemyWind(e);
     e.atkTotal = wind + Math.max(act || 0.3, 0.35);
@@ -816,7 +818,7 @@
           }
           break;
         case 'attack':
-          if (e.tele && e.tele.kind === 'excl') {
+          if (e.atkKind === 'excl') {
             // Spore spit attack
             strike(e, dt, {
               act: 0.1,
@@ -915,7 +917,7 @@
           }
           break;
         case 'attack':
-          if (e.tele && e.tele.kind === 'excl') {
+          if (e.atkKind === 'excl') {
             strike(e, dt, {
               act: 0.65,
               recover: 0.6,
@@ -1053,7 +1055,7 @@
           }
           break;
         case 'attack':
-          if (e.tele && e.tele.kind === 'excl') {
+          if (e.atkKind === 'excl') {
             strike(e, dt, {
               act: 0.1,
               recover: 0.55,
