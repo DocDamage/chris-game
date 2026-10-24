@@ -29,9 +29,7 @@
     this.fearT -= dt;
     if (g.warpT > 0) dt *= 0.42;
     this.age += dt;
-    if (this.flash > 0) this.flash -= dt * 6;
-    if (this.squash > 0) this.squash -= dt * 7;
-    if (this.hurtT > 0) this.hurtT -= dt;
+    CH.Actor.fadeHit(this, dt);
     if (this.atkCd > 0) this.atkCd -= dt;
     this.contactCd = Math.max(this.contactCd, 0.2); // no touch damage while fleeing
     const p = g.nearestPlayer(this.x, this.y) || g.player;

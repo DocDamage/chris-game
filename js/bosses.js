@@ -110,8 +110,7 @@
       if (g.warpT > 0) dt *= 0.6; // TIME WARP
       this.age += dt;
       this.animT += dt;
-      if (this.flash > 0) this.flash -= dt * 6;
-      if (this.squash > 0) this.squash -= dt * 7;
+      CH.Actor.fadeHit(this, dt);
       if (this.contactCd > 0) this.contactCd -= dt;
       if (this.tele) {
         this.tele.t -= dt;

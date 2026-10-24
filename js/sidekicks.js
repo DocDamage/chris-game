@@ -237,9 +237,7 @@
       for (const k of Object.keys(s.cd)) if (s.cd[k] > 0) s.cd[k] -= dt;
       s.x += s.kx * dt;
       s.y += s.ky * dt;
-      const kk = Math.max(0, 1 - 8 * dt);
-      s.kx *= kk;
-      s.ky *= kk;
+      CH.Actor.decayKnock(s, dt, CH.Actor.KIND.sidekick.knockDecay);
       if (s.state === 'down') {
         s.downT -= dt;
         s.anim = 'death';
@@ -461,11 +459,7 @@
     s.invuln = 0.5;
     s.hurtT = 0.3;
     FX.text(s.x, s.y - 20, '-' + Math.round(dmg), '#ff8fb8', 1);
-    if (src && src.x !== undefined) {
-      const a = U.ang(src.x, src.y, s.x, s.y);
-      s.kx += Math.cos(a) * 90;
-      s.ky += Math.sin(a) * 90;
-    }
+    if (src && src.x !== undefined) CH.Actor.pushFrom(s, src, CH.Actor.KIND.sidekick.hitPush);
     if (s.hp <= 0) {
       s.state = 'down';
       s.downT = 25;
@@ -537,7 +531,7 @@
       const strip = S.get(name).anims[anim];
       const loop = anim === 'idle' || anim === 'walk' || anim === 'run';
       const frame = loop ? S.frame(name, anim, s.t * (anim === 'idle' ? 1 : 1.2)) : S.frameAt(name, anim, Math.min(0.99, s.at / (s.atk ? s.atk.dur : s.state === 'down' ? 0.9 : 0.5)));
-      const blink = s.invuln > 0 && s.state !== 'down' && Math.floor(s.invuln * 20) % 2 === 0;
+      const blink = s.state !== 'down' && CH.Actor.blink(s);
       S.draw(ctx, name, x, y + 13, { frame, flip: s.face < 0, alpha: s.state === 'down' ? 0.7 : blink ? 0.5 : 1 });
     } else {
       ctx.fillStyle = '#1b1226';

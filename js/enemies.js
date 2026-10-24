@@ -226,11 +226,9 @@
     update(g, dt) {
       if (g.warpT > 0) dt *= 0.42; // TIME WARP
       this.age += dt;
-      if (this.flash > 0) this.flash -= dt * 6;
-      if (this.squash > 0) this.squash -= dt * 7;
+      CH.Actor.fadeHit(this, dt);
       if (this.contactCd > 0) this.contactCd -= dt;
       if (this.atkCd > 0) this.atkCd -= dt;
-      if (this.hurtT > 0) this.hurtT -= dt;
       if (this.state === 'attack' || (this.state === 'recover' && this.atkClock < this.atkTotal)) this.atkClock += dt;
       if (this.slowT > 0) {
         this.slowT -= dt;
@@ -271,9 +269,7 @@
       this.walkT = (this.walkT || 0) + dt * U.clamp(Math.hypot(this.svx, this.svy) / Math.max(20, this.def ? this.def.speed : 50), 0.45, 1.6);
       this.sepx = 0;
       this.sepy = 0;
-      const k = Math.max(0, 1 - 7 * dt * (m.lowGrav ? 0.35 : 1));
-      this.kx *= k;
-      this.ky *= k;
+      CH.Actor.decayKnock(this, dt, CH.Actor.KIND.monster.knockDecay, m.lowGrav ? 0.35 : 1);
       this.zoneSlow = 1;
       CH.World.bounceIn(this, g.arena);
       // Prop collisions (at the feet, not the body centre; flyers pass over)

@@ -695,11 +695,7 @@
     p.invuln = B.player.hitIframes;
     p.flash = 1;
     p.hurtAt = G.time; // the hurt strip plays for a fixed 0.32 s (Player.draw)
-    if (src && src.x !== undefined) {
-      const a = U.ang(src.x, src.y, p.x, p.y);
-      p.kx += Math.cos(a) * 150;
-      p.ky += Math.sin(a) * 150;
-    }
+    if (src && src.x !== undefined) CH.Actor.pushFrom(p, src, CH.Actor.KIND.hero.hitPush);
     G.shake(4, 0.22);
     G.hurtFlash = G.coop ? 0.18 : 0.4;
     Audio.sfx('hurt');

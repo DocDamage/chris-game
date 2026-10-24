@@ -603,9 +603,7 @@
     }
     if (g.warpT > 0) dt *= 0.42;
     this.age += dt;
-    if (this.flash > 0) this.flash -= dt * 6;
-    if (this.squash > 0) this.squash -= dt * 7;
-    if (this.hurtT > 0) this.hurtT -= dt;
+    CH.Actor.fadeHit(this, dt);
     this.dvx = this.dvy = 0;
     this.lt = (this.lt || 0) - dt;
     if (this.lt <= 0) { // a new errand: stand about, or walk to another spot of the camp

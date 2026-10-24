@@ -185,8 +185,7 @@
         this.x += this.kx * dt;
         this.y += this.ky * dt;
         CH.World.keepIn(this, this.r, g.arena);
-        this.kx *= Math.max(0, 1 - 9 * dt);
-        this.ky *= Math.max(0, 1 - 9 * dt);
+        CH.Actor.decayKnock(this, dt, CH.Actor.KIND.hero.knockDecay);
         CH.Weapons.updateStates(this, dt);
         inp.take('dodge');
         if (c.t >= c.dur) this.cast = null;
@@ -307,9 +306,7 @@
 
       this.x += (this.vx + this.kx) * dt;
       this.y += (this.vy + this.ky) * dt;
-      const k = Math.max(0, 1 - 9 * dt);
-      this.kx *= k;
-      this.ky *= k;
+      CH.Actor.decayKnock(this, dt, CH.Actor.KIND.hero.knockDecay);
       CH.World.keepIn(this, this.r, g.arena);
 
       // ---- vertical elevation & jump simulation ----
@@ -806,7 +803,7 @@
     const dir8 = p.dir8 || 'e';
     const aimUp = dir8 === 'n' || dir8 === 'ne' || dir8 === 'nw' || Math.sin(p.aim) < -0.3;
     let bob = !art && p.moving && !p.rolling ? -Math.abs(Math.sin(p.walkT * 9)) * 1.2 : 0;
-    const blink = p.invuln > 0 && !p.rolling && !p.cast && Math.floor(p.invuln * 20) % 2 === 0;
+    const blink = !p.rolling && !p.cast && CH.Actor.blink(p);
     const hpf = p.hp / p.maxHp;
     const opts = {
       flip: p.face < 0,
