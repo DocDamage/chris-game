@@ -568,6 +568,11 @@ Also in the NPC folder, not mentioned: **Lucifer** (160 px frames: hellfire, dar
 - **Local co-op** offers all three ways when a second player joins: bring **their own saved hero** (it keeps its level,
   gear and progress), play a **temporary guest hero** scaled to the host's level (nothing saved), or stay **solo** (co-op
   off). The world and its progress belong to the host's save.
+- **Existing saves**: start fresh; the old save is kept aside under its old key, unused.
+- **Heroes** keep unlocking (some open at the start, the rest through the story: act bosses, quests), across all slots.
+- **Relics, crafting, resources and pets** belong to each character, like gear; **achievements and the codex** stay
+  account-wide.
+- **Quitting inside an area**: the next load starts in the hideout; the area keeps what you changed and repopulates.
 
 ### 18.2 What the packs give and lack (summary of `docs/ASSET_PACKS.md`)
 
@@ -675,6 +680,11 @@ runs today).
 | # | What | Needs |
 | --- | --- | --- |
 | K0 | **No more runs**: save slots, character creation (hero, hardcore), persistent world state per area, acts and areas, death and the corpse, monster repopulation, removal of run modes and scoring, co-op joining (saved hero, guest hero or solo); Storage migration | |
+| K0a | Saves v3: account (settings, hero unlocks, achievements, codex) + character slots (hero, hardcore, level, xp, skills, gear, bag, belt, stash, gold, relics, crafting, resources, pets, quests, waypoints, world); the old save kept aside; character select and creation replace PLAY and the HERO book; the hero's level, gear and gold persist | |
+| K0b | The world: acts and areas with ids, one seed per save, per-area state (chests, cracks, secrets, breaches, bosses), waypoints by area, the hideout as the hub, entering areas from it, thinner repopulation, Save & Quit to the hideout | K0a |
+| K0c | Death: wake in the hideout, gold at a corpse marker to walk back to; hardcore slots deleted on death | K0b |
+| K0d | Removals: run modes, endless, boss rush, training, tutorial, daily, seeds, challenges, heat, score / combo / ghost / board, branch prompts, result screens; first-area hints instead of the tutorial; tests rewritten | K0b |
+| K0e | Co-op joining: player 2 brings a saved hero, a guest hero scaled to the host, or none | K0a |
 | K1 | **Done.** `tools/pack-kits.js` cuts all 60 sheets by the rules of `docs/ASSET_PACKS.md` into 2,197 pieces (`kit.<sheet>.<n>`, meta.kits: role, size and source box per piece) plus 13 set pieces at their own scale (portals, the skull gate, the pentagram, the giant tree ...), and packs the nurse, doctor, Jesus, Lucifer and four cultists as animation strips facing east and the camera (`npc.<id>.<anim>.<e/s>`, meta.npcs), scaled to hero height (Jesus' figures are 26 px in both of his frame sizes, so both get x1.3). Ground swatches are tiles only when the square inside their border is fully painted (edge pieces, boulders and the skull statue keep their shapes): 113 opaque 32 px tiles. New bundles `kits` (9.4 MB) and `npcs` (1.1 MB); every other bundle is byte-identical. `node tools/pack-kits.js` writes contact sheets to `tools/out/kits/`. `t41_kits` checks it all. Roles are a first guess on a few sheets (hv19 mostly `decal`); K2-K4 refine them as they use the pieces | |
 | K2 | The Dead Wood (Act I) | K0, K1 |
 | K3 | Frozen Kingdom stages, snow footprints, slippery ice | K1 |
