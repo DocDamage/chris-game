@@ -24,13 +24,13 @@ const { open } = require('./lib');
     r.wallFound = !!found;
     if (found) {
       p.x = found.x; p.y = found.y;
-      for (let i = 0; i < 80; i++) { p.y += 3; L.pushOutFeet(p, p.r || 8, 10); }
+      const fp = CH.World.FEET.hero(p); for (let i = 0; i < 80; i++) { p.y += 3; L.pushOutFeet(p, fp[1], fp[0]); }
       r.feetAtEdge = p.y + 10 <= found.wall + 1 && p.y + 10 >= found.wall - 9;
       r.notInWall = !L.solidAt(p.x, p.y + 10 + 2);
     }
     // 3. enemies too
     const e = G.spawnEnemy('orc', p.x, p.y - 40, { spawnTime: 0 });
-    for (let i = 0; i < 60; i++) { e.y += 3; L.pushOutFeet(e, e.r, Math.min(10, (e.look.foot || 8) * 0.8)); }
+    const fe = CH.World.FEET.enemy(e); for (let i = 0; i < 60; i++) { e.y += 3; L.pushOutFeet(e, fe[1], fe[0]); }
     r.enemyStops = !L.solidAt(e.x, e.y + 6);
     // 4. prop hitboxes follow the sprite size
     X.startRun({}, null);

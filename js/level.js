@@ -150,10 +150,11 @@
       return moved;
     }
 
-    /* the same, for bodies that touch the ground with their feet: the circle sits `off` pixels below the centre */
+    /* the same, for bodies that touch the ground with their feet: the circle sits `off` pixels below the centre
+       (World.FEET says where each kind of body's feet are and how big) */
     pushOutFeet(e, r, off) {
       e.y += off;
-      const m = this.pushOut(e, Math.min(r || 8, 7));
+      const m = this.pushOut(e, r || 8);
       e.y -= off;
       return m;
     }

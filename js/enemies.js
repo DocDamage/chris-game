@@ -349,6 +349,7 @@
     }
     for (const a of list) {
       if (a.dead || a.isBoss) continue;
+      const ax = a.x, ay = a.y;
       const gx = Math.floor(a.x / GRID), gy = Math.floor(a.y / GRID);
       const ra = E.space(a);
       for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
@@ -391,6 +392,12 @@
         a.y += (ny * push * 0.5) / 1.35;
         a.sepx += nx * 60;
         a.sepy += ny * 60;
+      }
+      // a shove happens after collision ran: keep the monster inside the arena and out of props again (walls are
+      // settled after the step)
+      if (a.x !== ax || a.y !== ay) {
+        CH.World.keepIn(a, a.r, g.arena);
+        if (g.arena && g.arena.props && !(a.look && a.look.fly)) CH.World.collideProps(a, 'enemy');
       }
     }
   };

@@ -1220,8 +1220,10 @@
         list.pop();
         continue;
       }
+      const x0 = pk.x, y0 = pk.y;
       pk.x += pk.vx * dt;
       pk.y += pk.vy * dt;
+      CH.World.stopAt(pk, x0, y0); // flung coins and gems stop at walls and props; the magnet below still flies
       const k = Math.max(0, 1 - 5 * dt);
       pk.vx *= k;
       pk.vy *= k;

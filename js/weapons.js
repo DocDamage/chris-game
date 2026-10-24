@@ -443,6 +443,7 @@
     return pr;
   };
 
+  const nearProps = [];
   function killProj(g, pr) {
     if (pr.dead) return;
     pr.dead = true;
@@ -481,6 +482,7 @@
         }
       }
       if (pr.tick) pr.tick(g, pr, dt);
+      const x0 = pr.x, y0 = pr.y;
       pr.x += pr.vx * dt;
       pr.y += pr.vy * dt;
       if (pr.face) pr.rot = Math.atan2(pr.vy, pr.vx);
@@ -515,6 +517,15 @@
           pr.life = 0;
         }
       }
+      // level walls, the same way: a bouncing shot bounces, the rest end against the rock
+      if (g.level && pr.life > 0 && g.level.solidAt(pr.x, pr.y)) {
+        if (CH.World.bounceShot(g.level, pr, x0, y0)) {
+          if (pr.kind === 'chicken') Audio.sfx('squeak');
+        } else {
+          FX.burst(pr.x, pr.y, { n: 3, colors: ['#c2c3c7', '#6a6a7a'], speed: 40, life: 0.2 });
+          pr.life = 0;
+        }
+      }
       if (pr.life <= 0) {
         if (pr.onEnd) pr.onEnd(g, pr);
         else if (pr.owner === 'e') {
@@ -531,10 +542,7 @@
         if (g.arena && g.arena.props) {
           for (const prop of g.arena.props) {
             if (prop.dead || !prop.solid || (!prop.choppable && !prop.destructible && prop.kind !== 'tree')) continue;
-            const minD = (prop.cr || 11) + pr.r;
-            const dx = (prop.x + (prop.cx || 0)) - pr.x;
-            const dy = (prop.y + (prop.cy || -4)) - pr.y;
-            if (prop.box ? CH.Props.touches(prop, pr.x, pr.y + 6, pr.r) : dx * dx + dy * dy < minD * minD) {
+            if (CH.World.shotHits(prop, pr)) {
               W.damageProp(g, prop, pr.dmg * 1.2, pr.shooter || g.player);
               let res = 'die';
               if (pr.onHit) res = pr.onHit(g, pr, { x: prop.x, y: prop.y - 4, r: prop.cr });
@@ -566,6 +574,16 @@
           }
         }
       } else {
+        // tall solid props stop enemy shots (low, jumpable ones are shot over)
+        if (g.arena && g.arena.props) {
+          for (const prop of CH.Props.near(g.arena.props, pr.x, pr.y, nearProps)) {
+            if (prop.dead || !prop.solid || prop.jumpable || !CH.World.shotHits(prop, pr)) continue;
+            FX.burst(pr.x, pr.y, { n: 3, colors: [pr.color || '#ffffff'], speed: 30, life: 0.25 });
+            killProj(g, pr);
+            break;
+          }
+          if (pr.dead) continue;
+        }
         // enemy projectile vs every living player
         for (let k = 0; k < g.players.length; k++) {
           const p = g.players[k];

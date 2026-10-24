@@ -76,41 +76,63 @@
     }
   };
 
-  /* where each kind of body touches the world: [feet offset below e.y, feet radius], against props and against walls
-     (Level.pushOutFeet caps wall radii at 7 px, bosses included) */
+  /* where each kind of body touches the world, the same against props and walls: [feet offset below e.y, feet
+     radius]. Feet are at most 7 px in radius so everybody fits the gaps the level generator leaves; bosses (who fight
+     in open arenas) stand on wider feet. */
   const footOf = (e) => (e.look && e.look.foot) || 8;
   World.FEET = {
-    props: {
-      hero: (p) => [10, p.r],
-      sidekick: (s) => [10, s.r],
-      enemy: (e) => [Math.min(14, footOf(e) * 0.8), Math.min(e.r, 9)],
-    },
-    walls: {
-      hero: (p) => [10, p.r || 8],
-      sidekick: (s) => [10, s.r || 8],
-      enemy: (e) => (e.isBoss ? [14, Math.min(e.r || 20, 20)] : [Math.min(10, footOf(e) * 0.8), e.r || 8]),
-    },
+    hero: (p) => [10, Math.min(p.r || 8, 7)],
+    sidekick: (s) => [10, Math.min(s.r || 8, 7)],
+    enemy: (e) => (e.isBoss ? [14, Math.min(e.r || 20, 12)] : [Math.min(12, footOf(e) * 0.8), Math.min(e.r || 8, 7)]),
+    pickup: () => [0, 3],
   };
   /* push a body of that kind out of the arena's solid props (skip(prop) exempts one: standing on it, flying over it) */
   World.collideProps = function (e, kind, skip) {
-    const f = World.FEET.props[kind](e);
+    const f = World.FEET[kind](e);
     return CH.Props.collide(e, f[0], f[1], skip);
   };
 
-  /* walls, once per step after everything has moved: heroes, monsters and sidekicks at their feet; projectiles that
-     end the step inside rock break */
+  /* walls, once per step after everything has moved: heroes, monsters and sidekicks at their feet (projectiles meet
+     walls as they move, in js/weapons.js) */
   World.settleWalls = function (L) {
-    const G = CH.G, W = World.FEET.walls;
-    for (const p of G.players) { const f = W.hero(p); L.pushOutFeet(p, f[1], f[0]); }
-    for (const e of G.enemies) if (!e.dead) { const f = W.enemy(e); L.pushOutFeet(e, f[1], f[0]); }
-    if (CH.SK) for (const s of CH.SK.list) { const f = W.sidekick(s); L.pushOutFeet(s, f[1], f[0]); }
-    for (const pr of G.projectiles) {
-      if (pr.dead) continue;
-      if (L.solidAt(pr.x, pr.y)) {
-        pr.dead = true;
-        CH.FX.burst(pr.x, pr.y, { n: 3, colors: ['#c2c3c7', '#6a6a7a'], speed: 40, life: 0.2 });
-      }
+    const G = CH.G, F = World.FEET;
+    for (const p of G.players) { const f = F.hero(p); L.pushOutFeet(p, f[1], f[0]); }
+    for (const e of G.enemies) if (!e.dead) { const f = F.enemy(e); L.pushOutFeet(e, f[1], f[0]); }
+    if (CH.SK) for (const s of CH.SK.list) { const f = F.sidekick(s); L.pushOutFeet(s, f[1], f[0]); }
+  };
+
+  /* something flung or dropped (coins, gems, items) that moved from (x0, y0) this step stops at a level wall, on the
+     axis that hit it, and is pushed out of solid props. A magnet's pull is not checked: it flies to the hero. */
+  World.stopAt = function (b, x0, y0) {
+    const L = CH.G.level;
+    if (L && L.solidAt(b.x, b.y)) {
+      if (!L.solidAt(b.x, y0)) { b.y = y0; b.vy = 0; }
+      else if (!L.solidAt(x0, b.y)) { b.x = x0; b.vx = 0; }
+      else { b.x = x0; b.y = y0; b.vx = b.vy = 0; }
     }
+    const a = CH.G.arena;
+    if (a && a.props) World.collideProps(b, 'pickup');
+  };
+
+  /* does a shot touch a prop's footprint? (box props a little below the shot, round ones a little above their base) */
+  World.shotHits = function (prop, pr) {
+    if (prop.box) return CH.Props.touches(prop, pr.x, pr.y + 6, pr.r);
+    const minD = (prop.cr || 11) + pr.r;
+    const dx = prop.x + (prop.cx || 0) - pr.x;
+    const dy = prop.y + (prop.cy || -4) - pr.y;
+    return dx * dx + dy * dy < minD * minD;
+  };
+  /* a shot that moved from (x0, y0) into a level wall: a bouncing one turns back on the axis that hit (both at a
+     corner) and returns true; the rest are left in the wall for the caller to end */
+  World.bounceShot = function (L, pr, x0, y0) {
+    if (!(pr.wallBounce > 0)) return false;
+    const sx = L.solidAt(pr.x, y0), sy = L.solidAt(x0, pr.y);
+    if (sx || !sy) pr.vx = -pr.vx;
+    if (sy || !sx) pr.vy = -pr.vy;
+    pr.x = x0;
+    pr.y = y0;
+    pr.wallBounce--;
+    return true;
   };
 
   /* is a point within reach of a prop's top? box props are tested at the feet (y + foot, within boxR), round ones from

@@ -363,8 +363,10 @@
       const g = Items.ground[i];
       g.age += dt;
       if (g.z > 0 || g.vz > 0) {
+        const x0 = g.x, y0 = g.y;
         g.x += g.vx * dt;
         g.y += g.vy * dt * 0.3;
+        CH.World.stopAt(g, x0, y0); // a dropped item lands this side of a wall or prop
         g.vz -= 260 * dt;
         g.z += g.vz * dt;
         if (g.z <= 0) { g.z = 0; g.vz = 0; g.vx = g.vy = 0; }
