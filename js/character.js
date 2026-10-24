@@ -1,7 +1,9 @@
 /* CHAOS.exe - the character in the active save slot (PLAN.md 18, K0a). The game is one hero's adventure now: when play
    starts the slot's level, experience, skill points and tree, weapons and gold come back, and they are written back as
    they change (every 15 s of play, at each stage, on pause, on quitting, when the page is hidden or closed).
-   With no active slot (the menu, most tests) nothing is restored or saved. */
+   With no active slot (the menu, most tests) nothing is restored or saved.
+   Co-op (K0e): player 2-4 brings a saved character (p.slotRef: its level, skills, weapons and gear come along and its
+   progress is written back with the host's saves; the gold is the host's) or plays a guest scaled to player 1. */
 (function (CH) {
   'use strict';
   const G = CH.G;
@@ -45,6 +47,8 @@
   C.loaded = false;
   /* write the first player's progress into the active slot */
   C.save = () => {
+    // partners with their own character first (the host's save below writes them too)
+    for (const p of G.players) if (p.slotRef && p.slotRef !== Storage.slot() && C.loaded) Storage.setSlotChar(p.slotRef, Object.assign(C.snapshot(p), { gold: p.slotRef.char.gold }), played);
     if (!Storage.slot() || !G.players.length || !C.loaded) return Storage.save();
     if (CH.Areas) CH.Areas.capture(); // what changed in the area (js/areas.js)
     const ok = Storage.setChar(C.snapshot(G.players[0]), played);
@@ -56,12 +60,34 @@
   G.on('newRun:before', function () {
     C.loaded = false;
   });
+  /* a partner: their own character (gear from their own slot), or a guest at the host's level */
+  C.partner = function (p, def, host) {
+    const ref = def && def.slot;
+    if (ref && Storage.slots().includes(ref) && ref !== Storage.slot()) {
+      p.slotRef = ref;
+      const d = ref.data && ref.data.diablo;
+      if (d) {
+        d.equipped = d.equipped && typeof d.equipped === 'object' ? d.equipped : {};
+        p.guestGear = d.equipped[ref.hero] || (d.equipped[ref.hero] = {});
+      }
+      C.apply(p, ref.char);
+      return;
+    }
+    p.guest = true;
+    p.level = Math.max(1, host.level || 1);
+    p.sp = p.level - 1;
+    p.skills = {};
+    CH.Upgrades.recalc(p);
+    p.hp = p.maxHp;
+  };
   G.on('newRun', function () {
     played = 0;
     since = 0;
+    const cfg = G.lastConfig;
     const c = Storage.charOf();
+    if (c && G.players.length) C.apply(G.players[0], c);
+    if (cfg && cfg.players) G.players.forEach((p, i) => { if (i > 0) C.partner(p, cfg.players[i], G.players[0]); });
     if (!c || !G.players.length) return;
-    C.apply(G.players[0], c);
     G.coins = c.gold;
     C.loaded = true;
   });

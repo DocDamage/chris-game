@@ -172,6 +172,7 @@
   };
   Items.data = D;
   Items.equippedOf = (p) => {
+    if (p.guestGear) return p.guestGear; // a co-op partner's own character (js/character.js)
     const e = D().equipped;
     const id = (p.hero && p.hero.id) || 'Mercenary';
     if (!e[id]) e[id] = {};

@@ -1,6 +1,9 @@
-/* CHAOS.exe - the local co-op lobby. Two slots; each device (keyboard + mouse, or one gamepad) claims a slot by
-   pressing its confirm button, picks a hero and readies up. When both heroes are ready the run starts with exactly
-   those devices bound to those heroes. */
+/* CHAOS.exe - the local co-op lobby. Up to four slots; each device (keyboard + mouse, or one gamepad) claims a slot by
+   pressing its confirm button, picks who it plays and readies up. When everyone is ready play starts with exactly
+   those devices bound to those heroes.
+   Who a player is (PLAN.md 18, K0e): one of the saved characters (it keeps its level, skills, weapons and gear, and its
+   progress is saved with it), or a guest hero (nothing is saved; it starts at player 1's level with the skill points to
+   match). Player 1 is the host: the world, the gold and the bag are theirs. Playing solo is PLAY on the main menu. */
 (function (CH) {
   'use strict';
   const B = CH.Balance;
@@ -10,7 +13,7 @@
   const $ = (id) => document.getElementById(id);
 
   const Lobby = (CH.Lobby = {
-    slots: [null, null, null, null], // {src, hero, ready}
+    slots: [null, null, null, null], // {src, hero, slot (a character's index, -1 = a guest), ready}
     countdown: 0,
   });
 
@@ -36,12 +39,24 @@
   };
 
   Lobby.slotOf = (src) => Lobby.slots.findIndex((s) => s && srcKey(s.src) === srcKey(src));
+  /* what lobby slot i can pick: the saved characters nobody else took, then a guest of every unlocked hero */
+  Lobby.entries = function (i) {
+    const out = [];
+    Storage.slots().forEach((c, k) => {
+      if (!Lobby.slots.some((o, j) => o && j !== i && o.slot === k)) out.push({ slot: k, hero: c.hero });
+    });
+    for (const h of heroList()) out.push({ slot: -1, hero: h.id });
+    return out;
+  };
 
   Lobby.join = function (src) {
     if (Lobby.slotOf(src) >= 0) return false;
     const i = Lobby.slots.findIndex((s) => !s);
     if (i < 0) return false;
-    Lobby.slots[i] = { src, hero: Lobby.defaults[i].id, ready: false };
+    // player 1 plays the active character when there is one; the others start as guests
+    const act = Storage.activeIndex();
+    const own = i === 0 && act >= 0 && !Lobby.slots.some((o) => o && o.slot === act);
+    Lobby.slots[i] = own ? { src, hero: Storage.slot().hero, slot: act, ready: false } : { src, hero: Lobby.defaults[i].id, slot: -1, ready: false };
     CH.Audio.sfx('confirm');
     return true;
   };
@@ -58,11 +73,12 @@
   Lobby.cycleHero = function (src, dir) {
     const i = Lobby.slotOf(src);
     if (i < 0 || Lobby.slots[i].ready) return;
-    const list = heroList();
+    const list = Lobby.entries(i);
     const s = Lobby.slots[i];
-    let k = list.findIndex((h) => h.id === s.hero);
+    let k = list.findIndex((e) => e.slot === s.slot && (e.slot >= 0 || e.hero === s.hero));
     k = (k + dir + list.length) % list.length;
-    s.hero = list[k].id;
+    s.hero = list[k].hero;
+    s.slot = list[k].slot;
     CH.Audio.sfx('hover');
   };
 
@@ -90,10 +106,12 @@
 
   Lobby.start = function () {
     const j = Lobby.joined();
+    const refs = j.map((x) => (x.slot >= 0 ? Storage.slots()[x.slot] || null : null));
+    Storage.useSlot(refs[0] ? j[0].slot : -1); // player 1's character hosts the world (or nobody's: an unsaved world)
     Storage.settings.hero = j[0].hero;
     Storage.settings.hero2 = j[1].hero;
     Storage.save();
-    const config = { players: j.map((x) => ({ hero: x.hero, src: x.src })) };
+    const config = { players: j.map((x, i) => ({ hero: x.hero, src: x.src, slot: refs[i] })) };
     Lobby.close();
     CH.G.newRun(config);
   };
@@ -143,8 +161,9 @@
       el.classList.toggle('joined', !!s);
       el.classList.toggle('ready', !!(s && s.ready));
       const hero = s ? B.heroes.find((h) => h.id === s.hero) : Lobby.defaults ? Lobby.defaults[i] : B.heroes[0];
-      el.querySelector('.lhero').textContent = s ? hero.name.toUpperCase() : '';
-      el.querySelector('.lspecial').textContent = s ? hero.blurb : '';
+      const ch = s && s.slot >= 0 ? Storage.slots()[s.slot] : null;
+      el.querySelector('.lhero').textContent = !s ? '' : ch ? ch.name.toUpperCase() + '  LV ' + ch.char.level : 'GUEST: ' + hero.name.split(',')[0].toUpperCase();
+      el.querySelector('.lspecial').textContent = !s ? '' : ch ? hero.name + (ch.hardcore ? ' - hardcore' : '') + '. Progress is saved with this character.' : 'Nothing is saved. Starts at player 1\'s level.';
       el.querySelector('.ldev').textContent = s ? (s.src.kind === 'kbm' ? 'KEYBOARD + MOUSE' : 'CONTROLLER ' + (s.src.index + 1)) : '';
       el.querySelector('.lstate').textContent = !s ? (pads.length ? 'PRESS A TO JOIN' : 'WAITING FOR A DEVICE...') : s.ready ? 'READY!' : '< CHOOSE >   A = READY';
     });

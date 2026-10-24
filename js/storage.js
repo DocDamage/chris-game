@@ -375,6 +375,13 @@
       Storage.save();
       return true;
     },
+    /* a co-op partner's own character (js/character.js): its progress, written with the next save */
+    setSlotChar(slot, c, playedDelta) {
+      if (!save3 || !save3.slots.includes(slot)) return false;
+      slot.char = cleanChar(c);
+      slot.played += Math.max(0, playedDelta || 0);
+      return true;
+    },
     /* the active character's own progress (level, xp, skills, gold, weapons ...), read and written by js/character.js */
     charOf: () => (Storage.slot() ? Storage.slot().char : null),
     setChar(c, playedDelta) {
