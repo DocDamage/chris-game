@@ -126,6 +126,9 @@ const { open } = require('./lib');
     p.x = L.exit.x; p.y = L.exit.y; p.invuln = 99;
     G.killEnemy(b);
     __step(150);
+    // the tower fights on: its two hearts wake (js/sky.js); stop them both
+    for (const h of G.enemies.filter((q) => q.heart && !q.dead)) G.killEnemy(h);
+    __step(30);
     out.open = L.exit.open;
     out.still = G.level === L && G.waveState !== 'clear' && G.state === 'playing';
     G.interact(p);
@@ -154,6 +157,10 @@ const { open } = require('./lib');
     p.invuln = 99;
     G.killEnemy(b);
     __step(150);
+    out.hearts = G.enemies.filter((q) => q.heart && !q.dead).length; // the tower fights on (js/sky.js)
+    out.notYet = !L.exit.open;
+    for (const h of G.enemies.filter((q) => q.heart && !q.dead)) G.killEnemy(h);
+    __step(30);
     out.noVictoryYet = G.state === 'playing' && L.exit.open;
     p.x = L.exit.x; p.y = L.exit.y;
     __step(2);

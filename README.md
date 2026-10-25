@@ -378,3 +378,28 @@ Aseprite and 7-Zip for the UI and sidekick packs).
   with dragons in the sky. The Final Tower stands on the last island; when its breaches are closed its maw opens.
   Inside is the Belly, a hall of living flesh with a beating heart, where the final boss waits.
 - `node tests/mapshot.js <area> [room]` writes a top-down picture of a stage's room to `tests/tour/`.
+
+## Rooms with a purpose (2026-10-24, night)
+
+- **Stages are composed the way Diablo composes them.** Every room has one purpose (an ossuary, an alchemist's den, a
+  storeroom, a torture room, a drowned crypt ...) and its props say so: a centrepiece at the back with its flankers and
+  candles, the back wall's row, the side walls, a pile in each corner, lights by the doorways, the middle left open to
+  fight in. Things of a kind keep together; the open land between rooms holds groves of one thing.
+- **Every piece of every pack is used** (`node tests/audit_assets.js`), each in a room that fits it. The older biomes'
+  floors and walls now use their whole sheets.
+- **The Dead Wood has a forest beyond its clearings, the Gaslight District rooftops, the Frozen Kingdom glacier walls.**
+  Mounted torches and lanterns light the walls.
+- **Sealed vaults** behind doors in the dungeons' walls hold a treasure room and its guards.
+- **The tower fights on:** when the final boss falls, the tower's two hearts wake; stop them both to open the way home.
+- **Props never shut a doorway.** After a stage is dressed, anything that would send monsters (or you) the long way
+  round, or box you into a corner, is moved (`node tests/detour_scan.js` checks every area).
+
+## The stage editor (2026-10-24, night)
+
+- **Make the stages yourself.** STAGE EDITOR on the main menu (or `index.html?editor`):
+  - a drawer of every piece of every pack;
+  - stamp, scatter, erase, terrain painting (walls dress themselves), floor tiles and markers (entrance, exit, breaches, packs, chests, shrines);
+  - collision you can see and drag;
+  - undo, and a play test (F5, F10 to come back).
+  Saved stages are what the game plays. See [docs/STAGE_EDITOR.md](docs/STAGE_EDITOR.md).
+- **Drop in new art.** Pictures or a zip are cut, animated, faced (RPG Maker sheets too) and given collision by themselves.

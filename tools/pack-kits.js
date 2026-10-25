@@ -26,6 +26,12 @@ const PACKS = {
   hv: { dir: 'tile sets/Haunted Victorian City', name: 'Haunted Victorian City', band: 150 },
   // the packs of 2026-10-24: their files are listed (no numbered names); no title banners but on the first floor sheet
   da: { dir: 'tile sets/Dungeon Asset Pack', name: 'Dungeon Asset Pack', band: 0, files: ["Floor tiles!.png","wall tiles.png","special tiles.png","doors and arches.png","BLOOD AND GORE.png","Barrels, crates and sacks.png","Furniture and fixtures.png","Jars, pots and urns.png","Magical and occult.png","Pillars and columns.png","Traps and mechanism.png","Wall and floor details.png","lightning fx.png","miscellaneous props.png","skeletons and bones.png","statues and gargoyles.png"] },
+  // the older packs' floor and wall sheets (PLAN.md 22): before, one 152 px crop of each floored its biome; now every
+  // swatch is cut (floors) and every wall face (walls). Packed by tools/pack-lands.js into data/bundle_lands.js
+  zs: { dir: 'tile sets/Zombie Apocalypse Survival Asset Pack', name: 'Zombie Apocalypse Survival', band: 0, lands: true, files: ['1. Cracked street tiles.png'] },
+  wl: { dir: 'tile sets/WASTELAND SURVIVOR KIT Post-Apocalyptic', name: 'Wasteland Survivor Kit', band: 0, lands: true, files: ['1. Cracked contrete tiles.png', '2. Rusted metal floor tiles.png'] },
+  vr: { dir: 'tile sets/Volcanic Ruins', name: 'Volcanic Ruins', band: 0, lands: true, files: ['1. Floor tiles.png', '2. wall tiles.png', '3. Lava tiles.png'] },
+  ph: { dir: 'tile sets/Psychological Horror Dungeon', name: 'Psychological Horror Dungeon', band: 0, lands: true, files: ['Floor tiles and wall tiles.png', 'Wall tiles.png'] },
   gc: { dir: 'tile sets/Crimson Gothic Castle', name: 'Crimson Gothic Castle', band: 0, noBanner: true, files: ["Crimson Gothic Castle/Set 1 (1).png","Crimson Gothic Castle/Set 1 (2).png","Crimson Gothic Castle/Set 1 (3).png","Crimson Gothic Castle/Set 1 (4).png","Cimson Gothic Castle 2/Set 2 (4).png","Cimson Gothic Castle 2/Set 2 (5).png","Cimson Gothic Castle 2/Set 2 (6).png","Cimson Gothic Castle 2/Set 2 (7).png","Cimson Gothic Castle 2/Set 2 (8).png","Cimson Gothic Castle 2/Set 2 (9).png","Crimson Gothic Castle 3/Set 3 (1).png","Crimson Gothic Castle 3/Set 3 (2).png","Crimson Gothic Castle 3/Set 3 (3).png","Crimson Gothic Castle 3/Set 3 (4).png","Crimson Gothic Castle 3/Set 3 (5).png","Crimson Gothic Castle 3/Set 3 (6).png","Crimson Gothic Castle 4/set 4 (1).png","Crimson Gothic Castle 4/set 4 (2).png","Crimson Gothic Castle 4/set 4 (3).png","Crimson Gothic Castle 4/set 4 (4).png","Crimson Gothic Castle 4/set 4 (5).png","Crimson Gothic Castle 4/set 4 (6).png","Crimson Gothic Castle 5/Set 5 (1).png","Crimson Gothic Castle 5/Set 5 (2).png","Crimson Gothic Castle 5/Set 5 (3).png","Crimson Gothic Castle 5/Set 5 (4).png","Crimson Gothic Castle 5/Set 5 (5).png","Crimson Gothic Castle 5/Set 5 (6).png"] },
 };
 const box = (x0, x1, y0, y1) => [x0, y0, x1 - x0, y1 - y0]; // from "x0-x1 x y0-y1" in the catalogue
@@ -112,6 +118,14 @@ const SHEETS = {
   hv20: { role: 'solid', scale: 0.28 },
   // ---------------------------------------------------------------- Dungeon Asset Pack (PLAN.md 19, W1): 1536x1024
   // sheets (skeletons 1254 square); kind: a prop kind per piece (js/props.js), from the row (source y) or the colour
+  zs1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  wl1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  wl2: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  vr1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  vr2: { role: 'wall', scale: 0.25, kind: (r) => (r.y > 600 ? 'block' : r.x > 1060 ? 'corner' : 'face') }, // wall faces, their corner turns, the junction blocks
+  vr3: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'lava' },
+  ph1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
+  ph2: { role: 'wall', scale: 0.2, kind: 'face' },
   da1: { role: 'ground', ground: 8, alt: 'decal', scale: 0.27, kind: 'plate' },
   da2: { role: 'wall', scale: 0.27, noBanner: true, kind: (r) => (r.y > 430 && r.y < 610 ? 'door' : 'face') },
   da3: { role: 'solid', scale: 0.27, noBanner: true, kind: (r, c) => (r.y < 250 ? 'face' : r.y < 520 ? 'door' : r.y < 720 ? (c.orange > 0.06 ? 'brazier' : c.purple > 0.15 ? 'crystal' : 'trap') : c.fill < 0.6 ? 'decal' : 'pool') },
@@ -430,6 +444,7 @@ function packKits() {
   const img = {}, meta = {};
   const cache = {};
   for (const id of Object.keys(SHEETS)) {
+    if (PACKS[id.slice(0, 2)].lands) continue; // packed into bundle_lands by tools/pack-lands.js
     const r = packSheet(id);
     if (!r) { console.warn('  ! kit sheet missing: ' + id); continue; }
     r.images.forEach((im, i) => { img['kit.' + id + '.' + i] = png64(im); });
@@ -472,7 +487,7 @@ function contact(r) {
   return out;
 }
 
-module.exports = { packKits, packNpcs, SHEETS, EXTRAS, NPCS, PACKS, piecesOf, sheetFile };
+module.exports = { packKits, packNpcs, packSheet, SHEETS, EXTRAS, NPCS, PACKS, piecesOf, sheetFile };
 
 const KINDS = {};
 if (require.main === module) {

@@ -71,6 +71,7 @@
   G.on('kill', function (e) {
     const L = G.level;
     if (!e.isBoss || !L || !L.bossHall || L.opened) return;
+    if (L.biome === 'belly' && !L.heartsDone) return; // inside the tower its hearts still beat (js/sky.js)
     L.opened = true;
     L.exit.open = true;
     L.reveal(L.exit.x, L.exit.y, 4);

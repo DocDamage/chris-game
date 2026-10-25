@@ -55,6 +55,18 @@
     Run.startLevel(n);
   });
 
+  /* the generator's level for an area (the stage editor starts from it too) */
+  Run.genLevel = function (n, rng) {
+    const biome = biomeFor(n);
+    const WM = CH.WorldMap, world = WM && WM.on();
+    const dep = world ? Math.max(1, Math.round(WM.depth(n))) : n;
+    if (world) WM.genAct = WM.area(n).act;
+    const L = world && n === WM.LAST && CH.Sky ? CH.Sky.approach(dep, rng) : world && WM.area(n).boss ? WM.hall(biome, n) : LG.generate(biome, dep, rng);
+    if (WM) WM.genAct = 0;
+    return L;
+  };
+  Run.biomeFor = biomeFor;
+
   Run.startLevel = function (n) {
     G.wave = n;
     if (G.runSeed === undefined || G.runSeed === null) G.runSeed = X.run && X.run.seed != null ? X.run.seed >>> 0 : (Math.random() * 2147483647) | 0;
@@ -64,7 +76,7 @@
     const dep = world ? Math.max(1, Math.round(WM.depth(n))) : n; // the generator scales by depth
     if (world) WM.genAct = WM.area(n).act;
     // the last area is the sky road to the Final Tower (js/sky.js); the other act bosses wait in their halls
-    const L = world && n === WM.LAST && CH.Sky ? CH.Sky.approach(dep, rng) : world && WM.area(n).boss ? WM.hall(biome, n) : LG.generate(biome, dep, rng);
+    const L = (CH.Stages && CH.Stages.levelFor(n, n)) || Run.genLevel(n, rng); // a stage made by hand in the editor (js/stages.js) is played as made
     WM && (WM.genAct = 0);
     L.stage = n;
     L.threat = 0;
@@ -106,7 +118,8 @@
     L.exit.open = false;
     // a vending machine in a mid-way room, from stage 2
     G.machine = null;
-    if (n >= 2) {
+    if (L.shop) G.machine = { x: L.shop.x, y: L.shop.y, uses: 1, t: 0, hidden: true }; // a shop the stage editor made of a piece (a stall): the piece is its look
+    else if (n >= 2) {
       const mid = L.rooms.filter((r) => r.tag === 'waypoint')[0] || L.rooms[Math.floor(L.rooms.length / 2)];
       const p = L.randomNear(mid.cx, mid.cy, 60, 120, 20) || L.nearestOpen(mid.cx, mid.cy);
       G.machine = { x: p.x, y: p.y, uses: 1, t: 0 };
@@ -510,7 +523,7 @@
     for (const s of L.shrines) {
       if (!onScreen(s) || !seen(s)) continue;
       const x = sx(s.x), y = sy(s.y);
-      if (CH.Sprites.has('obj.occult_altar')) CH.Sprites.draw(ctx, 'obj.occult_altar', x, y + 10, { alpha: s.used ? 0.55 : 1, tint: s.used ? '#000000' : '#ff2bd6', tintA: s.used ? 0.35 : 0.15 + 0.1 * Math.sin(t * 4) });
+      if (!s.skin && CH.Sprites.has('obj.occult_altar')) CH.Sprites.draw(ctx, 'obj.occult_altar', x, y + 10, { alpha: s.used ? 0.55 : 1, tint: s.used ? '#000000' : '#ff2bd6', tintA: s.used ? 0.35 : 0.15 + 0.1 * Math.sin(t * 4) });
       if (!s.used) sign(5, x, y - 26 + Math.sin(t * 3) * 1.4, 18, 1);
     }
     for (const c of L.chests) {
@@ -531,7 +544,7 @@
         if (c.opened && !rattle) { ctx.globalAlpha = Math.max(0, a); ctx.fillStyle = '#fff3c0'; ctx.fillRect(x - 6, y - 60, 12, 50); ctx.globalAlpha = 1; } // a shaft of light out of the open lid
         ctx.globalCompositeOperation = 'source-over';
       }
-      if (chests) { // the pack's chests: wood, steel, gold and the blue relic chest by tier; row 2 is the opened lid
+      if (chests && !c.skin) { // the pack's chests: wood, steel, gold and the blue relic chest by tier; row 2 is the opened lid (a chest that is a piece of the stage is drawn as that piece, js/stages.js)
         const col = c.secret ? 3 : c.tier >= 7 ? 3 : c.tier >= 5 ? 2 : c.tier >= 3 ? 1 : 0;
         const jx = rattle ? Math.round(Math.sin(k * 90) * 1.5) : 0;
         ctx.drawImage(chests, col * 36, c.opened && !rattle ? 32 : 0, 36, 32, x - 18 + jx, y - 23 - (rattle && k > Run.CHEST_DELAY * 0.6 ? 1 : 0), 36, 32);

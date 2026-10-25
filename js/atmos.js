@@ -372,7 +372,7 @@
     A.pt = (A.pt || 0) - dt;
     if (A.pt > 0) return;
     A.pt = 0.4;
-    const list = A.puddles();
+    const list = A.puddles().concat((G.level && G.level.hazards) || []); // (hazards: pieces of a hand-made stage that burn or poison, js/stages.js)
     for (const p of list) {
       if (p.kind === 'water' || p.kind === 'blood') {
         // walking through water: ripples (and it puts out anything burning)
@@ -511,7 +511,7 @@
     for (const p of A.particles) {
       const x = Math.round(v.x + (p.x % v.w + v.w) % v.w), y = Math.round(p.y);
       if (m === 'snow' || m === 'blizzard') {
-        const fl = p.z > 0.85 && CH.Assets.images['kit.fk18.' + (Math.floor(p.ph * 7) % 7 + 3)]; // the nearest flakes: the pack's own (Frozen 18)
+        const fl = p.z > 0.85 && CH.Assets.images['kit.fk18.' + (Math.floor(p.ph * 18) % 18)]; // the nearest flakes: the pack's own, every flake, ring and puff of it (Frozen 18)
         if (fl) { ctx.globalAlpha = 0.85; ctx.drawImage(fl, Math.round(x - fl.width / 2), Math.round(y - fl.height / 2)); ctx.globalAlpha = 1; }
         else { ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + 0.4 * p.z) + ')'; const s = p.z > 0.6 ? 2 : 1; ctx.fillRect(x, y, s, s); if (m === 'blizzard') ctx.fillRect(x - 3, y, 3, 1); }
       }

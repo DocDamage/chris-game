@@ -28,7 +28,7 @@
     for (const c of L.chests || []) if (!c.opened && seen(L, c.x, c.y)) add({ x: c.x, y: c.y, r: 38, verb: 'OPEN', name: c.secret ? 'HIDDEN CHEST' : 'CHEST', color: '#fee761', top: 28, act: (q) => R.openChest(c, q) });
     for (const s of L.shrines || []) if (!s.used) add({ x: s.x, y: s.y, r: 34, verb: 'PRAY', name: R.shrineName(s), color: '#e9a0ff', top: 40, act: (q) => R.useShrine(s, q) });
     if (!L.isTown) for (const w of L.waypoints || []) if (w.active && CH.Town) add({ x: w.x, y: w.y, r: 36, verb: 'TRAVEL', name: 'WAYPOINT', color: '#9be08a', top: 34, act: (q) => CH.Town.waypointMenu(w, q) });
-    if (G.machine && !L.isTown) add({ x: G.machine.x, y: G.machine.y, r: 36, verb: 'SHOP', name: 'VENDING MACHINE', color: '#68c2d3', top: 44, act: (q) => CH.Shop.useMachine(q) });
+    if (G.machine && !L.isTown) add({ x: G.machine.x, y: G.machine.y, r: 36, verb: 'SHOP', name: G.machine.hidden ? 'SHOP' : 'VENDING MACHINE', color: '#68c2d3', top: 44, act: (q) => CH.Shop.useMachine(q) });
     // the exit door
     const ex = L.exit;
     if (ex && !L.isTown && !L.interior && seen(L, ex.x, ex.y)) {
@@ -43,6 +43,9 @@
     }
     // the landmark's lore stone (js/setpieces.js)
     for (const s of L.lore || []) add({ x: s.x, y: s.y, r: 34, verb: 'READ', name: s.name, color: '#e8c170', top: 30, act: (q) => IX.read(s, q) });
+    // the sealed vaults behind doors in the dungeons' walls (js/walls.js, js/interiors.js)
+    if (!L.interior && !L.isTown && CH.Walls && CH.Walls.plan && !L._wplan) CH.Walls.plan(L);
+    for (const v of L.vaults || []) if (!L.interior && seen(L, v.x, v.y)) add({ x: v.x, y: v.y, r: 30, verb: 'ENTER', name: 'SEALED VAULT', color: '#e8c170', top: 40, act: () => CH.Interiors && CH.Interiors.enter(v) });
     // buildings you can walk into, and the way out of one
     if (L.interior && L.door) add({ x: L.door.x, y: L.door.y - 4, r: 30, verb: 'LEAVE', name: L.name ? String(L.name).toUpperCase() : 'OUTSIDE', color: '#fee761', top: 20, act: () => (CH.Interiors && CH.Interiors.outside ? CH.Interiors.leave() : CH.Cult && CH.Cult.leave && CH.Cult.leave()) });
     if (L.interior && !L.door && L.exit && CH.Cult && CH.Cult.leave) add({ x: L.exit.x, y: L.exit.y, r: 30, verb: 'LEAVE', name: 'THE HIDEOUT', color: '#fee761', top: 20, act: () => CH.Cult.leave() });

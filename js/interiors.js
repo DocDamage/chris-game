@@ -20,6 +20,8 @@
     cabin: { fam: 'c', alt: 'h', walls: ['shelf', 'barrel', 'crate', 'hang', 'table'], mid: ['table', 'chair', 'bench'], bed: 1, extra: ['bones', 'debris', 'candles'], foes: 0.35 },
     house: { fam: 'g', alt: 'h', walls: ['shelf', 'sofa', 'shelf', 'machine', 'hang'], mid: ['table', 'chair', 'sofa'], bed: 1, extra: ['item', 'candles', 'rug'], foes: 0.25 },
     hut: { fam: 'f', alt: 'a', walls: ['barrel', 'shelf', 'crate', 'table', 'sack'], mid: ['table', 'bench', 'cauldron'], bed: 0, extra: ['debris', 'item', 'candles'], foes: 0.3 },
+    // a sealed vault behind a door in a dungeon's wall (PLAN.md 22): statues and braziers round a treasure, guarded
+    vault: { fam: 'a', alt: 'h', walls: ['statue', 'pillar', 'case', 'statue', 'crate'], mid: ['altar', 'candles', 'candles'], bed: 0, extra: ['bones', 'item', 'debris'], foes: 0.85, tier: 3 },
   };
 
   /* the room: 15 x 10 tiles of floor, the door in the middle of the south wall; solid rock round it so the camera can
@@ -31,7 +33,7 @@
     const X = (t) => (t + OX) * TS, Y = (t) => (t + OY) * TS; // room tiles to world px
     L.style = Object.assign({}, L.style, { mats: { dirt: { base: ['da1.18', 'da1.19', 'da1.45'], acc: ['da1.20', 'da1.46', 'da1.47'] }, moss: { base: ['da1.18'], acc: ['da1.21'] }, roots: { base: ['da1.45'], acc: ['da1.48'] }, rust: { base: ['da1.19'], acc: ['da1.22'] }, stone: { base: ['da1.46'], acc: ['da1.49'] }, swamp: { base: ['da1.45'], acc: ['da1.50'] } } });
     L.interior = true;
-    L.name = b.enter === 'house' ? 'A Townhouse' : b.enter === 'hut' ? 'A Frozen House' : 'A Cabin';
+    L.name = b.enter === 'house' ? 'A Townhouse' : b.enter === 'hut' ? 'A Frozen House' : b.enter === 'vault' ? 'A Sealed Vault' : 'A Cabin';
     L.carveRect(1 + OX, 1 + OY, 15, 10);
     L.rooms = [{ x: 1 + OX, y: 1 + OY, w: 15, h: 10, cx: X(8.5), cy: Y(6), deg: 1, id: 0, tag: 'inside' }];
     L.entrance = { x: X(8.5), y: Y(10) };
@@ -43,7 +45,7 @@
     L.hivesNeeded = 0;
     L.opened = true; // (not areaReady: js/areas.js keeps the stage outside, not this room)
     const r = U.seeded(seed >>> 0);
-    L.chests = [{ x: X(r() < 0.5 ? 3 : 14), y: Y(3), opened: !!b.looted, id: 0, room: 0, tier: 2 + Math.round(G.tier ? G.tier() : 1), inside: true }];
+    L.chests = [{ x: X(r() < 0.5 ? 3 : 14), y: Y(3), opened: !!b.looted, id: 0, room: 0, tier: 2 + (K.tier || 0) + Math.round(G.tier ? G.tier() : 1), inside: true }];
     const D = CH.SetPieces.Dresser(L, 'catacombs');
     D.fam = K.fam;
     D.alt = K.alt;
@@ -70,7 +72,7 @@
     const O = G.level;
     if (!O || O.interior || IN.outside) return;
     const W = CH.Areas && CH.Areas.world();
-    const idx = O.props.indexOf(b);
+    const idx = b.vi !== undefined ? 1000 + b.vi : O.props.indexOf(b); // a vault is a door in the wall, not a prop
     const seed = ((W ? W.seed : 1) + (O.stage || 0) * 7919 + idx * 131) >>> 0;
     const st = W && W.areas[O.stage];
     b.looted = !!(st && st.inside && st.inside.includes(idx));
@@ -131,7 +133,7 @@
       for (const p of G.players) if (!p.dead && U.dist(p.x, p.y + 12, L.door.x, L.door.y) < 22 && (p.vy > 0 || p.inp && p.inp.moveY > 0)) { IN.leave(); return; }
     }
   });
-  IN.NAME = { house: 'TOWNHOUSE', hut: 'FROZEN HOUSE' };
+  IN.NAME = { house: 'TOWNHOUSE', hut: 'FROZEN HOUSE', vault: 'SEALED VAULT' };
   IN.nameOf = (b) => IN.NAME[b.enter] || 'CABIN';
   /* the door inside, and a hint at the doors outside */
   CH.Hooks.world.push((ctx, cam) => {

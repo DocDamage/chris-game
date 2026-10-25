@@ -865,3 +865,71 @@ Seen while doing this work, in order of how much they would add:
    animated props; `node tests/perf_levels.js` should be run on the target machine.
 9. 20.2 still stands: active skills with runes, elite affixes, an endgame loop, legendary powers, events, globes, a map
    overlay, story per act, sound of place, stash and loot filter.
+
+## 22. Every asset of every level, placed with meaning (owner's requests of 2026-10-24, night)
+
+The owner: not every level used all of its packs ("unacceptable"); then, seeing the result, "props are still just
+scattered with no meaning ... study other games like Diablo". And: do the improvements of 21.2.
+
+### 22.1 How Diablo composes a stage (what was studied)
+
+- Diablo I builds levels from tiles by algorithm, with hand-made **set pieces** (quest lairs) and **theme rooms**: a
+  room with a purpose and a fixed composition (a library is always a bookcase flanked by two candles, with book stands;
+  shrines, armouries, monster pits). Source: boristhebrave.com, "Dungeon Generation in Diablo 1".
+- Diablo IV assembles **tile-sets** with props, interactives and lighting, and dresses each space with a **culture
+  kit** (one faction's props), mixing kits only to tell what happened there ("drowned filth on a gothic manor"); detail
+  is added or removed to keep the play space readable; lighting leads the way. Source: Blizzard's Diablo IV quarterly
+  update on art and environments (purediablo.com).
+- So: a room has one purpose and its props say it; props stand against the architecture (the back wall's row, the side
+  walls, clutter in corners, lights flanking doorways and the centrepiece), the middle is the fighting space; things of
+  a kind keep together; a room shows a few of a kind, not a crowd; open land between rooms holds groves of one thing.
+
+### 22.2 What was done
+
+| Area | Done |
+| --- | --- |
+| Composition (js/compose.js, new) | A room's slots are read from its cells: the back wall, the side walls, the corners, the doorways (grouped into spans; a room that opens wide has none) and a second row in big rooms. **Recipes** (`CH.Compose.recipe`) compose the dungeon rooms as Diablo's theme rooms: a centrepiece at the back middle with two flankers, a rug and a half ring of candles; the back wall's row in runs of one kind and one kit with gaps; the side walls every other cell; a small pile in each corner; a light pair by each doorway; stains near the walls; the middle open. Crypt, ward, storage, torture room, forge, lava cave, ossuary, alchemist, armoury, garden, lava hall and drowned room are recipes now. `D.scatter` puts things in the free wall and corner slots near the point asked (a kind anchored in its own part of the room), or in a ring round a feature, never at random points; `alongWalls` lines the real back wall; a pile starts in a corner |
+| Coverage with meaning (js/setpieces.js `sweep`) | Every room has a purpose (`rm.purpose`, its scene) and a list of the kinds it takes (`PURPOSE`: an ossuary takes bones, coffins and candles, a storeroom crates and barrels, a garden plants ...). What a stage owes of its packs goes only into rooms whose purpose takes it, at most three of a kind a room (five of the things that come in rows), each kind clustered round its own spot; long pieces that find no wall (fences, walls, barricades) become straight runs across open ground, the rest groves of their kind; a piece that cuts a way is moved where a reachability check passes. Open ground between rooms holds a few dense groves of one thing (`fields`), no longer an even sprinkle |
+| Every asset | The older packs' floor and wall sheets were cut whole (before: one 152 px crop of each floored its biome): Outbreak City streets (36), wasteland concrete and metal (77), Caldera floors, walls and lava (69), Crypt floors and walls (51), packed by tools/pack-lands.js. The Seabed's ground, reef, details and bubbles, the islands' ponds, lakes and ripples (animated), their grass edges. Valley Ruin's objects grow on the sky road. Each stage gets floor **inlays** of its share of its floor swatches; every flake, ring and puff of the Frozen Kingdom's snow sheet falls in the snow, its footprints lie in it. Audit: **7,553 of 7,553 pieces** across all 49 areas (the weather's snowflakes and two cutting slivers not counted) |
+| Floors (21.2 #1) | Outbreak City, the wasteland, the Caldera and the Crypt have stamped ground from every swatch of their floor sheets, sorted by colour, tiles with markings (road lines, crossings, blood) only as inlays; the Caldera's floor a warm dark |
+| Walls | Every face, run end, banner and mounted piece is dealt from a per-stage plan with a quota, faces per stretch of four cells (a wall reads as one wall); every door, window, hanging, wall sign, torch and lantern of a biome's packs is a mount; the Crypt gets its own wall faces, the Caldera its lava-brick walls with their corners, the Frozen Kingdom glacier cliff faces with icicles |
+| Outdoor edges (21.2 #2) | The Dead Wood's dark beyond the clearings holds its forest (trees, darkened, at the edge of the dark); the Gaslight District's blocks are rooftops (the pack's slopes, gables, dormers, chimneys and ridges); the Frozen Kingdom's tops hold snowy trees |
+| Wall lights (21.2 #3) | A mounted torch or lantern casts a flickering light |
+| The final boss (21.2 #4) | When the final boss falls inside the tower, the tower's two hearts wake: each beats where it hangs, a ring of blood-shots with every beat (faster as it fails), cell creatures crawl out every fourth beat; when both stop, THE WAY HOME opens |
+| Island rims (21.2 #5) | Every outer corner of an island is rounded into the sky with a pale lip |
+| Vaults (21.2 #6) | In the Catacombs, the Crypt, the Castle and the Caldera one or two of the mounted doors are **sealed vaults**: ENTER, a pillared treasure room with a richer chest and its guards; opened once per area |
+| Speed (21.2 #7) | tests/perf_levels.js, the largest dungeon, 4 heroes, 4 sidekicks, 100 monsters, 1920x1080: 15.2 ms a frame with effects high, 8.8 ms off |
+| No long way round | Props never shut a doorway or a corridor: after dressing, the tile the props make the worst detour to is found (its walk from the entrance against the walls' alone), and walking that short way back, the prop on the first tile it blocks is moved; until no tile is more than 12 steps further than the walls make it. A piece moved stands again only where it adds no detour. Groves and fence runs keep two tiles of open ground round them. `node tests/detour_scan.js` scans every area: before, three stages had shut doorways (a Catacombs stage 90 steps out of the way, a Dungeon stage 82, 885 tiles affected); after, none over 12. A stage-1 camp no longer boxes a hero in between its pen and a grove (t26) |
+| Frozen houses | Every Frozen Kingdom stage has a house to go into: when every room is a camp, one stands on open ground (t57) |
+
+## 23. The stage editor (owner's request of 2026-10-24, night)
+
+The owner: "i need a tool that i can move and place the assets myself, keeping their collision they have, and if i add new assets, it should do all the work it needs underneath, like setting collision, or animations, or which direction it should face." The levels stay as they are; the owner edits them. Every asset given must be available. They chose a **full stage builder** and, for each stage, the choice between **the generated stage and a cleared one**. The model is their own Doc's Doodads (DocDamage/Doodads-with-a-drawer): its drawer, tools and keys.
+
+How to use it: docs/STAGE_EDITOR.md.
+
+| Part | Done |
+| --- | --- |
+| Way in | Main menu STAGE EDITOR, `index.html?editor`, F10 back from a play test |
+| Stages (js/stages.js) | A stage saved by the editor is played instead of the generator's (`Run.startLevel` and the tower's belly ask `CH.Stages.levelFor`). A stage keeps its cells, heights, stairs, bridges, paths, painted floor tiles, decals, inlays, puddles, every prop (piece key, spot, collision, animation, light, door), and its spots (entrance, exit, waypoints, breaches, packs, chests, shrines, secrets, lore). A look not cut from a pack (a built townhouse) travels as an image. Wall faces, mounts and lights are worked out again from the cells. `data/stages.js`, one line per stage |
+| Opening a stage | Edit my stage, restore unsaved work, the generated stage (any seed), generated and cleared, or blank (look, size, open or solid) |
+| Drawer (js/editor/drawer.js, catalog.js) | Every piece of every pack: kits, sheets, the lands, animations, Valley Ruin objects, whole set pieces, campfires, the owner's imports (7,596 entries; t61 checks every key the audit counts). Tabs, pack and kind filters, search (`kind:` `pack:` `sheet:` `type:` and `-word`), a thumbnail slider, a virtual grid, an animated hover card, favourites, recents, multi-pick, a resizable edge, drop-to-import |
+| Tools (js/editor/tools.js) | Select (snap, Alt free, box-pick, collision handles in an explicit edit mode), Stamp (rows by dragging; as its kind, standing or flat), Scatter (mix, density, random flips, right-drag thins), Erase, Terrain (floor, wall, pit, secret wall; rectangles; walls dress themselves), Floor tiles, Markers, eyedropper |
+| Details (js/editor/inspector.js) | A piece: position, flip, size, flat or standing, collision (presets None, Traced from art, Full, Bottom half, Trunk; numbers; handles), jumpable, breakable, sway, animation speed, light, and "use as this piece's default" (`data/asset_meta.js`, which the game's own generator also follows: `PR.meta`, `PR.boxOf`). Several: flip, solid, trace, line up, spread. A marker: pack monsters, count, elites, leader; chest tier; shrine blessing; breach kind; lore text. The stage: name, look, resize, the walk-everywhere check |
+| Undo | Every step undoable (300), named on the buttons |
+| Saving (js/editor/files.js) | Writes into the game's folder through the browser's file access (file:// pages have it): the folder is asked for once and remembered. The last version of each file is kept in `data/editor_backups/` (30 kept). The fallback is a download with instructions. Unsaved work is kept in the browser every few seconds |
+| Bringing in art (js/editor/import.js) | Pictures or a .zip. One thing is one piece; a sheet is cut at its gaps; look-alike cells become an animation per row, with 4 or 8 rows as facings; Doodads name tags (`[f8]` `%(8)` `_strip8` `8f` `[d4]`); RPG Maker character sheets (`$` one character, else eight) become each facing walking. Opaque pictures are floor swatches or 32 px tiles. The kind comes from the name (and so standing or flat), collision is traced from the art, and lights glow. A preview lets everything be changed; the art scale is set there. Saved to `data/bundle_user.js` and `data/asset_meta.js` |
+| Test | t61_editor.js (16 checks): every piece in the drawer; placing keeps collision; undo/redo; move; flat to standing; terrain; markers; the collision handle; save then build gives the same stage; the game plays it and its collision holds; import cutting (strip, one piece, swatch); imported pieces join with kind, collision and animation; a cleared stage; the play test and F10 |
+
+### 23.1 What a piece is (owner, same night)
+
+The owner: "if i drop a door that it should make the event to enter the building if i choose. so i need it to auto-event when needed", then "its not just about doors and buildings, it needs to recognize any props or asset i drop and know what to do with it or ask if unsure."
+
+| Part | Done |
+| --- | --- |
+| Roles (js/editor/roles.js) | Every placed piece gets a role: scenery, breakable, light, tree, goes inside (cabin / townhouse / frozen house / vault), the stage exit, chest, shrine, sign, waypoint, breach, shop, burns, poisons. |
+| How a role is found | A role is **sure** from the piece's kind (doors and houses go inside, with the room fitting the biome; torches glow; crates break; signposts read; fire traps burn) or from an imported picture's name. Otherwise the editor **asks**: a card of the likely roles plus everything else, answered once for a row of the same piece, with "the same for every <kind>" remembered. |
+| Settings | Modes: recognise (the default), always ask, never. "Recognise every piece" covers stages already made. |
+| Event spots | Roles used at a spot have a badge, dragged to where a hero stands. |
+| In the game (js/stages.js `CH.Stages.events`) | A piece's role becomes a chest (drawn as the piece, `skin`), a shrine (also drawn as the piece), lore to read, a waypoint, a breach (a live hive), a shop (the vending machine made invisible at the spot, labelled SHOP), or a hazard (`L.hazards`, hurting as lava or toxic puddles do in js/atmos.js). Doors use `prop.enter`; the exit stands at the exit door's spot. These records are marked `fromProp`, so saving and reopening never doubles them. |
+| Test | t61 now has 22 checks: sure roles, the grave asked about once then remembered, a stall made a shop, a crate made a chest and undone, the roles made real on build, ENTER / OPEN / READ / SHOP prompts in play, the breach live, the trap hurting, and reopening without doubling. |

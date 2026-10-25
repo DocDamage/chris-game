@@ -114,13 +114,13 @@
     coffin: K(0.6, [0.7, 7], { j: 1, d: 1, res: 'wood' }),
     arch: K(1, null), // vine arches: walked through
     portal: K(1, [0.8, 0.3], { l: 1, res: 'stone' }),
-    roof: K(1, null, { skip: 1 }), // cabin roofs are only used inside built cabins (js/setpieces.js)
+    roof: K(1, null), // roofs build the cabins and townhouses, roof the city's blocks (js/walls.js); spare ones lie fallen (a decal)
     landmark: K(1, [0.3, 10], { res: 'wood' }), // the giant twisted tree: one per Dead Wood stage, not choppable
     cliff: K(1, [0.92, 0.45], { res: 'stone' }), // a glacier cliff block: its icicle face blocks
     stall: K(1, [0.9, 0.38], { res: 'wood' }), // market stalls and racks
     house: K(1, [0.9, 0.4], { res: 'wood' }), // a whole house (Frozen Kingdom 7)
     castle: K(1, [0.95, 0.35], { res: 'stone', hp: 200 }), // ice castle wall sections and towers
-    bridge: K(1, null, { skip: 1 }), // bridges and stairs wait for the height work (K7)
+    bridge: K(1, null), // bridges span the chasms (js/level.js); spare ones are boardwalks laid on the ground
     particle: K(1, null, { skip: 1 }), // snowflakes and footprints are drawn by code (js/atmos.js)
     throne: K(1, [0.8, 0.3], { res: 'stone' }), // Gothic thrones (Victorian 20): the cult house and boss halls
     // the packs of 2026-10-24 (PLAN.md 19, W2)
@@ -155,7 +155,14 @@
     cell: K(1, [0.6, 6], { d: 1, res: 'stone' }), // a cell creature quivering on the gut floor
     worm: K(1, [0.5, 0.3], {}),
     mawdoor: K(1, null, { gate: 1 }),
-    tiles: K(1, null, { skip: 1 }), // a pack's autotile blocks: the source of its floor swatches, not a prop
+    pond: K(1, [0.8, 0.55], {}), // an island pond or lake, its water animated: walked round, not through
+    lake: K(1, [0.86, 0.55], {}),
+    shore: K(1, null), // a strip of shore water
+    ripple: K(1, null, { fx: 1 }), // ripples and glints on water
+    bubble: K(1, null, { fx: 1, rise: 1 }), // bubbles rising in a drowned room
+    tiles: K(1, null, { skip: 1 }),
+    shambler: K(1, [0.4, 6], { sway: 1, res: 'wood' }), // a penned zombie, swaying behind the quarantine fence
+    junk: K(1, null, { skip: 1 }), // slivers the cutter left (a lamp pole cut apart): not a piece of art // a pack's autotile blocks: the source of its floor swatches, not a prop
     tower: K(1, null, { skip: 1 }),
   };
   PR.KIND = KIND;
@@ -174,7 +181,7 @@
     z_trash: { trash: '0,1,6-20', debris: '2-5' },
     z_windows: { window: '0-26' },
     z_doors: { door: '0-9' },
-    z_bodies: { skip: '0-6', corpse: '7,8,10-15,19,24,31,33', skeleton: '9,18,20-23,25', bones: '16,17,26-30,32,34,35' },
+    z_bodies: { shambler: '0-6', corpse: '7,8,10-15,19,24,31,33', skeleton: '9,18,20-23,25', bones: '16,17,26-30,32,34,35' },
     z_blood: { decal: '0-17' },
     z_hazard: { plate: '0-29' },
     z_barricades: { sandbag: '0,19', barricade: '1-4,7-10,12-15,18,20-23', tires: '5,6', spikes: '11', barrel: '16', wire: '17' },
@@ -235,6 +242,7 @@
   /* the newer packs cut by tools/pack-kits.js ('kit.<sheet>.<n>', already at game scale), PLAN.md 18 K1/K2.
      Family c = Creepy Forest. The ground swatches of cf1 / cf2 are floor tiles (js/level.js), not props. */
   const KCAT = {
+    vr3: { lava: '0-40' }, // the Caldera's lava swatches and pools: lava inlays, never a walking floor (PLAN.md 22)
     cf1: { boulder: '19', smallstatue: '20,21' },
     cf2: { shrub: '5' },
     cf3: { patch: '0-38' },
@@ -273,7 +281,7 @@
     fk15: { pillar: '0-29' },
     fk16: { stall: '0-10,15-17,19', cauldron: '11', brazier: '12', carv: '13,14', case: '18' },
     fk17: { hut: '0', campfire: '1', pole: '2', fence: '3,5', shelf: '4', table: '6,7', barrel: '8-13' },
-    fk18: { particle: '0-23' },
+    fk18: { particle: '0-17', patch: '18-23' }, // flakes for the snow (js/atmos.js); the footprint trails lie in the snow
     fk19: { statue: '0-6,18,20,21,24,29', obelisk: '7-9', crystal: '10,14,17', grave: '11,25', pillar: '12,13,28', well: '15,23', brazier: '16', portal: '19', lamp: '22', altar: '26', plate: '27', arch: '30' },
     // family g = Haunted Victorian City (PLAN.md 18, K4); sheets 3-8 also carry the title's lamp and carriage
     hv1: { patch: '7,9,17,29,31-39', plate: '40,41,44', boulder: '42,43' },
@@ -291,7 +299,7 @@
     hv13: { stall: '0-8,52', table: '9-14,22,25,26,37', pole: '15,51', shelf: '16,36', crate: '17,20,23,30-33,40', signpost: '18,49', cage: '19,50', barrel: '21,24,35,39', sign: '27,28,47,48', banner: '29', sack: '34', cauldron: '38', case: '41', lantern: '42-44,46', lamp: '45' },
     hv14: { sofa: '0,3,17', chair: '1,2,9-12', shelf: '4-8,19,21,24,26,40', table: '13-16,18,20,23,33', machine: '22', bed: '25', pole: '27', crate: '28', case: '29,30,36', item: '31,32,43', cage: '34', debris: '35', bin: '37,48', lamp: '38,46,47', shrub: '39', hang: '41,42', stall: '44', sign: '45', bench: '49', plate: '50' },
     hv15: { pipe: '0-6,15-35', plate: '7-14,36-43', bridge: '44,45', well: '46' },
-    hv16: { skip: '0,21,28', hang: '1-10,13,14', sign: '11,12,15-18', lamp: '19', signpost: '20,23-25', banner: '22,26,27' },
+    hv16: { junk: '0,28', hang: '1-10,13,14', sign: '11,12,15-18', lamp: '19', signpost: '20,21,23-25', banner: '22,26,27' },
     hv17: { deadtree: '0-2', shrub: '3-26,31,33,37,38', mushroom: '27-29', debris: '30,39', stump: '32', grave: '34,40', rock: '35', growth: '36' },
     hv18: { candles: '0-2,5-7,9,15', lantern: '3', smallstatue: '4', altar: '11', item: '8,10,12-14,17-20', decal: '16' },
     hv19: { wall: '0-10,39-43', rubble: '11-38,87,88', pipe: '44-56,58,59', plate: '57', decal: '60-63,69', patch: '64-68', candles: '70-73', banner: '74,75', lantern: '76,77', grave: '78,92,94,95', hang: '79', fence: '80,81,97', signpost: '82,83,85', barrel: '84', crate: '86', shrub: '89,90', deadtree: '91,93', stump: '96' },
@@ -299,9 +307,17 @@
     fk20: { barrel: '0,2,17', sack: '1', crate: '3,8', pole: '4,16', cauldron: '5', table: '6', bench: '7,9,10', well: '11,13', crystal: '12', signpost: '14', lamp: '15,18-20,33,34', brazier: '21', obelisk: '22', door: '23', smallstatue: '24,25', grave: '26', banner: '27,28,35', fence: '29,30', rock: '31', tree: '32' },
   };
   PR.KCAT = KCAT;
-  const KFAM = { cf: 'c', fk: 'f', hv: 'g', da: 'a', gc: 'r', ul: 'u', sb: 's', fi: 'i', ft: 't', mb: 'b' };
+  const KFAM = { cf: 'c', fk: 'f', hv: 'g', da: 'a', gc: 'r', ul: 'u', sb: 's', fi: 'i', ft: 't', mb: 'b', zs: 'z', wl: 'w', vr: 'v', ph: 'h', us: 'y' }; // us: the owner's own imports (the stage editor, js/editor/import.js)
+  /* the older packs' floor and wall sheets ride in the lands bundle (meta.lands.kits, PLAN.md 22): join them to the kits */
+  PR.mergeKits = function () {
+    const M = CH.Assets.meta || {};
+    const LK = M.lands && M.lands.kits;
+    if (!LK) return;
+    M.kits = M.kits || {};
+    for (const id of Object.keys(LK)) if (!M.kits[id]) M.kits[id] = LK[id];
+  };
   /* animated pieces (anim.<name>, tools/pack-lands.js): the family from the name's prefix */
-  const AFAM = { fi: 'i', mb: 'b', ft: 't', sb: 's' };
+  const AFAM = { fi: 'i', mb: 'b', ft: 't', sb: 's', us: 'y' };
   const animOf = {}; // 'anim.mb_heart' -> { n, fw, fh, kind, fps }
   PR.animOf = (key) => { build(); return animOf[key] || null; };
   const parse = (s) => {
@@ -319,6 +335,7 @@
   function build() {
     if (built) return;
     built = true;
+    PR.mergeKits();
     const M = (CH.Assets.meta && CH.Assets.meta.sheets) || {};
     for (const id of Object.keys(CAT)) {
       const m = M[id];
@@ -392,7 +409,26 @@
     // the set pieces cut whole (tools/pack-kits.js EXTRAS); only the portals join a pool
     const EX = { cf_giant_tree: 'landmark', cf_portal1: 'portal', cf_portal2: 'portal', cf_skull_gate: 'door', cf_crypt_arch: 'door', cf_cabin_door: 'door', fk_gatehouse: 'door', fk_portal: 'portal', fk_summon_circle: 'plate', fk_ice_gate: 'door', hv_eye_portal: 'door', hv_pentagram: 'decal', hv_skull_arch: 'door' };
     for (const k of Object.keys(EX)) if (CH.Assets.images['kit.' + k]) { const f = KFAM[k.slice(0, 2)]; kindOf['kit.' + k] = EX[k]; if (EX[k] === 'portal') ((byKind.portal = byKind.portal || {})[f] = byKind.portal[f] || []).push('kit.' + k); }
+    // a piece's own settings from the stage editor (data/asset_meta.js) name its kind
+    for (const [key, m] of Object.entries(window.CH_ASSET_META || {})) if (m && m.kind && (CH.Assets.images[key] || CH.Assets.images[key + '.0'])) kindOf[key] = m.kind;
   }
+  /* the catalogue made again (the stage editor brought in new pieces or changed a piece's kind) */
+  PR.rebuild = function () {
+    built = false;
+    for (const k of Object.keys(kindOf)) delete kindOf[k];
+    for (const k of Object.keys(byKind)) delete byKind[k];
+    for (const k of Object.keys(animOf)) delete animOf[k];
+    warmList = null;
+  };
+  /* a piece's own settings, set in the stage editor (data/asset_meta.js): { kind, layer: 'floor' | 'stand', box: {hw, hh,
+     cx, cy} | null (walk-through), fps, glow, lr, scale }. They win over what its kind would give it */
+  PR.meta = (key) => (window.CH_ASSET_META && window.CH_ASSET_META[key]) || null;
+  /* the box a piece stands on: its own setting, else its kind's */
+  PR.boxOf = function (key, name, kind) {
+    const m = PR.meta(key);
+    if (m && m.box !== undefined) return m.box ? { hw: m.box.hw, hh: m.box.hh } : null;
+    return PR.boxFor(name, kind);
+  };
   PR.kindOf = (key) => { build(); return kindOf[key] || null; };
   /* the kinds that have pieces in any of the given families */
   PR.kinds = (fams) => { build(); return Object.keys(byKind).filter((k) => [...fams].some((f) => byKind[k][f] && byKind[k][f].length)); };

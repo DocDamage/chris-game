@@ -19,10 +19,12 @@
     backyard: { floor: 'sheet', key: 'tile.grass', sheet: 'tile.hedge', wall: '#2c5a22', top: '#3f7a30', edge: '#1a3a14', speck: ['#ffffff14', '#00000014'] },
     office: { floor: 'pattern', key: 'tile.dungeon_floor', ftint: '#93a6dc', sheet: 'wall.office', a: '#5d6b8a', b: '#667597', wall: '#2a3045', top: '#434c6b', edge: '#171b2a' },
     glitch: { floor: 'pattern', key: 'tile.dungeon_floor', ftint: '#8a3ce0', sheet: 'wall.glitch', a: '#1b1226', wall: '#0f0b1a', top: '#251a3c', edge: '#ff2bd6' },
-    zombie: { floor: 'pattern', sheet: 'wall.zombie', key: 'tile.zombie_street', wall: '#1c1e24', top: '#3a3e48', edge: '#0d0e12' },
-    wasteland: { floor: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
-    volcano: { floor: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
-    dungeon: { floor: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
+    // the older biomes (PLAN.md 22): stamped ground from every swatch of their packs' floor sheets (before: one crop of
+    // each, repeated), the old single crop kept as the fallback when the lands bundle is missing
+    zombie: { floor: 'kit', mats: 'auto:zs1', fallback: 'pattern', sheet: 'wall.zombie', key: 'tile.zombie_street', wall: '#1c1e24', top: '#3a3e48', edge: '#0d0e12' },
+    wasteland: { floor: 'kit', mats: 'auto:wl1,wl2', fallback: 'pattern', sheet: 'wall.wasteland', key: 'tile.wl_ground', wall: '#4a2f1c', top: '#7a5230', edge: '#27180e', wallKey: 'tile.wl_metal' },
+    volcano: { floor: 'kit', mats: 'auto:vr1', ktint: '#b58a78', fallback: 'pattern', sheet: 'wall.volcano', key: 'tile.volcano_floor', wall: '#1a0e0c', top: '#3a1c14', edge: '#ff5a1a' },
+    dungeon: { floor: 'kit', mats: 'auto:ph1', fallback: 'pattern', sheet: 'wall.dungeon', key: 'tile.dungeon_floor', wall: '#0a090e', top: '#26222f', edge: '#050408', wallKey: 'tile.dungeon_wall' },
     // The Catacombs (PLAN.md 19, W2): the Dungeon Asset Pack's flagstones (grey, mossy, brown, purple and blue runes),
     // walls with its brick faces, arches and banners
     catacombs: {
@@ -209,26 +211,30 @@
   /* floor materials from a pack's 32 px tiles sorted by colour ('gc': the castle): grey stone is the dirt, dark stone the
      roots, pale stone the stone, red the rust; the moss is more grey and the swamp more dark */
   function autoMats(pack) {
+    if (CH.Props && CH.Props.mergeKits) CH.Props.mergeKits();
     const K = (CH.Assets.meta && CH.Assets.meta.kits) || {};
+    const ids = pack.length > 2 ? pack.split(',') : null; // a list of sheets ('zs1', 'wl1,wl2') or a pack's prefix ('gc')
     const g = { grey: [], dark: [], pale: [], red: [], green: [] }, plain = new Set();
     const c = document.createElement('canvas');
     c.width = c.height = 32;
     const x = c.getContext('2d', { willReadFrequently: true });
     for (const id of Object.keys(K)) {
-      if (id.slice(0, 2) !== pack || !K[id].kinds) continue;
+      if ((ids ? !ids.includes(id) : id.slice(0, 2) !== pack) || !K[id].kinds) continue;
       K[id].kinds.forEach((kind, i) => {
         const im = kind === 'ground' && CH.Assets.images['kit.' + id + '.' + i];
         if (!im) return;
         x.clearRect(0, 0, 32, 32);
         x.drawImage(im, 0, 0);
         const d = x.getImageData(0, 0, 32, 32).data;
-        let r = 0, gg = 0, b = 0, ring = 0, nr = 0, mid = 0, nm = 0;
+        let r = 0, gg = 0, b = 0, ring = 0, nr = 0, mid = 0, nm = 0, marks = 0;
         for (let k = 0; k < d.length; k += 4) {
           r += d[k]; gg += d[k + 1]; b += d[k + 2];
+          const mx = Math.max(d[k], d[k + 1], d[k + 2]), mn = Math.min(d[k], d[k + 1], d[k + 2]);
+          if (mx - mn > 50 || (mx > 170 && mx - mn < 40)) marks++; // paint, a white stripe, a splash of colour
           const px = (k / 4) % 32, py = (k / 128) | 0, l = d[k] + d[k + 1] + d[k + 2];
           if (px < 3 || py < 3 || px > 28 || py > 28) { ring += l; nr++; } else if (px > 8 && py > 8 && px < 23 && py < 23) { mid += l; nm++; }
         }
-        if (Math.abs(ring / nr - mid / nm) < 45) plain.add(id + '.' + i); // no frame: it tiles
+        if (Math.abs(ring / nr - mid / nm) < 45 && marks < 1024 * 0.01) plain.add(id + '.' + i); // no frame and no markings: it tiles
         r /= 1024; gg /= 1024; b /= 1024;
         const lum = (r + gg + b) / 3;
         const key = id + '.' + i;
@@ -549,6 +555,7 @@
       const st = this.style;
       const x0 = cx * size, y0 = cy * size;
       this.paintFloor(g, st, x0, y0, size);
+      if (this.paint) this.paintTiles(g, x0, y0, size);
       if (this.trail) this.paintTrail(g, x0, y0, size);
       if (this.grounds) this.paintGrounds(g, x0, y0, size);
       if (this.skyBridge && CH.Sky) CH.Sky.paintBridges(this, g, x0, y0, size); // planks over the void (js/sky.js)
@@ -595,11 +602,30 @@
           }
         }
       }
+      // what stands on the walls: rooftops, the forest beyond (js/walls.js)
+      if (CH.Walls && CH.Walls.overlay) CH.Walls.overlay(this, g, cx, cy, CHUNK);
       // the faces of the next chunk's top row reach up into this one
       if (CH.Walls) for (let tx = 0; tx < CHUNK; tx++) CH.Walls.overhang(this, g, cx * CHUNK + tx, (cy + 1) * CHUNK, tx * TS, CHUNK * TS);
       this.paintBridges(g, x0, y0, size);
       this.chunks.set(key, c);
       return c;
+    }
+    /* the floor painted tile by tile in the stage editor (js/stages.js): each painted tile shows the swatch it was given */
+    paintTiles(g, x0, y0, size) {
+      const IM = CH.Assets.images, t0x = x0 / TS, t0y = y0 / TS;
+      for (let ty = 0; ty < CHUNK; ty++) for (let tx = 0; tx < CHUNK; tx++) {
+        const gx = t0x + tx, gy = t0y + ty;
+        if (!this.inb(gx, gy) || this.cell(gx, gy) !== FLOOR) continue;
+        const key = this.paint.get(gy * this.tw + gx);
+        const im = key && IM[key];
+        if (!im) continue;
+        // a swatch bigger than a tile shows the part of it that falls on this tile, so a big swatch tiles seamlessly
+        const sw = im.width, sh = im.height;
+        if (sw >= TS * 2 || sh >= TS * 2) {
+          const nx = Math.max(1, Math.floor(sw / TS)), ny = Math.max(1, Math.floor(sh / TS));
+          g.drawImage(im, (gx % nx) * TS, (gy % ny) * TS, Math.min(TS, sw), Math.min(TS, sh), tx * TS, ty * TS, TS, TS);
+        } else g.drawImage(im, tx * TS, ty * TS, TS, TS);
+      }
     }
     /* this level's own few tiles of each material, from a long list (the castle's): its floor looks of one piece */
     matsFor(st) {
@@ -724,7 +750,7 @@
         g.fillRect(0, 0, size + tex.width, size + tex.height);
         g.restore();
       } else if (st.floor === 'kit' && st.mats && st.mats.indexOf && st.mats.indexOf('auto:') === 0) {
-        st.mats = autoMats(st.mats.slice(5));
+        Level.resolveMats(st);
         return this.paintFloor(g, st, x0, y0, size);
       } else if (st.floor === 'kit' && st.mats) {
         this.paintKitFloor(g, st, x0, y0, size, h);
@@ -811,6 +837,14 @@
         const acc = M[MATS[m]] && M[MATS[m]].acc;
         const im = acc && acc.length ? IM['kit.' + acc[Math.floor((r / 0.07) * acc.length) % acc.length]] : null;
         if (im) g.drawImage(feathered(im), x, y);
+      }
+      if (st.ktint) { g.globalCompositeOperation = 'multiply'; g.fillStyle = st.ktint; g.fillRect(0, 0, size, size); g.globalCompositeOperation = 'source-over'; }
+      // the floor inlays dealt to this stage (js/setpieces.js): every swatch of the biome's floors shows in its five stages
+      if (this.inlays) for (const q of this.inlays) {
+        if (!IM['kit.' + q.key] && !IM[q.key]) continue;
+        if (q.x + TS < x0 || q.x > x0 + size || q.y + TS < y0 || q.y > y0 + size) continue;
+        const im = IM['kit.' + q.key] || IM[q.key];
+        if (im) g.drawImage(feathered(im), q.x - x0, q.y - y0);
       }
       // a wide, faint mottling of light and shade
       for (let y = 0; y < size; y += 8) for (let x = 0; x < size; x += 8) {
@@ -1026,4 +1060,13 @@
   Level.PIT = PIT;
   Level.LEDGE = LEDGE;
   Level.STYLE = STYLE;
+  /* a style's 'auto:' materials sorted from its sheets now; with no tiles to sort, its old single-crop floor */
+  Level.resolveMats = function (st) {
+    if (st.extra && !st._extra) extraGround(st); // the leftover swatches join first, so every stage deals from the same list
+    if (!(st.mats && st.mats.indexOf && st.mats.indexOf('auto:') === 0)) return st.mats;
+    const m = autoMats(st.mats.slice(5));
+    const any = Object.keys(m).some((k) => k !== 'big' && m[k].base && m[k].base.length);
+    if (any) st.mats = m; else { st.floor = st.fallback || 'pattern'; st.mats = null; }
+    return st.mats;
+  };
 })(window.CH);

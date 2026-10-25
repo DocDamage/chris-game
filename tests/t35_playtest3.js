@@ -189,7 +189,7 @@ const { open } = require('./lib');
     return { main: vis('#screen-main .menu-col .btn'), more: vis('#screen-main .menu-more .btn'), strip: getComputedStyle(document.getElementById('controls-strip')).display };
   });
   ok('main menu: PLAY, CO-OP, JOURNAL, SETTINGS (the hero belongs to the character: PLAN.md 18, K0a)', JSON.stringify(r.main) === JSON.stringify(['btn-play', 'btn-coop', 'btn-journal', 'btn-settings']), r);
-  ok('the rest is a link row, no key strip', r.more.length === 5 && r.strip === 'none', r);
+  ok('the rest is a link row, no key strip', r.more.length === 6 && r.more.includes('btn-editor') && r.strip === 'none', r); // (the sixth: STAGE EDITOR, PLAN.md 23)
 
   ok('no console errors', errs.length === 0, errs.slice(0, 5));
   console.log(fails ? fails + ' FAILED' : 'ALL PASS');

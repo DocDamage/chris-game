@@ -40,7 +40,8 @@ const { open } = require('./lib');
       const L = G.level;
       if (!L) return;
       const U = window.__used;
-      for (const p of L.props) { if (p.sheet) U.add(p.sheet); else if (p.sprite && CH.Assets.images[p.sprite]) U.add(p.sprite); if (p.src) U.add(p.src); }
+      for (const p of L.props) { if (p.sheet) U.add(p.sheet); else if (p.sprite && (CH.Assets.images[p.sprite] || p.sprite.startsWith('obj.'))) U.add(p.sprite); if (p.src) U.add(p.src); }
+      for (const q of L.inlays || []) U.add(CH.Assets.images['kit.' + q.key] ? 'kit.' + q.key : q.key);
       for (const d of L.decals || []) if (d.key) U.add(d.key);
       for (const k of L.wallKeys || []) U.add(k);
       const CHK = 8;
@@ -55,6 +56,8 @@ const { open } = require('./lib');
         for (const p of B.props) if (p.sheet) U.add(p.sheet);
         for (const d of B.decals || []) if (d.key) U.add(d.key);
         for (const k of B.wallKeys || []) U.add(k);
+        for (const p of B.props) if (p.sprite && p.sprite.startsWith('obj.')) U.add(p.sprite);
+        for (const q of B.inlays || []) U.add(CH.Assets.images['kit.' + q.key] ? 'kit.' + q.key : q.key);
       }
       if (CH.Interiors && CH.Interiors.build) for (const p of L.props) if (p.enter) { try { const R = CH.Interiors.build(p, true); if (R && R.props) for (const q of R.props) if (q.sheet) U.add(q.sheet); } catch (e) {} }
       window.__rec = false;
@@ -63,7 +66,7 @@ const { open } = require('./lib');
   const res = await page.evaluate(() => {
     const M = CH.Assets.meta || {}, used = window.__used, out = {};
     // a pack's autotile blocks and particle frames are the sources the floors, walls and weather are cut from, not pieces
-    const SOURCE = { tiles: 1, particle: 1 };
+    const SOURCE = { particle: 1, junk: 1 }; // the snowflakes: drawn by the weather (js/atmos.js), which the audit does not run
     const add = (pack, sheet, key, kind) => {
       if (SOURCE[kind]) return;
       const P = (out[pack] = out[pack] || { n: 0, used: 0, sheets: {} });
@@ -80,6 +83,8 @@ const { open } = require('./lib');
       const m = M.sheets[id];
       for (let i = 0; i < m.n; i++) add('sheets:' + id[0], id, 'sh.' + id + '.' + i, CH.Props.kindOf('sh.' + id + '.' + i));
     }
+    // the Valley Ruin's objects (js/setpieces.js OBJ): on the sky road's islands
+    for (const k of [...new Set(Object.values(CH.SetPieces.OBJ).flat())]) if (CH.Sprites.has(k)) add('Valley Ruin', 'obj', k, null);
     const LD = M.lands || {};
     for (const id of Object.keys(LD.sheets || {})) {
       const m = LD.sheets[id];

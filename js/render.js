@@ -283,6 +283,11 @@
     }
 
     if (prop.additive) ctx.globalCompositeOperation = 'lighter';
+    if (prop.rise) { // a bubble: it rises and fades, then starts again at the bottom
+      const f = (G.wall * 0.45 + (prop.phase || 0)) % 1;
+      ctx.translate(0, -f * 40);
+      ctx.globalAlpha = Math.min(1, (1 - f) * 2.5) * Math.min(1, f * 6);
+    }
     if (prop.fps) { // an animated piece (js/props.js): its frames in turn, each prop out of step with the next
       const sp = CH.Sprites.get(prop.sprite), n = sp && sp.frames ? sp.frames.length : 1;
       CH.Sprites.draw(ctx, prop.sprite, 0, 0, { flip: !!prop.flip, frame: Math.floor(G.wall * prop.fps + (prop.phase || 0) * 17) % n });
@@ -291,7 +296,7 @@
   }
 
   function drawMachine(ctx, m, cam) {
-    if (m.town) return; // in town the vendor NPC stands there instead
+    if (m.town || m.hidden) return; // in town the vendor NPC stands there instead; a stall of a hand-made stage is its own look
     const x = m.x - cam.x;
     const y = m.y - cam.y;
     CH.Enemies.shadow(ctx, x, y + 13, 18);

@@ -62,6 +62,26 @@ const { open } = require('./lib');
   });
   ok('every walled biome is walled with the Dungeon Asset Pack: faces, corners and its own mounted doors / windows / signs / chains', Object.values(r).every((q) => q.da2 >= 4 && q.corners >= 2 && q.mounts >= 2), r);
 
+  // a sealed vault behind a door in a dungeon wall: the prompt, the button, the treasure room, and out again
+  r = await page.evaluate(() => {
+    const G = CH.G;
+    __build(7);
+    const L = G.level, v = (L.vaults || [])[0];
+    if (!v) return { vaults: 0 };
+    const p = G.player;
+    p.x = v.x; p.y = v.y + 8; p.invuln = 99;
+    __clear();
+    __step(2);
+    const f = CH.Interact.focus.get(p);
+    G.interact(p);
+    __step(5);
+    const inside = G.level.interior && G.level.name, chest = G.level.chests[0] && G.level.chests[0].tier;
+    if (CH.Interiors.outside) CH.Interiors.leave();
+    __step(2);
+    return { vaults: L.vaults.length, focus: f && f.name, inside, chest, back: G.level === L };
+  });
+  ok('a dungeon has a sealed vault behind a wall door: ENTER it, a treasure room, and back out', r.vaults >= 1 && r.focus === 'SEALED VAULT' && r.inside === 'A Sealed Vault' && r.back, r);
+
   // coverage: the five Catacombs stages together show (nearly) every piece of the Dungeon Asset Pack
   r = await page.evaluate(() => {
     const seen = new Set();
@@ -127,6 +147,9 @@ const { open } = require('./lib');
     const b = G.enemies.find((e) => e.isBoss && !e.dead);
     if (b) G.killEnemy(b);
     __step(150);
+    // the tower fights on: its two hearts wake (js/sky.js); stop them both
+    for (const h of G.enemies.filter((q) => q.heart && !q.dead)) G.killEnemy(h);
+    __step(30);
     const L = G.level, p = G.player;
     p.x = L.exit.x; p.y = L.exit.y + 12;
     __clear();

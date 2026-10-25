@@ -318,13 +318,95 @@ function belly() {
   for (let col = 0; col < 4; col++) anim('mb_worm' + col, gw, [0, 1, 2, 3].map((row) => [col * 144, row * 48, 144, 48]), 2, 'worm', 4);
 }
 
+/* ---------------------------------------------------------------- the older packs' floor and wall sheets (PLAN.md 22)
+   cut by tools/pack-kits.js's rules (zs1 street, wl1-2 concrete and metal, vr1 floor, vr2 walls, vr3 lava, ph1 crypt
+   floors, ph2 crypt walls); labels, divider lines and dust specks dropped. Into meta.lands.kits, which the game merges
+   into meta.kits (js/props.js) */
+function oldKits() {
+  const K = require('./pack-kits');
+  out.kits = {};
+  for (const id of ['zs1', 'wl1', 'wl2', 'vr1', 'vr2', 'vr3', 'ph1', 'ph2']) {
+    const r = K.packSheet(id);
+    if (!r) continue;
+    const m = { pack: r.pack, sheet: r.sheet, name: r.name, n: 0, roles: [], sizes: [], src: [], kinds: [] };
+    r.images.forEach((im, i) => {
+      const [w, h] = r.sizes[i];
+      if (Math.max(w, h) < 8 || (h <= 6 && w >= 18) || w > h * 8) return; // a label, a divider line, a speck
+      out.img['kit.' + id + '.' + m.n] = png64(im);
+      m.roles.push(r.roles[i]); m.sizes.push(r.sizes[i]); m.src.push(r.src[i]); m.kinds.push(r.kinds[i]);
+      m.n++;
+    });
+    out.kits[id] = m;
+  }
+}
+
+/* ---------------------------------------------------------------- the rest of the Seabed and the islands (PLAN.md 22)
+   Seabed: Ground_sand's rock outcrops, pebbles and sand (sb4), the reef's seagrass (sb5), Details' pebbles (sb6), the
+   bubbles (sb7, they rise in the drowned rooms). Islands: the ponds and lake shores of Water_coasts1-2 (six frames each,
+   animated), the ripples of water_detilazation (animated), the grass edges and cliff of the additional tiles (fi4). */
+function columns(img, sections, gapX) {
+  // blobs grouped into columns (one frame per row): an animation per column
+  const b = blobs(img, { gap: 2, minArea: 16 });
+  const out = [];
+  for (const [y0, y1] of sections) {
+    const cols = [];
+    for (const r of b.filter((q) => q.y >= y0 && q.y < y1).sort((a, c) => a.y - c.y)) {
+      const cx = r.x + r.w / 2;
+      const col = cols.find((q) => Math.abs(q.cx - cx) < (gapX || 30));
+      if (col) col.list.push(r); else cols.push({ cx, list: [r] });
+    }
+    out.push(...cols.map((q) => q.list));
+  }
+  return out;
+}
+function seaExtra() {
+  sheet('sb4', 'Seabed');
+  const gs = load(path.join(SB, 'Ground_sand.png'));
+  for (const r of blobs(gs, { gap: 1, minArea: 20 })) {
+    const im = S.cut(gs, r), big = Math.max(r.w, r.h), c = colours(im);
+    const k = r.x >= 350 && r.y >= 600 ? 'patch' : c.green > 0.25 ? 'tuft' : big >= 70 ? 'boulder' : big >= 24 ? 'rock' : 'debris';
+    add('sb4', scaleTo(im, k === 'patch' ? 0.8 : 0.62), k, r.x + ',' + r.y);
+  }
+  sheet('sb5', 'Seabed');
+  const rf = load(path.join(SB, '../Tiled_files/reef_elements.png'));
+  for (const r of blobs(rf, { gap: 1, minArea: 10 })) add('sb5', scaleTo(S.cut(rf, r), 0.7), 'tuft', r.x + ',' + r.y);
+  sheet('sb6', 'Seabed');
+  const dt = load(path.join(SB, '../Tiled_files/Details.png'));
+  for (const r of blobs(dt, { gap: 1, minArea: 6 })) add('sb6', scaleTo(S.cut(dt, r), 0.7), 'debris', r.x + ',' + r.y);
+  sheet('sb7', 'Seabed');
+  const bb = load(path.join(SB, '../Tiled_files/Bubbles.png'));
+  for (const r of blobs(bb, { gap: 1, minArea: 9 })) add('sb7', scaleTo(S.cut(bb, r), 0.7), 'bubble', r.x + ',' + r.y);
+}
+function islandExtra() {
+  for (const n of [1, 2]) {
+    const wc = load(path.join(FI, 'Water_coasts' + n + '.png'));
+    const parts = [[14, 14, 52, 52, 'pond'], [80, 15, 176, 66, 'lake'], [271, 15, 36, 33, 'pond'], [320, 16, 64, 32, 'pond'], [224, 61, 144, 20, 'shore']];
+    parts.forEach(([x, y, w, h, k], i) => anim('fi_water' + n + '_' + i, wc, [0, 1, 2, 3, 4, 5].map((f) => [x - 1, y - 1 + f * 80, w + 2, h + 2]).filter((q) => q[1] + q[3] <= wc.h), 1.4, k, 4));
+  }
+  const wd = load(path.join(FI, 'water_detilazation.png'));
+  columns(wd, [[0, 195], [195, 475], [475, 576]], 40).forEach((list, i) => {
+    if (list.length < 2) return;
+    const fw = Math.max(...list.map((r) => r.w)), fh = Math.max(...list.map((r) => r.h));
+    anim('fi_ripple' + i, wd, list.map((r) => [Math.max(0, Math.round(r.x + r.w / 2 - fw / 2)), Math.max(0, Math.round(r.y + r.h / 2 - fh / 2)), fw, fh]), 1, 'ripple', 4);
+  });
+  sheet('fi4', 'Flying Islands');
+  const ad = load(path.join(FI, 'Ground_grass_additional_tiles.png'));
+  for (const r of blobs(ad, { gap: 1, minArea: 30 })) {
+    const im = S.cut(ad, r), c = colours(im);
+    add('fi4', grade(nearest(im, 1.4), [0.74, 0.76, 0.8], 0.15), r.y > 100 ? 'ladder' : r.h > 40 && r.w > 100 ? 'cliff' : c.green > 0.2 || c.blue > 0.2 ? 'tuft' : 'cliff', r.x + ',' + r.y);
+  }
+}
+
 function packLands() {
+  oldKits();
+  seaExtra();
+  islandExtra();
   undead();
   seabed();
   islands();
   tower();
   belly();
-  return { img: out.img, meta: { sheets: out.sheets, anims: out.anims } };
+  return { img: out.img, meta: { sheets: out.sheets, anims: out.anims, kits: out.kits } };
 }
 module.exports = { packLands };
 

@@ -44,7 +44,7 @@ const { open } = require('./lib');
     step(15);
     r.packWoke = pk.woke;
     // pathing: an enemy with a wall between it and the hero still arrives
-    const far = L.rooms.map((rm) => ({ x: rm.cx, y: rm.cy })).find((c) => !L.los(c.x, c.y, G.player.x, G.player.y) && L.pathDist(c.x, c.y, G.player.x, G.player.y) < 1400);
+    const far = L.rooms.map((rm) => L.nearestOpen(rm.cx, rm.cy)).find((c) => !L.los(c.x, c.y, G.player.x, G.player.y) && L.pathDist(c.x, c.y, G.player.x, G.player.y) < 1400);
     r.pathCase = !!far;
     if (far) {
       G.enemies = G.enemies.filter((q) => { if (q.isSpawner) return true; q.dead = true; return false; });
