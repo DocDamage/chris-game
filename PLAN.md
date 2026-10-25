@@ -933,3 +933,16 @@ The owner: "if i drop a door that it should make the event to enter the building
 | Event spots | Roles used at a spot have a badge, dragged to where a hero stands. |
 | In the game (js/stages.js `CH.Stages.events`) | A piece's role becomes a chest (drawn as the piece, `skin`), a shrine (also drawn as the piece), lore to read, a waypoint, a breach (a live hive), a shop (the vending machine made invisible at the spot, labelled SHOP), or a hazard (`L.hazards`, hurting as lava or toxic puddles do in js/atmos.js). Doors use `prop.enter`; the exit stands at the exit door's spot. These records are marked `fromProp`, so saving and reopening never doubles them. |
 | Test | t61 now has 22 checks: sure roles, the grave asked about once then remembered, a stall made a shop, a crate made a chest and undone, the roles made real on build, ENTER / OPEN / READ / SHOP prompts in play, the breach live, the trap hurting, and reopening without doubling. |
+
+### 23.2 Height in the editor (owner, 2026-10-24)
+
+The owner asked for tools to paint height tiers, ramps, stairs and bridges (a blank stage could only be flat; a generated stage's height could not be changed).
+
+| Part | Done |
+| --- | --- |
+| Height tool (js/editor/height.js, key R) | Ground and tiers 1-3 painted with the brush or as a rectangle; rims (LEDGE cells of their tier) worked out from the tiers wherever higher ground meets lower (`ED.settleHeight`), as walls dress themselves; stairs and ramps clicked or dragged onto a rim (the tile opens and keeps the tier below, as the generator's do); bridges dragged over pit (the pit under it becomes floor at the lower bank's tier, `L.bridges` draws the planks; taken away, the pit comes back) |
+| Undo | `ED.groundAct`: a change to cells, tiers, stairs, ramps and bridges is one step, kept as a diff. Terrain strokes use it too, so the rims round painted cells are worked out again and undone with them |
+| Showing it | While the tool is out: tiers tinted, rims stronger, arrows up the stairs, bridges framed; the status bar names the tile (tier, rim, stairs from / to, bridge) |
+| Check | Stairs that lead nowhere and raised ground with no stairs or ramp are warned about (`ED.heightIssues`) |
+| Fixes | Resizing a stage renumbers stairs, ramps and painted floor tiles for the new width (they were left on the old numbers) and drops what falls off. js/walls.js: a plateau's rim keeps its stone face but nothing is mounted on it (doors, windows and torches hung on generated plateaus' rims, and a rim door could become a vault entrance) |
+| Test | t61 now has 27 checks: a tier and its rim, the warning until stairs are in, a second tier with a ramp (undo, redo), walking up, a chasm cutting the exit off and a bridge joining it, save and build, a hero unable to climb a rim but able to jump down it, a resize keeping the stairs |

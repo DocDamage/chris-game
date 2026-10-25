@@ -89,7 +89,7 @@
 
   /* the top bar: the stage, the tools, the view, undo, saving */
   ED.TOOLS = {}; // name -> { label, ic, key, tip, sub?: [[id, label]], down, move, up, draw, cursor }
-  ED.TOOL_ORDER = ['select', 'stamp', 'scatter', 'erase', 'terrain', 'tiles', 'mark'];
+  ED.TOOL_ORDER = ['select', 'stamp', 'scatter', 'erase', 'terrain', 'height', 'tiles', 'mark'];
   function buildTop() {
     const T = topEl;
     T.textContent = '';
@@ -225,6 +225,7 @@
     if (L.stage == null) L.stage = id === 'belly' ? (CH.WorldMap ? CH.WorldMap.LAST : 49) : +id;
     L.explored.fill(1);
     L.editing = true;
+    if (ED.heightReady) ED.heightReady(L);
     CH.Stages.unevents(L); // (the chests, signs ... its pieces make are the pieces' own: js/editor/roles.js)
     ED.L = L;
     ED.how = how;
@@ -644,6 +645,7 @@
       g.setLineDash([]);
     }
     if (ED.hover && !ED.isSel(ED.hover.o)) { const r = ED.itemRect(ED.hover); g.strokeStyle = 'rgba(111,211,255,0.8)'; g.lineWidth = 1 / z; g.strokeRect(r.x, r.y, r.w, r.h); }
+    if (ED.tool === 'height' && ED.drawHeight) ED.drawHeight(g, z, v0, v1); // the tiers, rims, stairs and bridges (js/editor/height.js)
     if (ED.showMarks) drawMarks();
     const t = ED.TOOLS[ED.tool];
     if (t && t.draw) t.draw(g, z);
@@ -696,6 +698,7 @@
     const add = (k, v) => statusEl.append(ED.$('span', {}, [k + ' ', ED.$('b', { text: v })]));
     add('at', Math.round(m.wx) + ', ' + Math.round(m.wy));
     add('tile', tx + ', ' + ty + ' (' + cell + ')');
+    if (L.inb(tx, ty) && L.top && ED.heightHere) add('height', ED.heightHere(tx, ty));
     add('zoom', Math.round(ED.cam.z * 100) + '%');
     add('stage', L.tw + '×' + L.th + ' tiles · ' + L.props.filter((p) => !p.invisible).length + ' pieces · ' + L.decals.length + ' on the floor');
     if (h) add('under the mouse', h.t === 'mark' ? ED.MARK[h.type].label : (h.o.sheet || h.o.key || h.o.sprite || ''));
@@ -881,7 +884,7 @@
   };
   ED.keysDialog = function () {
     const rows = [
-      ['V B S E T K M', 'tools: select, stamp, scatter, erase, terrain, floor tiles, markers'],
+      ['V B S E T R K M', 'tools: select, stamp, scatter, erase, terrain, height, floor tiles, markers'],
       ['Click / drag', 'pick / move; drag on empty floor draws a box (Shift adds)'],
       ['Alt + click', 'eyedropper: the piece under the mouse in the drawer'],
       ['Alt (held)', 'place and move freely (no snap)'],

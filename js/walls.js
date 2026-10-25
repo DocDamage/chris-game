@@ -210,6 +210,7 @@
       // the face's own stone, dealt (a long run's piece is sliced across three cells)
       const fl = live(mat.face).concat(Array.isArray(mat.long) ? live(mat.long).map((k) => '~' + k) : []);
       if (fl.length) { const seg = (gx >> 2) + gy * 1000, prev = P.segFace.get(seg); const k = prev || deal('f' + (mat.face[0] || mat.long), fl); P.segFace.set(seg, k); P.face.set(i, k); }
+      if (L.cell(gx, gy) === 5) continue; // a plateau's rim (a LEDGE) is stone only: no door, window or torch hangs on raised ground
       const acc = (x) => hash(x * 5 + 3, gy * 11 + 7) < 0.3;
       if (!slots.length || !acc(gx) || acc(gx - 1)) { plain.push(i); continue; }
       give(i, slots[(si++ + step) % slots.length]);

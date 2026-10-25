@@ -47,9 +47,29 @@ Change the seed to get another generated layout. "Delete my stage" makes the gam
 | S | Scatter | Paint a mix of the picked pieces in a circle, spaced and flipped at random. Sparse, Normal or Dense. Right-drag thins them out. |
 | E | Erase | Take away what is under the brush: Anything, Standing only, or Floor only. |
 | T | Terrain | Paint Floor, Wall, Pit or Secret wall (a cracked wall heroes can break). Wall faces, corners, mounted torches and vault doors dress themselves. Shift+drag fills a rectangle; right-drag paints wall. |
+| R | Height | Raise and lower the ground, and put stairs, ramps and bridges on it (see below). |
 | K | Floor tiles | Paint floor tiles with the picked piece (any floor swatch; big swatches tile across seamlessly), or clear them. |
 | M | Markers | Entrance, Exit, Waypoint, Breach (a monster hive), Monster pack, Chest, Shrine, Lore stone. Right-click a marker to remove it. |
 | Alt+click | Eyedropper | Picks the piece under the mouse in the drawer. |
+
+## Height: raised ground, stairs, ramps, bridges
+
+The Height tool (R) works like Terrain: you paint, and the edges build themselves.
+
+| Mode | What it does |
+| --- | --- |
+| Ground, Tier 1, Tier 2, Tier 3 | Paint the ground to that height. Shift+drag fills a rectangle; right-drag lowers to the ground. |
+| Stairs | Click or drag along a rim to open it with stairs. Right-click takes them away. |
+| Ramp | The same, drawn as a slope. |
+| Bridge | Drag a rectangle across a pit or chasm. Right-click a bridge to take it away (the pit comes back). |
+
+- **Rims.** Wherever higher ground meets lower ground, the higher side's edge becomes a rim: a low wall of stone. Heroes on top can jump down off it; nobody can climb it. Monsters can't cross it either.
+- **The way up** is stairs or a ramp in the rim. A tier 2 inside a tier 1 needs its own stairs, from tier 1.
+- **Bridges** sit at the height of the lower bank.
+- **While the tool is out** each tier is tinted (blue tier 1, orange tier 2, pink tier 3), rims more strongly, stairs show an arrow pointing up, and bridges are framed. The status bar says what the tile under the mouse is.
+- **Painting Terrain** on raised ground works the rims out again. Painting floor over a rim doesn't remove it; lower the ground with Height instead.
+- **The stage check** warns about stairs that lead nowhere and raised ground with no way up, as well as spots that can't be walked to.
+- **Rims carry no doors, windows or torches**; those go on walls only.
 
 ## What a piece is to the game
 
@@ -126,7 +146,7 @@ Every guess can be changed in the preview before it comes in, and afterwards in 
 
 | Keys | Does |
 | --- | --- |
-| V B S E T K M | the tools |
+| V B S E T R K M | the tools |
 | Ctrl+Z / Ctrl+Y | undo / redo (300 steps; hover the buttons to see which) |
 | Ctrl+C / Ctrl+V / Ctrl+Shift+V / Ctrl+D | copy, paste at the mouse, paste in place, duplicate |
 | Ctrl+A | pick every piece |

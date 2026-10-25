@@ -270,9 +270,14 @@
   function resize(w, h) {
     const L = ED.L;
     if (!(w >= 16 && h >= 12)) return;
-    const old = { tw: L.tw, th: L.th, cells: L.cells, top: L.top, explored: L.explored, route: L.route, trail: L.trail, skyBridge: L.skyBridge };
+    const old = { tw: L.tw, th: L.th, cells: L.cells, top: L.top, explored: L.explored, route: L.route, trail: L.trail, skyBridge: L.skyBridge, stairs: L.stairs, ramps: L.ramps, paint: L.paint, bridges: L.bridges };
     const grow = (a, Type, fill) => { if (!a) return a; const b = new (Type || Uint8Array)(w * h); if (fill) b.fill(fill); for (let y = 0; y < Math.min(h, old.th); y++) for (let x = 0; x < Math.min(w, old.tw); x++) b[y * w + x] = a[y * old.tw + x]; return b; };
-    const now = { tw: w, th: h, cells: grow(old.cells, Uint8Array, 1), top: grow(old.top), explored: grow(old.explored, Uint8Array, 1), route: grow(old.route), trail: grow(old.trail), skyBridge: grow(old.skyBridge) };
+    // what is kept by tile number (stairs, ramps, painted tiles) is renumbered for the new width; what falls off is dropped
+    const at = (i) => { const x = i % old.tw, y = (i / old.tw) | 0; return x < w && y < h ? y * w + x : -1; };
+    const reSet = (s) => s && new Set([...s].map(at).filter((i) => i >= 0));
+    const paint = old.paint && new Map([...old.paint].map(([i, k]) => [at(i), k]).filter(([i]) => i >= 0));
+    const bridges = (old.bridges || []).filter((b) => b.x0 + b.w <= w && b.y0 + b.h <= h).map((b) => Object.assign({}, b, b.pit ? { pit: b.pit.map(at) } : {}));
+    const now = { tw: w, th: h, cells: grow(old.cells, Uint8Array, 1), top: grow(old.top), explored: grow(old.explored, Uint8Array, 1), route: grow(old.route), trail: grow(old.trail), skyBridge: grow(old.skyBridge), stairs: reSet(old.stairs), ramps: reSet(old.ramps), paint, bridges };
     const apply = (v) => { Object.assign(L, v); L.w = L.tw * TS; L.h = L.th * TS; L.chunks.clear(); L._wplan = null; L.props = L.props.filter((p) => p.cat !== 'walllight'); L.mini = null; L.miniDirty = true; if (CH.Walls && CH.Walls.plan) CH.Walls.plan(L); };
     ED.act('resize stage', () => apply(now), () => apply(old));
     ED.fitAll();
@@ -290,9 +295,10 @@
       const reach = (p) => f.dist[L.idx(Math.floor(p.x / TS), Math.floor(p.y / TS))] >= 0;
       for (const it of ED.marks()) if (it.type !== 'entrance' && !(it.type === 'chest' && it.o.secret) && !reach(it.o)) issues.push(ED.MARK[it.type].label + ' at ' + Math.round(it.o.x) + ', ' + Math.round(it.o.y) + ' cannot be walked to.');
     }
+    if (ED.heightIssues) for (const t of ED.heightIssues()) issues.push(t);
     if (!L.spawners.length) issues.push('No breaches: the exit opens at once.');
     const ul = $('ul');
-    for (const t of issues.slice(0, 12)) ul.append($('li', { class: t.startsWith('No breaches') ? 'warn' : 'bad', text: t }));
+    for (const t of issues.slice(0, 12)) ul.append($('li', { class: t.startsWith('No breaches') || / has no stairs | lead nowhere/.test(t) ? 'warn' : 'bad', text: t }));
     if (issues.length > 12) ul.append($('li', { text: '… and ' + (issues.length - 12) + ' more' }));
     out.append(issues.length ? ul : $('div', { class: 'note', text: '✓ Every spot can be walked to from the entrance.' }));
   }

@@ -296,18 +296,18 @@
       g.strokeRect((tx - r) * TS, (ty - r) * TS, (r * 2 + 1) * TS, (r * 2 + 1) * TS);
     },
   };
-  /* a stroke of cells as one undo step */
+  /* a stroke of cells as one undo step; the rims of raised ground round it are worked out again (js/editor/height.js) */
   const strokeBefore = new Map();
   function commitCells(changes) {
-    const L = ED.L, old = new Map();
-    for (const i of changes.keys()) old.set(i, strokeBefore.has(i) ? strokeBefore.get(i) : L.cells[i]);
+    const L = ED.L;
+    for (const [i, v] of strokeBefore) L.cells[i] = v; // (back to before the stroke, so the step holds all of it)
     strokeBefore.clear();
-    const apply = (m) => {
-      let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
-      for (const [i, v] of m) { L.cells[i] = v; const x = i % L.tw, y = (i / L.tw) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-      if (x1 >= 0) ED.cellsChanged(x0, y0, x1, y1);
-    };
-    ED.act('paint ' + changes.size + ' tiles', () => apply(changes), () => apply(old));
+    let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    for (const i of changes.keys()) { const x = i % L.tw, y = (i / L.tw) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    ED.groundAct('paint ' + changes.size + ' tiles', () => {
+      for (const [i, v] of changes) L.cells[i] = v;
+      ED.settleHeight(x0, y0, x1, y1);
+    });
   }
 
   /* ------------------------------------------------------------------ floor tiles */

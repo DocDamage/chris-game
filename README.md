@@ -398,7 +398,7 @@ Aseprite and 7-Zip for the UI and sidekick packs).
 
 - **Make the stages yourself.** STAGE EDITOR on the main menu (or `index.html?editor`):
   - a drawer of every piece of every pack;
-  - stamp, scatter, erase, terrain painting (walls dress themselves), floor tiles and markers (entrance, exit, breaches, packs, chests, shrines);
+  - stamp, scatter, erase, terrain painting (walls dress themselves), height (tiers with their rims, stairs, ramps, bridges), floor tiles and markers (entrance, exit, breaches, packs, chests, shrines);
   - collision you can see and drag;
   - undo, and a play test (F5, F10 to come back).
   Saved stages are what the game plays. See [docs/STAGE_EDITOR.md](docs/STAGE_EDITOR.md).

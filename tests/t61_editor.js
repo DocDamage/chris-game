@@ -196,6 +196,67 @@ const { open } = require('./lib');
     return out;
   });
   await page.screenshot({ path: __dirname + '/editor.png' });
+  // height: a plateau painted on a blank stage, its rim, stairs, a second tier with a ramp, a chasm and its bridge
+  const h = await page.evaluate(async () => {
+    const ED = CH.Editor, T = 32, out = {};
+    ED.open();
+    ED.openArea('30', 'blank', { biome: 'dungeon', tw: 40, th: 30, open: true });
+    const L = ED.L, at = (x, y) => ({ wx: x * T + 16, wy: y * T + 16 });
+    const drag = (tool, a, b, o) => { ED.TOOLS[tool].down(Object.assign({ button: 0, shift: true }, at(...a), o)); ED.TOOLS[tool].up(Object.assign(at(...b), { down: false })); };
+    const click = (tool, x, y, o) => { const m = Object.assign({ button: 0 }, at(x, y), o); ED.TOOLS[tool].down(m); ED.TOOLS[tool].up(m); };
+    const cell = (x, y) => L.cell(x, y) + ':' + L.top[L.idx(x, y)];
+    ED.setTool('height');
+    ED.sub.height = '1';
+    drag('height', [10, 8], [20, 16]);
+    out.plateau = [cell(15, 12), cell(10, 12), cell(10, 8), cell(9, 12)].join(' '); // top, rim, corner, the ground beside it
+    out.noStairs = /has no stairs/.test(ED.check());
+    ED.sub.height = 'stairs';
+    click('height', 15, 16);
+    out.stairs = L.stairs.has(L.idx(15, 16)) && cell(15, 16) === '0:0';
+    out.stairsOk = !/has no stairs|lead nowhere/.test(ED.check());
+    ED.sub.height = '2';
+    drag('height', [13, 10], [17, 14]);
+    out.tier2 = [cell(15, 12), cell(13, 12)].join(' ');
+    ED.sub.height = 'ramp';
+    drag('height', [15, 14], [16, 14]);
+    out.ramp = L.ramps.has(L.idx(15, 14)) && L.ramps.has(L.idx(16, 14)) && cell(15, 14) === '0:1';
+    ED.undo();
+    out.rampUndo = cell(15, 14) === '5:2' && !L.stairs.has(L.idx(15, 14));
+    ED.redo();
+    // up the stairs and the ramp: the top of the upper tier can be walked to from the entrance
+    L.flows.clear();
+    out.walkUp = L.flowFor(L.entrance.x, L.entrance.y).dist[L.idx(15, 12)] >= 0;
+    // a chasm right across the stage cuts the exit off; a bridge over it joins it again
+    ED.setTool('terrain');
+    ED.sub.terrain = 'pit';
+    drag('terrain', [25, 1], [26, 28]);
+    out.cut = /Exit .* cannot be walked to/.test(ED.check());
+    ED.setTool('height');
+    ED.sub.height = 'bridge';
+    drag('height', [25, 14], [26, 15]);
+    out.bridge = L.bridges.length === 1 && cell(25, 14) === '0:0' && !/cannot be walked to/.test(ED.check());
+    // saved and built again: every tier, rim, stair, ramp and bridge comes back
+    const d = CH.Stages.serialize(L, { area: '30' }), B = CH.Stages.build(d, 30);
+    out.round = B.cells.join() === L.cells.join() && B.top.join() === L.top.join() && [...B.stairs].sort().join() === [...L.stairs].sort().join() && B.ramps.size === 2 && B.bridges.length === 1;
+    // in the game: a hero on the ground cannot jump up onto a rim, a hero on top may jump down off it; the top lifts the hero
+    const climb = { hero: true, z: 5, top: 0, x: 9 * T + 28, y: 12 * T + 16, r: 8 }, down = { hero: true, z: 5, top: 1, x: 11 * T + 4, y: 12 * T + 16, r: 8 };
+    out.climbBlocked = B.pushOut(climb) === true;
+    out.jumpDown = B.pushOut(down) === false;
+    // the stage made wider: the stairs and ramps keep their tiles
+    ED.select([]);
+    ED.inspect();
+    const rb = [...ED.els.insp.querySelectorAll('button')].find((b) => b.textContent === 'Resize');
+    if (rb) { const ins = rb.parentElement.querySelectorAll('input'); ins[0].value = 46; ins[1].value = 30; rb.click(); }
+    out.resized = L.tw === 46 && L.stairs.has(L.idx(15, 16)) && L.ramps.has(L.idx(16, 14)) && L.cell(13, 12) === 5;
+    ED.dirty = false;
+    ED.close(true);
+    return out;
+  });
+  ok('height: a painted tier gets its rim; it warns until stairs are put in the rim', h.plateau === '0:1 5:1 5:1 0:0' && h.noStairs && h.stairs && h.stairsOk, h);
+  ok('height: a second tier on top, a ramp up to it (undo, redo); the top can be walked to', h.tier2 === '0:2 5:2' && h.ramp && h.rampUndo && h.walkUp, h);
+  ok('height: a chasm cuts the exit off, a bridge joins it again', h.cut && h.bridge, h);
+  ok('height: saved and built again the same; heroes cannot climb a rim but may jump down it', h.round && h.climbBlocked && h.jumpDown, h);
+  ok('height: a resized stage keeps its stairs and ramps on their tiles', h.resized, h);
   ok('the main menu opens the editor at its stage picker', r.dialog, r);
   ok('every piece of every pack is in the drawer', !r.missing.length && r.nCat >= r.nKeys, { missing: r.missing, nCat: r.nCat, nKeys: r.nKeys });
   ok('a generated stage opens for editing', r.opened, r);
