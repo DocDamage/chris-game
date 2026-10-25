@@ -1,5 +1,9 @@
 # Generated bundles and source art stay out of git (2 GB); regenerate via tools/
-data/
+data/*
+# ...except what the stage editor writes: the hand-made stages, the pieces' settings, the owner's imported pictures
+!data/stages.js
+!data/asset_meta.js
+!data/bundle_user.js
 assets/
 *.jpg
 tests/node_modules/
